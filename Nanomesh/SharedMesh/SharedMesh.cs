@@ -8,5 +8,14 @@ namespace Nanolabo
     {
         public Vector3[] vertices;
         public int[] triangles;
+
+        public void CheckValidity()
+        {
+            // Throw exceptions 
+            for (int i = 0; i < triangles.Length; i+=3)
+            {
+                
+            }
+        }
     }
 }

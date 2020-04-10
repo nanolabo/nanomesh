@@ -48,8 +48,8 @@ namespace Nanolabo
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));
 
-            Assert.IsFalse(mesh.AreNodesConnected(0, 1));
-            Assert.IsFalse(mesh.AreNodesConnected(1, 2));
+            Assert.IsFalse(mesh.AreNodesSiblings(0, 1));
+            Assert.IsFalse(mesh.AreNodesSiblings(1, 2));
         }
 
         [Test]
@@ -58,7 +58,7 @@ namespace Nanolabo
             Assert.That(Profiling.Time(() =>
             {
 
-            }), Is.LessThanOrEqualTo(TimeSpan.FromSeconds(0)));
+            }), Is.LessThanOrEqualTo(TimeSpan.FromMilliseconds(16)));
         }
     }
 }

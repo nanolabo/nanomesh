@@ -85,7 +85,35 @@ namespace Nanolabo
             return connectedMesh;
         }
 
-        public bool AreNodesConnected(int nodeIndexA, int nodeIndexB)
+        public SharedMesh ToSharedMesh()
+        {
+            SharedMesh mesh = new SharedMesh();
+
+            List<int> triangles = new List<int>();
+
+            HashSet<int> browsedNodes = new HashSet<int>();
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (browsedNodes.Contains(i) || nodes[i].position < 0)
+                    continue;
+
+                // Only works if all elements are triangles
+                foreach (var sibling in GetFaceNodes(i))
+                {
+                    browsedNodes.Add(sibling);
+
+                    triangles.Add(nodes[sibling].position);
+                }
+            }
+
+            mesh.vertices = positions;
+            mesh.triangles = triangles.ToArray();
+
+            return mesh;
+        }
+
+        public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
         {
             if (nodeIndexA == nodeIndexB)
                 throw new Exception("A and B is the name node !");
@@ -124,7 +152,7 @@ namespace Nanolabo
             {
                 foreach (var nextNodeIndexB in GetFaceNodes(nodeIndexB))
                 {
-                    if (AreNodesConnected(nextNodeIndexA, nextNodeIndexB))
+                    if (AreNodesSiblings(nextNodeIndexA, nextNodeIndexB))
                     {
                         return true;
                     }
@@ -155,120 +183,69 @@ namespace Nanolabo
             while (nextNodeIndex != nodeIndex);
         }
 
+        public void ReconnectSiblings(IEnumerable<int> siblings)
+        {
+            int previousSibling = -1;
+            int firstSibling = -1;
+            int position = -1;
+
+            foreach (var sibling in siblings.ToArray())
+            {
+                if (nodes[sibling].position < 0)
+                    continue;
+
+                if (previousSibling != -1)
+                {
+                    nodes[sibling].nextSibling = previousSibling;
+                    nodes[sibling].position = position;
+                }
+                else
+                {
+                    position = nodes[sibling].position;
+                    firstSibling = sibling;
+                }
+                previousSibling = sibling;
+            }
+            nodes[firstSibling].nextSibling = previousSibling;
+        }
+
         public void CollapseEdge(int nodeIndexA, int nodeIndexB)
         {
             //if (!IsAnEdge(nodeIndexA, nodeIndexB))
             //    throw new Exception("Given nodes doesn't make an edge !");
 
-            // For each A sibling, get face.
-            //     If face is connected to B
-            //         If face is a triangle, rebuild siblings at C without that face node at C
-            //     Otherwise 
+            positions[nodes[nodeIndexA].position] = (positions[nodes[nodeIndexA].position] + positions[nodes[nodeIndexB].position]) / 2;
 
             foreach (var siblingA in GetSiblings(nodeIndexA))
             {
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
+
                 foreach (var nextNode in GetFaceNodes(siblingA))
                 {
-                    if (nextNode == nodeIndexB)
+                    if (AreNodesSiblings(nextNode, nodeIndexB))
                     {
+                        nodes[nextNode].position = -1;
+                        nodes[siblingA].position = -1;
                         isFaceTouched = true;
                     }
-                    else if (nextNode != nodeIndexA)
+                    else if (nextNode != siblingA)
                     {
                         nodeIndexC = nextNode;
                     }
+
                     faceEdgeCount++;
                 }
+
                 if (isFaceTouched && faceEdgeCount == 3)
                 {
-                    int previousSiblingC = -1;
-                    int firstSiblingC = -1;
-                    foreach (var siblingC in GetSiblings(nodeIndexC).ToArray())
-                    {
-                        if (previousSiblingC != -1)
-                        {
-                            nodes[siblingC].nextSibling = previousSiblingC;
-                        }
-                        else
-                        {
-                            firstSiblingC = siblingC;
-                        }
-                        previousSiblingC = siblingC;
-                    }
-                    nodes[firstSiblingC].nextSibling = previousSiblingC;
+                    nodes[nodeIndexC].position = -1;
+                    ReconnectSiblings(GetSiblings(nodeIndexC));
                 }
             }
 
-            int previousSiblingA = -1;
-            int firstSiblingA = -1;
-
-            foreach (var siblingA in GetSiblings(nodeIndexA).ToArray())
-            {
-                bool isFaceTouched = false;
-                int nodeIndexC = -1;
-                foreach (var nextNode in GetFaceNodes(siblingA))
-                {
-                    if (nextNode == nodeIndexB)
-                    {
-                        isFaceTouched = true;
-                    }
-                    else if (nextNode != nodeIndexA)
-                    {
-                        nodeIndexC = nextNode;
-                    }
-                }
-
-                if (!isFaceTouched)
-                {
-                    if (previousSiblingA != -1)
-                    {
-                        nodes[siblingA].nextSibling = previousSiblingA;
-                    }
-                    else
-                    {
-                        firstSiblingA = siblingA;
-                    }
-                    previousSiblingA = siblingA;
-                }
-            }
-            nodes[firstSiblingA].nextSibling = previousSiblingA;
-
-            int previousSiblingB = -1;
-            int firstSiblingB = -1;
-
-            foreach (var siblingB in GetSiblings(nodeIndexB).ToArray())
-            {
-                bool isFaceTouched = false;
-                int nodeIndexC = -1;
-                foreach (var nextNode in GetFaceNodes(siblingB))
-                {
-                    if (nextNode == nodeIndexB)
-                    {
-                        isFaceTouched = true;
-                    }
-                    else if (nextNode != nodeIndexA)
-                    {
-                        nodeIndexC = nextNode;
-                    }
-                }
-
-                if (!isFaceTouched)
-                {
-                    if (previousSiblingB != -1)
-                    {
-                        nodes[siblingB].nextSibling = previousSiblingB;
-                    }
-                    else
-                    {
-                        firstSiblingB = siblingB;
-                    }
-                    previousSiblingB = siblingB;
-                }
-            }
-            nodes[firstSiblingB].nextSibling = previousSiblingB;
+            ReconnectSiblings(GetSiblings(nodeIndexA).Concat(GetSiblings(nodeIndexB)));
         }
     }
 }
