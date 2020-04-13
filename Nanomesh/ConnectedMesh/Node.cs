@@ -4,7 +4,7 @@
     {
         public int position;
         public int attribute;
-        public int nextSibling;
-        public int nextNode;
+        public int sibling;
+        public int relative;
     }
 }

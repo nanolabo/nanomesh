@@ -41,9 +41,9 @@ namespace Nanolabo
                 B.attribute = triangles[i + 1];
                 C.attribute = triangles[i + 2];
 
-                A.nextNode = nodesList.Count + 1; // B
-                B.nextNode = nodesList.Count + 2; // C
-                C.nextNode = nodesList.Count; // A
+                A.relative = nodesList.Count + 1; // B
+                B.relative = nodesList.Count + 2; // C
+                C.relative = nodesList.Count; // A
 
                 if (!vertexToNodes.ContainsKey(A.position))
                     vertexToNodes.Add(A.position, new List<int>());
@@ -71,7 +71,7 @@ namespace Nanolabo
                 {
                     if (firstSibling != -1)
                     {
-                        connectedMesh.nodes[node].nextSibling = previousSibling;
+                        connectedMesh.nodes[node].sibling = previousSibling;
                     }
                     else
                     {
@@ -79,7 +79,7 @@ namespace Nanolabo
                     }
                     previousSibling = node;
                 }
-                connectedMesh.nodes[firstSibling].nextSibling = previousSibling;
+                connectedMesh.nodes[firstSibling].sibling = previousSibling;
             }
 
             return connectedMesh;
@@ -99,12 +99,12 @@ namespace Nanolabo
                     continue;
 
                 // Only works if all elements are triangles
-                foreach (var sibling in GetFaceNodes(i))
+                int nextNodeIndex = i;
+                do
                 {
-                    browsedNodes.Add(sibling);
-
-                    triangles.Add(nodes[sibling].position);
-                }
+                    browsedNodes.Add(nextNodeIndex);
+                    triangles.Add(nodes[nextNodeIndex].position);
+                } while ((nextNodeIndex = nodes[nextNodeIndex].relative) != i);
             }
 
             mesh.vertices = positions;
@@ -137,76 +137,149 @@ namespace Nanolabo
         public bool IsAnEdge(int nodeIndexA, int nodeIndexB)
         {
             // Giflé
-            return nodes[nodes[nodeIndexA].nextNode].position == nodes[nodeIndexB].nextNode
-                || nodes[nodes[nodeIndexB].nextNode].position == nodes[nodeIndexA].nextNode;
+            return nodes[nodes[nodeIndexA].relative].position == nodes[nodeIndexB].relative
+                || nodes[nodes[nodeIndexB].relative].position == nodes[nodeIndexA].relative;
         }
 
         public int GetEdgeCount(int nodeIndex)
         {
-            return GetFaceNodes(nodeIndex).Count();
+            return GetRelativesCount(nodeIndex) + 1;
         }
 
-        public bool AreFacesConnected(int nodeIndexA, int nodeIndexB)
+        public int GetRelativesCount(int nodeIndex)
         {
-            foreach (var nextNodeIndexA in GetFaceNodes(nodeIndexA))
-            {
-                foreach (var nextNodeIndexB in GetFaceNodes(nodeIndexB))
-                {
-                    if (AreNodesSiblings(nextNodeIndexA, nextNodeIndexB))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            int k = 0;
+            int relative = nodeIndex;
+            while ((relative = nodes[relative].relative) != nodeIndex)
+                k++;
+            return k;
         }
 
-        public IEnumerable<int> GetFaceNodes(int nodeIndex)
+        [Obsolete]
+        private int[] GetRelatives(int nodeIndex)
         {
+            // Make room
+            int k = 0;
             int nextNodeIndex = nodeIndex;
-            do
-            {
-                nextNodeIndex = nodes[nextNodeIndex].nextNode;
-                yield return nextNodeIndex;
-            }
-            while (nextNodeIndex != nodeIndex);
+            while ((nextNodeIndex = nodes[nextNodeIndex].relative) != nodeIndex)
+                k++;
+
+            // Fill
+            int[] res = new int[k];
+            k = 0;
+            while ((nextNodeIndex = nodes[nextNodeIndex].relative) != nodeIndex)
+                res[k++] = nextNodeIndex;
+
+            return res;
         }
 
+        public int GetSiblingsCount(int nodeIndex)
+        {
+            int k = 0;
+            int sibling = nodeIndex;
+            while ((sibling = nodes[sibling].sibling) != nodeIndex)
+                k++;
+            return k;
+        }
+
+        [Obsolete]
         public IEnumerable<int> GetSiblings(int nodeIndex)
         {
             int nextNodeIndex = nodeIndex;
             do
             {
-                nextNodeIndex = nodes[nextNodeIndex].nextSibling;
+                nextNodeIndex = nodes[nextNodeIndex].sibling;
                 yield return nextNodeIndex;
             }
             while (nextNodeIndex != nodeIndex);
         }
 
-        public void ReconnectSiblings(IEnumerable<int> siblings)
+        public void ReconnectSiblings(int nodeIndex)
         {
-            int previousSibling = -1;
-            int firstSibling = -1;
+            int sibling = nodeIndex;
+            int lastValid = nodes[nodeIndex].position < 0 ? -1 : sibling;
+            int firstValid = -1;
             int position = -1;
 
-            foreach (var sibling in siblings.ToArray())
+            do
             {
                 if (nodes[sibling].position < 0)
                     continue;
 
-                if (previousSibling != -1)
+                if (firstValid == -1)
                 {
-                    nodes[sibling].nextSibling = previousSibling;
-                    nodes[sibling].position = position;
-                }
-                else
-                {
+                    firstValid = sibling;
                     position = nodes[sibling].position;
-                    firstSibling = sibling;
                 }
-                previousSibling = sibling;
+
+                if (lastValid != -1)
+                {
+                    nodes[lastValid].sibling = sibling;
+                    nodes[lastValid].position = position;
+                }
+
+                lastValid = sibling;
             }
-            nodes[firstSibling].nextSibling = previousSibling;
+            while ((sibling = nodes[sibling].sibling) != nodeIndex);
+
+            // Close the loop
+            nodes[lastValid].sibling = firstValid; // Additional checks here ?
+            nodes[lastValid].position = position;
+        }
+
+        public void ReconnectSiblings(int nodeIndexA, int nodeIndexB)
+        {
+            int sibling = nodeIndexA;
+            int lastValid = nodes[nodeIndexA].position < 0 ? -1 : sibling;
+            int firstValid = -1;
+            int position = -1;
+
+            do
+            {
+                if (nodes[sibling].position < 0)
+                    continue;
+
+                if (firstValid == -1)
+                {
+                    firstValid = sibling;
+                    position = nodes[sibling].position;
+                }
+
+                if (lastValid != -1)
+                {
+                    nodes[lastValid].sibling = sibling;
+                    nodes[lastValid].position = position;
+                }
+
+                lastValid = sibling;
+            }
+            while ((sibling = nodes[sibling].sibling) != nodeIndexA);
+
+            sibling = nodeIndexB;
+            do
+            {
+                if (nodes[sibling].position < 0)
+                    continue;
+
+                if (firstValid == -1)
+                {
+                    firstValid = sibling;
+                    position = nodes[sibling].position;
+                }
+
+                if (lastValid != -1)
+                {
+                    nodes[lastValid].sibling = sibling;
+                    nodes[lastValid].position = position;
+                }
+
+                lastValid = sibling;
+            }
+            while ((sibling = nodes[sibling].sibling) != nodeIndexB);
+
+            // Close the loop
+            nodes[lastValid].sibling = firstValid; // Additional checks here ?
+            nodes[lastValid].position = position;
         }
 
         public void CollapseEdge(int nodeIndexA, int nodeIndexB)
@@ -216,36 +289,38 @@ namespace Nanolabo
 
             positions[nodes[nodeIndexA].position] = (positions[nodes[nodeIndexA].position] + positions[nodes[nodeIndexB].position]) / 2;
 
-            foreach (var siblingA in GetSiblings(nodeIndexA))
+            int siblingOfA = nodeIndexA;
+            do
             {
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
 
-                foreach (var nextNode in GetFaceNodes(siblingA))
+                int relativeOfA = siblingOfA;
+                do
                 {
-                    if (AreNodesSiblings(nextNode, nodeIndexB))
+                    if (AreNodesSiblings(relativeOfA, nodeIndexB))
                     {
-                        nodes[nextNode].position = -1;
-                        nodes[siblingA].position = -1;
+                        nodes[relativeOfA].position = -1;
+                        nodes[siblingOfA].position = -1;
                         isFaceTouched = true;
                     }
-                    else if (nextNode != siblingA)
+                    else if (relativeOfA != siblingOfA)
                     {
-                        nodeIndexC = nextNode;
+                        nodeIndexC = relativeOfA;
                     }
 
                     faceEdgeCount++;
-                }
+                } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
 
-                if (isFaceTouched && faceEdgeCount == 3)
+                if (isFaceTouched && faceEdgeCount == 2)
                 {
                     nodes[nodeIndexC].position = -1;
-                    ReconnectSiblings(GetSiblings(nodeIndexC));
+                    ReconnectSiblings(nodeIndexC);
                 }
-            }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            ReconnectSiblings(GetSiblings(nodeIndexA).Concat(GetSiblings(nodeIndexB)));
+            ReconnectSiblings(nodeIndexA, nodeIndexB);
         }
     }
 }

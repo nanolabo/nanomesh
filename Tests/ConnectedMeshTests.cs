@@ -1,6 +1,4 @@
 using NUnit.Framework;
-using System;
-using System.Linq;
 
 namespace Nanolabo
 {
@@ -19,11 +17,11 @@ namespace Nanolabo
 
             var positionToNode = mesh.GetPositionToNode();
 
-            Assert.AreEqual(1, mesh.GetSiblings(positionToNode[0]).Count());
-            Assert.AreEqual(3, mesh.GetSiblings(positionToNode[1]).Count());
-            Assert.AreEqual(2, mesh.GetSiblings(positionToNode[10]).Count());
-            Assert.AreEqual(3, mesh.GetSiblings(positionToNode[11]).Count());
-            Assert.AreEqual(6, mesh.GetSiblings(positionToNode[12]).Count());
+            Assert.AreEqual(0, mesh.GetSiblingsCount(positionToNode[0]));
+            Assert.AreEqual(2, mesh.GetSiblingsCount(positionToNode[1]));
+            Assert.AreEqual(1, mesh.GetSiblingsCount(positionToNode[10]));
+            Assert.AreEqual(2, mesh.GetSiblingsCount(positionToNode[11]));
+            Assert.AreEqual(5, mesh.GetSiblingsCount(positionToNode[12]));
         }
 
         [Test]
@@ -50,15 +48,6 @@ namespace Nanolabo
 
             Assert.IsFalse(mesh.AreNodesSiblings(0, 1));
             Assert.IsFalse(mesh.AreNodesSiblings(1, 2));
-        }
-
-        [Test]
-        public void Performances()
-        {
-            Assert.That(Profiling.Time(() =>
-            {
-
-            }), Is.LessThanOrEqualTo(TimeSpan.FromMilliseconds(16)));
         }
     }
 }
