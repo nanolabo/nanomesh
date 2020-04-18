@@ -6,5 +6,20 @@
         public int attribute;
         public int sibling;
         public int relative;
+
+        public void MarkRemoved()
+        {
+            position = -10;
+        }
+
+        public bool IsRemoved()
+        {
+            return position == -10;
+        }
+
+        public override string ToString()
+        {
+            return $"sibl:{sibling} rela:{relative} posi:{position} attr:{attribute}";
+        }
     }
 }

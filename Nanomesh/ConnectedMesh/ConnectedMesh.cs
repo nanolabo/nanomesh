@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using Experimental = System.ObsoleteAttribute;
 
 namespace Nanolabo
 {
@@ -9,7 +11,7 @@ namespace Nanolabo
     // Connected mesh is V * sizeof(Vector3) + 3F * sizeof(Node) + F * sizeof(Face) = 12 * 0.5F + 3F * 12 + 12F = 54F (without attributes)
     // Connected mesh no face is V * sizeof(Vector3) + 3F * sizeof(Node) = 12 * 0.5F + 3F * 12 = 42F (without attributes)
 
-    public class ConnectedMesh
+    public partial class ConnectedMesh
     {
         public Vector3[] positions;
         public Attribute[] attributes;
@@ -95,16 +97,16 @@ namespace Nanolabo
 
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (browsedNodes.Contains(i) || nodes[i].position < 0)
+                if (browsedNodes.Contains(i) || nodes[i].IsRemoved())
                     continue;
 
                 // Only works if all elements are triangles
-                int nextNodeIndex = i;
+                int relative = i;
                 do
                 {
-                    browsedNodes.Add(nextNodeIndex);
-                    triangles.Add(nodes[nextNodeIndex].position);
-                } while ((nextNodeIndex = nodes[nextNodeIndex].relative) != i);
+                    browsedNodes.Add(relative);
+                    triangles.Add(nodes[relative].position);
+                } while ((relative = nodes[relative].relative) != i);
             }
 
             mesh.vertices = positions;
@@ -113,15 +115,10 @@ namespace Nanolabo
             return mesh;
         }
 
+        // inline ?
         public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
         {
-            if (nodeIndexA == nodeIndexB)
-                throw new Exception("A and B is the name node !");
-
-            ref Node nodeA = ref nodes[nodeIndexA];
-            ref Node nodeB = ref nodes[nodeIndexB];
-
-            return nodeA.position == nodeB.position;
+            return nodes[nodeIndexA].position == nodes[nodeIndexB].position;
         }
 
         public int[] GetPositionToNode()
@@ -129,11 +126,13 @@ namespace Nanolabo
             int[] positionToNode = new int[positions.Length];
             for (int i = 0; i < nodes.Length; i++)
             {
-                positionToNode[nodes[i].position] = i;
+                if (!nodes[i].IsRemoved())
+                    positionToNode[nodes[i].position] = i;
             }
             return positionToNode;
         }
 
+        [Experimental]
         public bool IsAnEdge(int nodeIndexA, int nodeIndexB)
         {
             // Giflé
@@ -151,24 +150,30 @@ namespace Nanolabo
             int k = 0;
             int relative = nodeIndex;
             while ((relative = nodes[relative].relative) != nodeIndex)
+            {
                 k++;
+            }
             return k;
         }
 
         [Obsolete]
-        private int[] GetRelatives(int nodeIndex)
+        public int[] GetRelatives(int nodeIndex)
         {
             // Make room
             int k = 0;
-            int nextNodeIndex = nodeIndex;
-            while ((nextNodeIndex = nodes[nextNodeIndex].relative) != nodeIndex)
+            int relative = nodeIndex;
+            do
+            {
                 k++;
+            } while ((relative = nodes[relative].relative) != nodeIndex);
 
             // Fill
             int[] res = new int[k];
             k = 0;
-            while ((nextNodeIndex = nodes[nextNodeIndex].relative) != nodeIndex)
-                res[k++] = nextNodeIndex;
+            do
+            {
+                res[k++] = relative;
+            } while ((relative = nodes[relative].relative) != nodeIndex);
 
             return res;
         }
@@ -178,33 +183,47 @@ namespace Nanolabo
             int k = 0;
             int sibling = nodeIndex;
             while ((sibling = nodes[sibling].sibling) != nodeIndex)
+            {
                 k++;
+            }
             return k;
         }
 
         [Obsolete]
-        public IEnumerable<int> GetSiblings(int nodeIndex)
+        public int[] GetSiblings(int nodeIndex)
         {
-            int nextNodeIndex = nodeIndex;
+            // Make room
+            int k = 0;
+            int sibling = nodeIndex;
             do
             {
-                nextNodeIndex = nodes[nextNodeIndex].sibling;
-                yield return nextNodeIndex;
-            }
-            while (nextNodeIndex != nodeIndex);
+                k++;
+            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
+
+            // Fill
+            int[] res = new int[k];
+            k = 0;
+            do
+            {
+                res[k++] = sibling;
+            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
+
+            return res;
         }
 
         public void ReconnectSiblings(int nodeIndex)
         {
             int sibling = nodeIndex;
-            int lastValid = nodes[nodeIndex].position < 0 ? -1 : sibling;
+            int lastValid = -1;
             int firstValid = -1;
             int position = -1;
 
             do
             {
-                if (nodes[sibling].position < 0)
+                if (nodes[sibling].IsRemoved())
                     continue;
+
+                CheckRelatives(sibling);
 
                 if (firstValid == -1)
                 {
@@ -225,19 +244,23 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
+
+            CheckSiblings(firstValid);
         }
 
         public void ReconnectSiblings(int nodeIndexA, int nodeIndexB)
         {
             int sibling = nodeIndexA;
-            int lastValid = nodes[nodeIndexA].position < 0 ? -1 : sibling;
+            int lastValid = -1;
             int firstValid = -1;
             int position = -1;
 
             do
             {
-                if (nodes[sibling].position < 0)
+                if (nodes[sibling].IsRemoved())
                     continue;
+
+                CheckRelatives(sibling);
 
                 if (firstValid == -1)
                 {
@@ -258,8 +281,10 @@ namespace Nanolabo
             sibling = nodeIndexB;
             do
             {
-                if (nodes[sibling].position < 0)
+                if (nodes[sibling].IsRemoved())
                     continue;
+
+                CheckRelatives(sibling);
 
                 if (firstValid == -1)
                 {
@@ -280,29 +305,55 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
+
+            CheckSiblings(firstValid);
         }
 
-        public void CollapseEdge(int nodeIndexA, int nodeIndexB)
+        public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
         {
-            //if (!IsAnEdge(nodeIndexA, nodeIndexB))
-            //    throw new Exception("Given nodes doesn't make an edge !");
-
-            positions[nodes[nodeIndexA].position] = (positions[nodes[nodeIndexA].position] + positions[nodes[nodeIndexB].position]) / 2;
-
-            int siblingOfA = nodeIndexA;
-            do
+            if (nodes[nodeIndexA].position == nodes[nodeIndexB].position)
             {
+                Console.WriteLine("Can't collapse because A and B share the same position");
+                return;
+            }
+
+            int posA = nodes[nodeIndexA].position;
+            int posB = nodes[nodeIndexB].position;
+
+            Debug.Assert(!nodes[nodeIndexA].IsRemoved());
+            Debug.Assert(!nodes[nodeIndexB].IsRemoved());
+
+            Debug.Assert(CheckRelatives(nodeIndexA));
+            Debug.Assert(CheckRelatives(nodeIndexB));
+            Debug.Assert(CheckSiblings(nodeIndexA));
+            Debug.Assert(CheckSiblings(nodeIndexB));
+
+            positions[nodes[nodeIndexA].position] = position;
+
+            List<int> nodesToReconnect = new List<int>();
+
+            //Console.WriteLine("nodeIndexA = " + nodeIndexA);
+            //Console.WriteLine("nodeIndexB = " + nodeIndexB);
+                
+            int siblingOfA = nodeIndexA;
+            do // Iterate over faces adjacent to node A
+            {
+                //Console.WriteLine(">>" + PrintRelatives(siblingOfA));
+
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
 
                 int relativeOfA = siblingOfA;
-                do
+                do // Iterate over adjacent face nodes
                 {
-                    if (AreNodesSiblings(relativeOfA, nodeIndexB))
+                    //if (relativeOfA == 384)
+                    //    Debugger.Break();
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
                     {
-                        nodes[relativeOfA].position = -1;
-                        nodes[siblingOfA].position = -1;
+                        //nodes[relativeOfA].position = -1;
+                        //nodes[siblingOfA].position = -1;
                         isFaceTouched = true;
                     }
                     else if (relativeOfA != siblingOfA)
@@ -313,14 +364,64 @@ namespace Nanolabo
                     faceEdgeCount++;
                 } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
 
-                if (isFaceTouched && faceEdgeCount == 2)
+                if (isFaceTouched && faceEdgeCount == 3)
                 {
-                    nodes[nodeIndexC].position = -1;
-                    ReconnectSiblings(nodeIndexC);
+                    relativeOfA = siblingOfA;
+                    do // Iterate over adjacent face nodes
+                    {
+                        nodes[relativeOfA].MarkRemoved();
+                    } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
+
+                    //nodes[nodeIndexC].position = -1;
+                    //ReconnectSiblings(nodeIndexC);
+                    nodesToReconnect.Add(nodeIndexC);
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
+            foreach (int nodeToReconnect in nodesToReconnect)
+            {
+                ReconnectSiblings(nodeToReconnect);
+            }
+
             ReconnectSiblings(nodeIndexA, nodeIndexB);
+
+            Check();
+        }
+
+        public void Compact()
+        {
+            Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
+            int validNodesCount = 0;
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (!nodes[i].IsRemoved())
+                {
+                    validNodesCount++;
+                }
+            }
+
+            Node[] newNodes = new Node[validNodesCount];
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (!nodes[i].IsRemoved())
+                {
+                    newNodes[oldToNewNodeIndex.Count] = nodes[i];
+                    oldToNewNodeIndex.Add(i, oldToNewNodeIndex.Count);
+                }
+            }
+
+            for (int i = 0; i < newNodes.Length; i++)
+            {
+                newNodes[i].relative = oldToNewNodeIndex[newNodes[i].relative];
+                newNodes[i].sibling = oldToNewNodeIndex[newNodes[i].sibling];
+            }
+
+            nodes = newNodes;
+
+            // Todo : compact positions and attributes
+
+            GC.Collect(); // Collect 
         }
     }
 }
