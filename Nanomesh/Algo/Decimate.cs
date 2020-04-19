@@ -10,7 +10,7 @@ namespace Nanolabo
 
 		private int[] positionToNode;
 		private SymmetricMatrix[] matrices;
-		private SortedSet<PairCollapse> pairs;
+		private HashSet<PairCollapse> pairs;
 
 		public void Run(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -23,7 +23,7 @@ namespace Nanolabo
 			this.mesh = mesh;
 			
 			matrices = new SymmetricMatrix[mesh.positions.Length];
-			pairs = new SortedSet<PairCollapse>(new PairComparer());
+			pairs = new HashSet<PairCollapse>();
 
 			int initialTriangleCount = mesh.FaceCount;
 			int lastProgress = -1;
