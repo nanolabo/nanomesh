@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Nanolabo
@@ -28,21 +29,23 @@ namespace Nanolabo
 			int initialTriangleCount = mesh.FaceCount;
 			int lastProgress = -1;
 
+			positionToNode = mesh.GetPositionToNode();
+			CalculateQuadrics();
+			CalculateErrors();
+
 			while (mesh.FaceCount > targetTriangleCount)
 			{
-				positionToNode = mesh.GetPositionToNode();
-				UpdateCosts();
-
 				var minPair = pairs.Min();
 				pairs.Remove(minPair);
 
-				mesh.CollapseEdge(positionToNode[minPair.pos1], positionToNode[minPair.pos2], minPair.result);
+				CollapseEdge(positionToNode[minPair.pos1], positionToNode[minPair.pos2], minPair.result);
 				//Console.WriteLine("Collapse : " + minPair.error);
 
 				int progress = (int)MathF.Round(100f * (initialTriangleCount - mesh.FaceCount) / (initialTriangleCount - targetTriangleCount));
 				if (progress > lastProgress)
 				{
-					Console.WriteLine("Progress : " + progress + "%");
+					if (progress % 10 == 0)
+						Console.WriteLine("Progress : " + progress + "%");
 					lastProgress = progress;
 				}
 			}
@@ -50,39 +53,47 @@ namespace Nanolabo
 			//mesh.Compact();
 		}
 
-		private void UpdateCosts()
+		private void CalculateQuadrics()
 		{
 			pairs.Clear();
 
 			for (int p = 0; p < positionToNode.Length; p++)
 			{
-				SymmetricMatrix symmetricMatrix = new SymmetricMatrix();
+				CalculateQuadric(p, true);
+			}
+		}
 
-				int nodeIndex = positionToNode[p];
-				if (mesh.nodes[nodeIndex].IsRemoved)
-					continue;
+		private void CalculateQuadric(int position, bool createPairs)
+		{
+			int nodeIndex = positionToNode[position];
 
-				int sibling = nodeIndex;
-				do
+			Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
+
+			SymmetricMatrix symmetricMatrix = new SymmetricMatrix();
+
+			int sibling = nodeIndex;
+			do
+			{
+				// Compute triangle normal
+				// Todo : Use vertex normal instead to use smoothing
+				int[] relatives = mesh.GetRelatives(sibling); // Todo : do not use array to avoid heap allocs
+
+				if (mesh.nodes[relatives[0]].position < 0) continue;
+				if (mesh.nodes[relatives[1]].position < 0) continue;
+				if (mesh.nodes[relatives[2]].position < 0) continue;
+
+				Vector3 normal = Vector3.Cross(
+					mesh.positions[mesh.nodes[relatives[1]].position] - mesh.positions[mesh.nodes[relatives[0]].position],
+					mesh.positions[mesh.nodes[relatives[2]].position] - mesh.positions[mesh.nodes[relatives[0]].position]);
+
+				normal.Normalize();
+
+				float dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);
+
+				symmetricMatrix += new SymmetricMatrix(normal.x, normal.y, normal.z, dot);
+
+				if (createPairs)
 				{
-					// Compute triangle normal
-					// Todo : Use vertex normal instead to use smoothing
-					int[] relatives = mesh.GetRelatives(sibling);
-
-					if (mesh.nodes[relatives[0]].position < 0) continue;
-					if (mesh.nodes[relatives[1]].position < 0) continue;
-					if (mesh.nodes[relatives[2]].position < 0) continue;
-
-					Vector3 normal = Vector3.Cross(
-						mesh.positions[mesh.nodes[relatives[1]].position] - mesh.positions[mesh.nodes[relatives[0]].position],
-						mesh.positions[mesh.nodes[relatives[2]].position] - mesh.positions[mesh.nodes[relatives[0]].position]);
-
-					normal.Normalize();
-
-					float dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);
-
-					symmetricMatrix += new SymmetricMatrix(normal.x, normal.y, normal.z, dot);
-
 					for (int i = 1; i < relatives.Length; i++)
 					{
 						var pair = new PairCollapse
@@ -93,28 +104,20 @@ namespace Nanolabo
 
 						pairs.Add(pair);
 					}
-				} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
+				}
 
-				matrices[p] = symmetricMatrix;
-			}
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
 
+			matrices[position] = symmetricMatrix;
+		}
+
+		private void CalculateErrors()
+		{
 			foreach (var pair in pairs)
 			{
 				pair.error = CalculateError(pair.pos1, pair.pos2, out Vector3 result);
 				pair.result = result;
-
-				//Console.WriteLine(pair.error);
 			}
-		}
-
-		private float VertexError(SymmetricMatrix q, float x, float y, float z)
-		{
-			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z
-				+ 2 * q[3] * x + q[4] * y * y
-				+ 2 * q[5] * y * z + 2 * q[6] * y
-				+ q[7] * z * z
-				+ 2 * q[8] * z
-				+ q[9];
 		}
 
 		private float CalculateError(int pos1, int pos2, out Vector3 result)
@@ -149,6 +152,86 @@ namespace Nanolabo
 			}
 
 			return error;
+		}
+
+		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
+		{
+			int posA = mesh.nodes[nodeIndexA].position;
+			int posB = mesh.nodes[nodeIndexB].position;
+
+			// Remove all edges around A
+			int sibling = nodeIndexA;
+			int relative;
+			do
+			{
+				relative = sibling;
+				do
+				{
+					int posC = mesh.nodes[relative].position;
+					if (mesh.nodes[relative].position != posA)
+					{
+						pairs.Remove(new PairCollapse { pos1 = posA, pos2 = posC });
+					}
+				} while ((relative = mesh.nodes[relative].relative) != sibling);
+
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
+
+			// Remove all edges around A
+			sibling = nodeIndexB;
+			do
+			{
+				relative = sibling;
+				do
+				{
+					int posC = mesh.nodes[relative].position;
+					if (mesh.nodes[relative].position != posB)
+					{
+						pairs.Remove(new PairCollapse { pos1 = posB, pos2 = posC });
+					}
+				} while ((relative = mesh.nodes[relative].relative) != sibling);
+
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
+
+			// Collapse edge
+			int validNode = mesh.CollapseEdge(nodeIndexA, nodeIndexB, position);
+
+			// Actualize position to nodes
+			positionToNode[posA] = validNode;
+
+			// Recompute quadric at this position
+			CalculateQuadric(posA, false);
+
+			// Recreate edges around new point and recompute collapse quadric errors
+			sibling = validNode;
+			do
+			{
+				relative = sibling;
+				do
+				{
+					int posC = mesh.nodes[relative].position;
+					if (mesh.nodes[relative].position != posA)
+					{
+						var pair = new PairCollapse { pos1 = posA, pos2 = posC };
+						pair.error = CalculateError(pair.pos1, pair.pos2, out Vector3 result);
+						pair.result = result;
+						pairs.Add(pair);
+
+						// Actualize position to nodes
+						positionToNode[posC] = relative;
+					}
+				} while ((relative = mesh.nodes[relative].relative) != sibling);
+
+			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
+		}
+
+		private float VertexError(SymmetricMatrix q, float x, float y, float z)
+		{
+			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z
+				+ 2 * q[3] * x + q[4] * y * y
+				+ 2 * q[5] * y * z + 2 * q[6] * y
+				+ q[7] * z * z
+				+ 2 * q[8] * z
+				+ q[9];
 		}
 
 		public class PairCollapse : IComparable
