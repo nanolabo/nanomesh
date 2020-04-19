@@ -121,21 +121,23 @@ namespace Nanolabo
 
 		private void CalculateErrors()
 		{
-			foreach (var pair in pairs)
+			var enumerator = pairs.GetEnumerator();
+
+			while (enumerator.MoveNext())
 			{
-				pair.error = CalculateError(pair.pos1, pair.pos2, out Vector3 result);
-				pair.result = result;
+				PairCollapse pair = enumerator.Current;
+				CalculateError(pair);
 			}
 		}
 
-		private float CalculateError(int pos1, int pos2, out Vector3 result)
+		private void CalculateError(PairCollapse pair)
 		{
-			SymmetricMatrix q = matrices[pos1] + matrices[pos2];
+			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
 			bool border = false;
 			float error = 0;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
-			result = new Vector3();
+			Vector3 result = new Vector3();
 
 			if (det != 0 && !border)
 			{
@@ -147,8 +149,8 @@ namespace Nanolabo
 			}
 			else
 			{
-				Vector3 p1 = mesh.positions[pos1];
-				Vector3 p2 = mesh.positions[pos2];
+				Vector3 p1 = mesh.positions[pair.pos1];
+				Vector3 p2 = mesh.positions[pair.pos2];
 				Vector3 p3 = (p1 + p2) / 2;
 				float error1 = VertexError(q, p1.x, p1.y, p1.z);
 				float error2 = VertexError(q, p2.x, p2.y, p2.z);
@@ -159,7 +161,8 @@ namespace Nanolabo
 				if (error3 == error) result = p3;
 			}
 
-			return error;
+			pair.result = result;
+			pair.error = error;
 		}
 
 		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
@@ -220,8 +223,8 @@ namespace Nanolabo
 					if (mesh.nodes[relative].position != posA)
 					{
 						var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-						pair.error = CalculateError(pair.pos1, pair.pos2, out Vector3 result);
-						pair.result = result;
+						CalculateError(pair);
+
 						pairs.Add(pair);
 
 						// Actualize position to nodes

@@ -11,10 +11,11 @@ namespace Sandbox
             Console.WriteLine("Hello World!");
 
             Profiling.Start("Building Sphere");
-            ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere());
+            ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 4));
             Profiling.End("Building Sphere");
 
             Debug.Assert(mesh.Check());
+            Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
@@ -22,6 +23,7 @@ namespace Sandbox
             Profiling.End("Decimating");
 
             Debug.Assert(mesh.Check());
+            Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             ExporterOBJ.Save(mesh.ToSharedMesh(), @"C:\Users\OlivierGiniaux\Downloads\decimation.obj");
 
