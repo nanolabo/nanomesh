@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Experimental = System.ObsoleteAttribute;
 
 namespace Nanolabo
@@ -17,7 +16,7 @@ namespace Nanolabo
         public Attribute[] attributes;
         public Node[] nodes;
 
-        private int faceCount;
+        internal int faceCount;
         public int FaceCount => faceCount;
 
         public static ConnectedMesh Build(SharedMesh mesh)
@@ -216,7 +215,7 @@ namespace Nanolabo
             return res;
         }
 
-        public void ReconnectSiblings(int nodeIndex)
+        public int ReconnectSiblings(int nodeIndex)
         {
             int sibling = nodeIndex;
             int lastValid = -1;
@@ -247,9 +246,11 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
+
+            return firstValid;
         }
 
-        public void ReconnectSiblings(int nodeIndexA, int nodeIndexB)
+        public int ReconnectSiblings(int nodeIndexA, int nodeIndexB)
         {
             int sibling = nodeIndexA;
             int lastValid = -1;
@@ -302,9 +303,11 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
+
+            return firstValid;
         }
 
-        public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
+        public int CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
         {
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
@@ -357,9 +360,11 @@ namespace Nanolabo
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            ReconnectSiblings(nodeIndexA, nodeIndexB);
+            int validNode = ReconnectSiblings(nodeIndexA, nodeIndexB);
 
             Debug.Assert(Check(), "Mapping must be correct at the end of edge collapse");
+
+            return validNode;
         }
 
         public void Compact()

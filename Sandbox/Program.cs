@@ -1,5 +1,6 @@
 ﻿using Nanolabo;
 using System;
+using System.Diagnostics;
 
 namespace Sandbox
 {
@@ -10,25 +11,19 @@ namespace Sandbox
             Console.WriteLine("Hello World!");
 
             Profiling.Start("Building Sphere");
-
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere());
-            mesh.Check();
-
             Profiling.End("Building Sphere");
 
-            Profiling.Start("Decimating");
+            Debug.Assert(mesh.Check());
 
+            Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             decimateModifier.Run(mesh, 0.2f);
-
             Profiling.End("Decimating");
 
-            mesh.Check();
+            Debug.Assert(mesh.Check());
 
-            SharedMesh smesh = mesh.ToSharedMesh();
-
-            string path = @"C:\Users\OlivierGiniaux\Downloads\decimation.obj";
-            ExporterOBJ.Save(smesh, path);
+            ExporterOBJ.Save(mesh.ToSharedMesh(), @"C:\Users\OlivierGiniaux\Downloads\decimation.obj");
 
             Console.WriteLine("Done !");
             Console.ReadKey();
