@@ -160,28 +160,6 @@ namespace Nanolabo
             return k;
         }
 
-        [Obsolete]
-        public int[] GetRelatives(int nodeIndex)
-        {
-            // Make room
-            int k = 0;
-            int relative = nodeIndex;
-            do
-            {
-                k++;
-            } while ((relative = nodes[relative].relative) != nodeIndex);
-
-            // Fill
-            int[] res = new int[k];
-            k = 0;
-            do
-            {
-                res[k++] = relative;
-            } while ((relative = nodes[relative].relative) != nodeIndex);
-
-            return res;
-        }
-
         public int GetSiblingsCount(int nodeIndex)
         {
             int k = 0;
@@ -191,28 +169,6 @@ namespace Nanolabo
                 k++;
             }
             return k;
-        }
-
-        [Obsolete]
-        public int[] GetSiblings(int nodeIndex)
-        {
-            // Make room
-            int k = 0;
-            int sibling = nodeIndex;
-            do
-            {
-                k++;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
-
-            // Fill
-            int[] res = new int[k];
-            k = 0;
-            do
-            {
-                res[k++] = sibling;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
-
-            return res;
         }
 
         public int ReconnectSiblings(int nodeIndex)

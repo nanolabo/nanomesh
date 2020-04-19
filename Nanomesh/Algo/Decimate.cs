@@ -204,7 +204,7 @@ namespace Nanolabo
 			positionToNode[posA] = validNode;
 
 			// Recompute quadric at this position
-			CalculateQuadric(posA);
+			CalculateQuadric(posA); // Required ?
 
 			// Recreate edges around new point and recompute collapse quadric errors
 			sibling = validNode;
@@ -215,13 +215,15 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 
+					// Actualize position to nodes
+					positionToNode[posC] = relative;
+
+					CalculateQuadric(posC); // Required ?
+
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
 					CalculateError(pair);
 
 					pairs.Add(pair);
-
-					// Actualize position to nodes
-					positionToNode[posC] = relative;
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
