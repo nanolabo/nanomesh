@@ -176,14 +176,11 @@ namespace Nanolabo
 			do
 			{
 				relative = sibling;
-				do
+				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					if (mesh.nodes[relative].position != posA)
-					{
-						pairs.Remove(new PairCollapse { pos1 = posA, pos2 = posC });
-					}
-				} while ((relative = mesh.nodes[relative].relative) != sibling);
+					pairs.Remove(new PairCollapse { pos1 = posA, pos2 = posC });
+				} 
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
 
@@ -192,14 +189,11 @@ namespace Nanolabo
 			do
 			{
 				relative = sibling;
-				do
+				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					if (mesh.nodes[relative].position != posB)
-					{
-						pairs.Remove(new PairCollapse { pos1 = posB, pos2 = posC });
-					}
-				} while ((relative = mesh.nodes[relative].relative) != sibling);
+					pairs.Remove(new PairCollapse { pos1 = posB, pos2 = posC });
+				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
 
@@ -217,20 +211,18 @@ namespace Nanolabo
 			do
 			{
 				relative = sibling;
-				do
+				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					if (mesh.nodes[relative].position != posA)
-					{
-						var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-						CalculateError(pair);
 
-						pairs.Add(pair);
+					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
+					CalculateError(pair);
 
-						// Actualize position to nodes
-						positionToNode[posC] = relative;
-					}
-				} while ((relative = mesh.nodes[relative].relative) != sibling);
+					pairs.Add(pair);
+
+					// Actualize position to nodes
+					positionToNode[posC] = relative;
+				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
 		}
