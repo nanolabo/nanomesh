@@ -12,10 +12,7 @@
             position = -10;
         }
 
-        public bool IsRemoved()
-        {
-            return position == -10;
-        }
+        public bool IsRemoved => position == -10;
 
         public override string ToString()
         {

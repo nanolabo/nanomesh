@@ -59,7 +59,8 @@ namespace Nanolabo
 				SymmetricMatrix symmetricMatrix = new SymmetricMatrix();
 
 				int nodeIndex = positionToNode[p];
-				if (mesh.nodes[nodeIndex].position < 0) continue;
+				if (mesh.nodes[nodeIndex].IsRemoved)
+					continue;
 
 				int sibling = nodeIndex;
 				do
@@ -89,8 +90,8 @@ namespace Nanolabo
 							pos1 = mesh.nodes[relatives[i - 1]].position,
 							pos2 = mesh.nodes[relatives[i]].position
 						};
-						if (pair.pos1 != pair.pos2 && pair.pos1 > -1 && pair.pos2 > -1) // Hack. We should not have this case in the first place
-							pairs.Add(pair);
+
+						pairs.Add(pair);
 					}
 				} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
 
@@ -146,8 +147,6 @@ namespace Nanolabo
 				if (error2 == error) result = p2;
 				if (error3 == error) result = p3;
 			}
-
-			result = (mesh.positions[pos1] + mesh.positions[pos2]) / 2; // hack
 
 			return error;
 		}

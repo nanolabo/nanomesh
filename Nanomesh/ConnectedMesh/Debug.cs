@@ -9,7 +9,7 @@ namespace Nanolabo
         {
             int sibling = nodeIndex;
             string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
-                string res = sibling.ToString() + (nodes[sibling].IsRemoved() ? "(x)" : $"({nodes[sibling].position})");
+                string res = sibling.ToString() + (nodes[sibling].IsRemoved ? "(x)" : $"({nodes[sibling].position})");
                 sibling = nodes[sibling].sibling;
                 return res;
             }));
@@ -20,7 +20,7 @@ namespace Nanolabo
         {
             int relative = nodeIndex;
             string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
-                string res = relative.ToString() + (nodes[relative].IsRemoved() ? "(x)" : $"({nodes[relative].position})");
+                string res = relative.ToString() + (nodes[relative].IsRemoved ? "(x)" : $"({nodes[relative].position})");
                 relative = nodes[relative].relative;
                 return res;
             }));
@@ -29,7 +29,7 @@ namespace Nanolabo
 
         public bool CheckRelatives(int nodeIndex)
         {
-            if (nodes[nodeIndex].IsRemoved())
+            if (nodes[nodeIndex].IsRemoved)
                 throw new Exception($"Node {nodeIndex} is removed");
 
             int relative = nodeIndex;
@@ -47,7 +47,7 @@ namespace Nanolabo
                     throw new Exception($"Circularity relative violation : {PrintRelatives(nodeIndex)}");
                 }
 
-                if (nodes[relative].IsRemoved())
+                if (nodes[relative].IsRemoved)
                 {
                     throw new Exception($"Node {nodeIndex} is connected to the deleted relative {relative}");
                 }
@@ -62,7 +62,7 @@ namespace Nanolabo
 
         public bool CheckSiblings(int nodeIndex)
         {
-            if (nodes[nodeIndex].IsRemoved())
+            if (nodes[nodeIndex].IsRemoved)
                 throw new Exception($"Node {nodeIndex} is removed");
 
             int sibling = nodeIndex;
@@ -75,7 +75,7 @@ namespace Nanolabo
                     throw new Exception($"Circularity sibling violation : {PrintSiblings(nodeIndex)}");
                 }
 
-                if (nodes[sibling].IsRemoved())
+                if (nodes[sibling].IsRemoved)
                 {
                     throw new Exception($"Node {nodeIndex} has a deleted sibling {sibling}");
                 }
@@ -91,7 +91,7 @@ namespace Nanolabo
         {
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
-                if (nodes[nodeIndex].IsRemoved())
+                if (nodes[nodeIndex].IsRemoved)
                     continue;
 
                 CheckRelatives(nodeIndex);

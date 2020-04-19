@@ -102,7 +102,7 @@ namespace Nanolabo
 
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (browsedNodes.Contains(i) || nodes[i].IsRemoved())
+                if (browsedNodes.Contains(i) || nodes[i].IsRemoved)
                     continue;
 
                 // Only works if all elements are triangles
@@ -131,7 +131,7 @@ namespace Nanolabo
             int[] positionToNode = new int[positions.Length];
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (!nodes[i].IsRemoved())
+                if (!nodes[i].IsRemoved)
                     positionToNode[nodes[i].position] = i;
             }
             return positionToNode;
@@ -225,7 +225,7 @@ namespace Nanolabo
 
             do
             {
-                if (nodes[sibling].IsRemoved())
+                if (nodes[sibling].IsRemoved)
                     continue;
 
                 if (firstValid == -1)
@@ -258,7 +258,7 @@ namespace Nanolabo
 
             do
             {
-                if (nodes[sibling].IsRemoved())
+                if (nodes[sibling].IsRemoved)
                     continue;
 
                 if (firstValid == -1)
@@ -280,7 +280,7 @@ namespace Nanolabo
             sibling = nodeIndexB;
             do
             {
-                if (nodes[sibling].IsRemoved())
+                if (nodes[sibling].IsRemoved)
                     continue;
 
                 if (firstValid == -1)
@@ -310,8 +310,8 @@ namespace Nanolabo
             int posB = nodes[nodeIndexB].position;
 
             Debug.Assert(posA != posB, "A and B must have different positions");
-            Debug.Assert(!nodes[nodeIndexA].IsRemoved());
-            Debug.Assert(!nodes[nodeIndexB].IsRemoved());
+            Debug.Assert(!nodes[nodeIndexA].IsRemoved);
+            Debug.Assert(!nodes[nodeIndexB].IsRemoved);
 
             Debug.Assert(CheckRelatives(nodeIndexA), "A's relatives must be valid");
             Debug.Assert(CheckRelatives(nodeIndexB), "B's relatives must be valid");
@@ -354,18 +354,12 @@ namespace Nanolabo
                     ReconnectSiblings(nodeIndexC);
 
                     faceCount--;
-
-                    Debug.Assert(CheckRelatives(nodeIndexB), "C's relatives must be valid");
-                    Debug.Assert(CheckSiblings(nodeIndexA), "C's siblings must be valid");
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             ReconnectSiblings(nodeIndexA, nodeIndexB);
 
-            Debug.Assert(CheckRelatives(nodeIndexA), "A's relatives must be valid");
-            Debug.Assert(CheckRelatives(nodeIndexB), "B's relatives must be valid");
-            Debug.Assert(CheckSiblings(nodeIndexA), "A's siblings must be valid");
-            Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
+            Debug.Assert(Check(), "Mapping must be correct at the end of edge collapse");
         }
 
         public void Compact()
@@ -374,7 +368,7 @@ namespace Nanolabo
             int validNodesCount = 0;
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (!nodes[i].IsRemoved())
+                if (!nodes[i].IsRemoved)
                 {
                     validNodesCount++;
                 }
@@ -384,7 +378,7 @@ namespace Nanolabo
 
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (!nodes[i].IsRemoved())
+                if (!nodes[i].IsRemoved)
                 {
                     newNodes[oldToNewNodeIndex.Count] = nodes[i];
                     oldToNewNodeIndex.Add(i, oldToNewNodeIndex.Count);
