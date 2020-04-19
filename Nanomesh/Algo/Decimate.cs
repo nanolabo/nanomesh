@@ -12,27 +12,42 @@ namespace Nanolabo
 		private SymmetricMatrix[] matrices;
 		private SortedSet<PairCollapse> pairs;
 
-		public void Run(ConnectedMesh mesh)
+		public void Run(ConnectedMesh mesh, float targetTriangleRatio)
+		{
+			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
+			Run(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
+		}
+
+		public void Run(ConnectedMesh mesh, int targetTriangleCount)
 		{
 			this.mesh = mesh;
-
 			
 			matrices = new SymmetricMatrix[mesh.positions.Length];
 			pairs = new SortedSet<PairCollapse>(new PairComparer());
 
-			for (int k = 0; k < 400; k++)
+			int initialTriangleCount = mesh.FaceCount;
+			int lastProgress = -1;
+
+			while (mesh.FaceCount > targetTriangleCount)
 			{
 				positionToNode = mesh.GetPositionToNode();
 				UpdateCosts();
 
 				var minPair = pairs.Min();
 				pairs.Remove(minPair);
-				mesh.CollapseEdge(positionToNode[minPair.pos1], positionToNode[minPair.pos2], minPair.result);
-				Console.WriteLine("Collapse : " + minPair.error);
 
-				mesh.Check();
-				//mesh.Compact();
+				mesh.CollapseEdge(positionToNode[minPair.pos1], positionToNode[minPair.pos2], minPair.result);
+				//Console.WriteLine("Collapse : " + minPair.error);
+
+				int progress = (int)MathF.Round(100f * (initialTriangleCount - mesh.FaceCount) / (initialTriangleCount - targetTriangleCount));
+				if (progress > lastProgress)
+				{
+					Console.WriteLine("Progress : " + progress + "%");
+					lastProgress = progress;
+				}
 			}
+
+			//mesh.Compact();
 		}
 
 		private void UpdateCosts()

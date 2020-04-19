@@ -17,6 +17,9 @@ namespace Nanolabo
         public Attribute[] attributes;
         public Node[] nodes;
 
+        private int faceCount;
+        public int FaceCount => faceCount;
+
         public static ConnectedMesh Build(SharedMesh mesh)
         {
             ConnectedMesh connectedMesh = new ConnectedMesh();
@@ -61,6 +64,8 @@ namespace Nanolabo
                 nodesList.Add(A);
                 nodesList.Add(B);
                 nodesList.Add(C);
+
+                connectedMesh.faceCount++;
             }
 
             connectedMesh.nodes = nodesList.ToArray();
@@ -223,8 +228,6 @@ namespace Nanolabo
                 if (nodes[sibling].IsRemoved())
                     continue;
 
-                CheckRelatives(sibling);
-
                 if (firstValid == -1)
                 {
                     firstValid = sibling;
@@ -244,8 +247,6 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
-
-            CheckSiblings(firstValid);
         }
 
         public void ReconnectSiblings(int nodeIndexA, int nodeIndexB)
@@ -259,8 +260,6 @@ namespace Nanolabo
             {
                 if (nodes[sibling].IsRemoved())
                     continue;
-
-                CheckRelatives(sibling);
 
                 if (firstValid == -1)
                 {
@@ -284,8 +283,6 @@ namespace Nanolabo
                 if (nodes[sibling].IsRemoved())
                     continue;
 
-                CheckRelatives(sibling);
-
                 if (firstValid == -1)
                 {
                     firstValid = sibling;
@@ -305,41 +302,27 @@ namespace Nanolabo
             // Close the loop
             nodes[lastValid].sibling = firstValid; // Additional checks here ?
             nodes[lastValid].position = position;
-
-            CheckSiblings(firstValid);
         }
 
         public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
         {
-            if (nodes[nodeIndexA].position == nodes[nodeIndexB].position)
-            {
-                Console.WriteLine("Can't collapse because A and B share the same position");
-                return;
-            }
-
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
 
+            Debug.Assert(posA != posB, "A and B must have different positions");
             Debug.Assert(!nodes[nodeIndexA].IsRemoved());
             Debug.Assert(!nodes[nodeIndexB].IsRemoved());
 
-            Debug.Assert(CheckRelatives(nodeIndexA));
-            Debug.Assert(CheckRelatives(nodeIndexB));
-            Debug.Assert(CheckSiblings(nodeIndexA));
-            Debug.Assert(CheckSiblings(nodeIndexB));
+            Debug.Assert(CheckRelatives(nodeIndexA), "A's relatives must be valid");
+            Debug.Assert(CheckRelatives(nodeIndexB), "B's relatives must be valid");
+            Debug.Assert(CheckSiblings(nodeIndexA), "A's siblings must be valid");
+            Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
 
             positions[nodes[nodeIndexA].position] = position;
 
-            List<int> nodesToReconnect = new List<int>();
-
-            //Console.WriteLine("nodeIndexA = " + nodeIndexA);
-            //Console.WriteLine("nodeIndexB = " + nodeIndexB);
-                
             int siblingOfA = nodeIndexA;
             do // Iterate over faces adjacent to node A
             {
-                //Console.WriteLine(">>" + PrintRelatives(siblingOfA));
-
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
@@ -347,16 +330,12 @@ namespace Nanolabo
                 int relativeOfA = siblingOfA;
                 do // Iterate over adjacent face nodes
                 {
-                    //if (relativeOfA == 384)
-                    //    Debugger.Break();
                     int posC = nodes[relativeOfA].position;
                     if (posC == posB)
                     {
-                        //nodes[relativeOfA].position = -1;
-                        //nodes[siblingOfA].position = -1;
                         isFaceTouched = true;
                     }
-                    else if (relativeOfA != siblingOfA)
+                    else if (posC != posA)
                     {
                         nodeIndexC = relativeOfA;
                     }
@@ -367,25 +346,26 @@ namespace Nanolabo
                 if (isFaceTouched && faceEdgeCount == 3)
                 {
                     relativeOfA = siblingOfA;
-                    do // Iterate over adjacent face nodes
+                    do
                     {
                         nodes[relativeOfA].MarkRemoved();
                     } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
 
-                    //nodes[nodeIndexC].position = -1;
-                    //ReconnectSiblings(nodeIndexC);
-                    nodesToReconnect.Add(nodeIndexC);
+                    ReconnectSiblings(nodeIndexC);
+
+                    faceCount--;
+
+                    Debug.Assert(CheckRelatives(nodeIndexB), "C's relatives must be valid");
+                    Debug.Assert(CheckSiblings(nodeIndexA), "C's siblings must be valid");
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            foreach (int nodeToReconnect in nodesToReconnect)
-            {
-                ReconnectSiblings(nodeToReconnect);
-            }
-
             ReconnectSiblings(nodeIndexA, nodeIndexB);
 
-            Check();
+            Debug.Assert(CheckRelatives(nodeIndexA), "A's relatives must be valid");
+            Debug.Assert(CheckRelatives(nodeIndexB), "B's relatives must be valid");
+            Debug.Assert(CheckSiblings(nodeIndexA), "A's siblings must be valid");
+            Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
         }
 
         public void Compact()

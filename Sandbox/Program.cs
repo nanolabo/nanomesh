@@ -19,7 +19,7 @@ namespace Sandbox
             Profiling.Start("Decimating");
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.Run(mesh);
+            decimateModifier.Run(mesh, 0.5f);
 
             Profiling.End("Decimating");
 
