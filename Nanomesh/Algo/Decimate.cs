@@ -134,7 +134,7 @@ namespace Nanolabo
 		{
 			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
 			bool border = false;
-			float error = 0;
+			float error;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
 			Vector3 result = new Vector3();
@@ -239,7 +239,7 @@ namespace Nanolabo
 				+ q[9];
 		}
 
-		public class PairCollapse : IComparable
+		public class PairCollapse : IComparable<PairCollapse>
 		{
 			public int pos1;
 			public int pos2;
@@ -260,10 +260,9 @@ namespace Nanolabo
 				return (pc.pos1 == pos1 && pc.pos2 == pos2) || (pc.pos1 == pos2 && pc.pos2 == pos1);
 			}
 
-			public int CompareTo(object obj)
+			public int CompareTo(PairCollapse other)
 			{
-				PairCollapse y = (PairCollapse)obj;
-				return this == y ? 0 : this.error > y.error ? 1 : -1;
+				return this == other ? 0 : this.error > other.error ? 1 : -1;
 			}
 
 			public static bool operator ==(PairCollapse x, PairCollapse y)
@@ -274,14 +273,6 @@ namespace Nanolabo
 			public static bool operator !=(PairCollapse x, PairCollapse y)
 			{
 				return x.GetHashCode() != y.GetHashCode() || !x.Equals(y);
-			}
-		}
-
-		internal class PairComparer : IComparer<PairCollapse>
-		{
-			public int Compare(PairCollapse x, PairCollapse y)
-			{
-				return x == y ? 0 : x.error > y.error ? 1 : -1;
 			}
 		}
     }
