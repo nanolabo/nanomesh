@@ -12,7 +12,7 @@ namespace Nanolabo
 		private int[] positionToNode;
 		private SymmetricMatrix[] matrices;
 		private HashSet<PairCollapse> pairs;
-
+		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
 		public void Run(ConnectedMesh mesh, float targetTriangleRatio)
 		{
 			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
@@ -34,12 +34,15 @@ namespace Nanolabo
 			CalculateQuadrics();
 			CalculateErrors();
 
+			Profiling.Start("DECIMATION");
+
 			while (mesh.FaceCount > targetTriangleCount)
 			{
-				var minPair = pairs.Min();
-				pairs.Remove(minPair);
+				PairCollapse pair = GetPairWithMinimumError();
+				pairs.Remove(pair);
+				RemoveMin(pair);
 
-				CollapseEdge(positionToNode[minPair.pos1], positionToNode[minPair.pos2], minPair.result);
+				CollapseEdge(positionToNode[pair.pos1], positionToNode[pair.pos2], pair.result);
 				//Console.WriteLine("Collapse : " + minPair.error);
 
 				int progress = (int)MathF.Round(100f * (initialTriangleCount - mesh.FaceCount) / (initialTriangleCount - targetTriangleCount));
@@ -51,7 +54,43 @@ namespace Nanolabo
 				}
 			}
 
+			Profiling.End("DECIMATION");
+
 			//mesh.Compact();
+		}
+
+		private PairCollapse GetPairWithMinimumError()
+		{
+			if (mins.Count == 0)
+				ComputeMins();
+
+			return mins.First.Value;
+		}
+
+		const int MINS_COUNT = 100;
+
+		private void ComputeMins()
+		{
+			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MINS_COUNT));
+		}
+
+		private void AddMin(PairCollapse item)
+		{
+			var current = mins.Last;
+			while (current != mins.First && item.CompareTo(current.Value) < 0 )
+			{
+				current = current.Previous;
+			}
+
+			if (current == mins.Last)
+				return;
+
+			mins.AddAfter(item, current);
+		}
+
+		private void RemoveMin(PairCollapse item)
+		{
+			mins.Remove(item);
 		}
 
 		private void InitializePairs()
@@ -179,7 +218,9 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					pairs.Remove(new PairCollapse { pos1 = posA, pos2 = posC });
+					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
+					pairs.Remove(pair);
+					RemoveMin(pair);
 				} 
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
@@ -192,7 +233,9 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					pairs.Remove(new PairCollapse { pos1 = posB, pos2 = posC });
+					var pair = new PairCollapse { pos1 = posB, pos2 = posC };
+					pairs.Remove(pair);
+					RemoveMin(pair);
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
@@ -221,9 +264,10 @@ namespace Nanolabo
 					CalculateQuadric(posC); // Required ?
 
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-					CalculateError(pair);
+					CalculateError(pair); // Todo : Optimize by not calculating the error multiple times for the same edge
 
 					pairs.Add(pair);
+					AddMin(pair);
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
@@ -273,6 +317,11 @@ namespace Nanolabo
 			public static bool operator !=(PairCollapse x, PairCollapse y)
 			{
 				return x.GetHashCode() != y.GetHashCode() || !x.Equals(y);
+			}
+
+			public override string ToString()
+			{
+				return $"pos1:{pos1} pos2:{pos2} error:{error}";
 			}
 		}
     }
