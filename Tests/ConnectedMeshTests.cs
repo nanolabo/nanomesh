@@ -11,6 +11,7 @@ namespace Nanolabo
         }
 
         [Test]
+        [Category("ConnectedMesh")]
         public void GetSiblings()
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));
@@ -25,6 +26,7 @@ namespace Nanolabo
         }
 
         [Test]
+        [Category("ConnectedMesh")]
         public void EdgeCollapse()
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));
@@ -34,6 +36,7 @@ namespace Nanolabo
         }
 
         [Test]
+        [Category("ConnectedMesh")]
         public void GetEdgeCount()
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));
@@ -42,6 +45,7 @@ namespace Nanolabo
         }
         
         [Test]
+        [Category("ConnectedMesh")]
         public void AreNodesConnected()
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));

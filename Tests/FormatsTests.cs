@@ -12,6 +12,7 @@ namespace Nanolabo
         }
 
         [Test]
+        [Category("Export")]
         public void ExportOBJ()
         {
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));

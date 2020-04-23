@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Nanolabo
@@ -31,6 +32,21 @@ namespace Nanolabo
             //}
             //return strbldr.ToString();
             return "(" + input + ")";
+        }
+
+        public static double ToDouble(this string text)
+        {
+            return double.Parse(text, CultureInfo.InvariantCulture);
+        }
+
+        public static float ToFloat(this string text)
+        {
+            return float.Parse(text, CultureInfo.InvariantCulture);
+        }
+
+        public static int ToInt(this string text)
+        {
+            return int.Parse(text, CultureInfo.InvariantCulture);
         }
     }
 }

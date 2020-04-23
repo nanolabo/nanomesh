@@ -14,15 +14,15 @@ namespace Nanolabo
 	[Serializable]
 	public class LinkedHashSet<T> : ISet<T>, IReadOnlyCollection<T>
 	{
-		private readonly Dictionary<T, LinkedHashNode<T>> _elements;
-		private LinkedHashNode<T> _first, _last;
+		private readonly Dictionary<T, LinkedHashNode<T>> elements;
+		private LinkedHashNode<T> first, last;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="LinkedHashSet{T}"/> class.
 		/// </summary>
 		public LinkedHashSet()
 		{
-			_elements = new Dictionary<T, LinkedHashNode<T>>();
+			elements = new Dictionary<T, LinkedHashNode<T>>();
 		}
 
 		/// <summary>
@@ -34,9 +34,9 @@ namespace Nanolabo
 			UnionWith(initialValues);
 		}
 
-		public LinkedHashNode<T> First => _first;
+		public LinkedHashNode<T> First => first;
 
-		public LinkedHashNode<T> Last => _last;
+		public LinkedHashNode<T> Last => last;
 
 		#region Implementation of IEnumerable
 
@@ -85,7 +85,7 @@ namespace Nanolabo
 		/// </returns>
 		public int Count
 		{
-			get { return _elements.Count; }
+			get { return elements.Count; }
 		}
 
 		/// <summary>
@@ -105,9 +105,9 @@ namespace Nanolabo
 		/// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only. </exception>
 		public void Clear()
 		{
-			_elements.Clear();
-			_first = null;
-			_last = null;
+			elements.Clear();
+			first = null;
+			last = null;
 		}
 
 		/// <summary>
@@ -119,7 +119,7 @@ namespace Nanolabo
 		/// <param name="item">The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
 		public bool Contains(T item)
 		{
-			return _elements.ContainsKey(item);
+			return elements.ContainsKey(item);
 		}
 
 		/// <summary>
@@ -144,9 +144,9 @@ namespace Nanolabo
 		public bool Remove(T item)
 		{
 			LinkedHashNode<T> node;
-			if (_elements.TryGetValue(item, out node))
+			if (elements.TryGetValue(item, out node))
 			{
-				_elements.Remove(item);
+				elements.Remove(item);
 				Unlink(node);
 				return true;
 			}
@@ -177,12 +177,12 @@ namespace Nanolabo
 		{
 			var otherSet = AsSet(other);
 
-			var current = _first;
+			var current = first;
 			while (current != null)
 			{
 				if (!otherSet.Contains(current.Value))
 				{
-					_elements.Remove(current.Value);
+					elements.Remove(current.Value);
 					Unlink(current);
 				}
 				current = current.Next;
@@ -208,9 +208,9 @@ namespace Nanolabo
 			foreach (var item in other)
 			{
 				LinkedHashNode<T> node;
-				if (_elements.TryGetValue(item, out node))
+				if (elements.TryGetValue(item, out node))
 				{
-					_elements.Remove(item);
+					elements.Remove(item);
 					Unlink(node);
 				}
 				else
@@ -232,7 +232,7 @@ namespace Nanolabo
 			if (Count > otherSet.Count)
 				return false;
 
-			return _elements.Keys.All(otherSet.Contains);
+			return elements.Keys.All(otherSet.Contains);
 		}
 
 		/// <summary>
@@ -281,7 +281,7 @@ namespace Nanolabo
 			if (Count >= otherSet.Count)
 				return false;
 
-			return _elements.Keys.All(otherSet.Contains);
+			return elements.Keys.All(otherSet.Contains);
 		}
 
 		/// <summary>
@@ -320,27 +320,27 @@ namespace Nanolabo
 		/// <param name="item">The element to add to the set.</param>
 		public bool Add(T item)
 		{
-			if (_elements.ContainsKey(item))
+			if (elements.ContainsKey(item))
 				return false;
 
-			var node = new LinkedHashNode<T>(item) { Previous = _last };
+			var node = new LinkedHashNode<T>(item) { Previous = last };
 
-			if (_first == null)
-				_first = node;
+			if (first == null)
+				first = node;
 
-			if (_last != null)
-				_last.Next = node;
+			if (last != null)
+				last.Next = node;
 
-			_last = node;
+			last = node;
 
-			_elements.Add(item, node);
+			elements.Add(item, node);
 
 			return true;
 		}
 
 		public bool AddAfter(T item, LinkedHashNode<T> itemInPlace)
 		{
-			if (_elements.ContainsKey(item))
+			if (elements.ContainsKey(item))
 				return false;
 
 			var node = new LinkedHashNode<T>(item) { Previous = itemInPlace };
@@ -352,12 +352,12 @@ namespace Nanolabo
 			}
 			else
 			{
-				_last = node;
+				last = node;
 			}
 
 			itemInPlace.Next = node;
 
-			_elements.Add(item, node);
+			elements.Add(item, node);
 
 			return true;
 		}
@@ -418,11 +418,11 @@ namespace Nanolabo
 			if (node.Next != null)
 				node.Next.Previous = node.Previous;
 
-			if (ReferenceEquals(node, _first))
-				_first = node.Next;
+			if (ReferenceEquals(node, first))
+				first = node.Next;
 
-			if (ReferenceEquals(node, _last))
-				_last = node.Previous;
+			if (ReferenceEquals(node, last))
+				last = node.Previous;
 		}
 
 #if !NETSTANDARD1_0
@@ -454,7 +454,7 @@ namespace Nanolabo
 			internal Enumerator(LinkedHashSet<T> set)
 			{
 				_current = default(T);
-				_node = set._first;
+				_node = set.first;
 			}
 
 			/// <inheritdoc />

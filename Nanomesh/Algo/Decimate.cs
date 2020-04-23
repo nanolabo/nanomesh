@@ -13,6 +13,7 @@ namespace Nanolabo
 		private SymmetricMatrix[] matrices;
 		private HashSet<PairCollapse> pairs;
 		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
+
 		public void Run(ConnectedMesh mesh, float targetTriangleRatio)
 		{
 			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
@@ -40,7 +41,8 @@ namespace Nanolabo
 			{
 				PairCollapse pair = GetPairWithMinimumError();
 				pairs.Remove(pair);
-				RemoveMin(pair);
+
+				Debug.Assert(CheckPair(pair));
 
 				CollapseEdge(positionToNode[pair.pos1], positionToNode[pair.pos2], pair.result);
 				//Console.WriteLine("Collapse : " + minPair.error);
@@ -59,6 +61,25 @@ namespace Nanolabo
 			//mesh.Compact();
 		}
 
+		private bool CheckPairs()
+		{
+			foreach (var pair in pairs)
+			{
+				CheckPair(pair);
+			}
+
+			return true;
+		}
+
+		private bool CheckPair(PairCollapse pair)
+		{
+			Debug.Assert(pair.pos1 != pair.pos2, "Positions must be different");
+			Debug.Assert(!mesh.nodes[positionToNode[pair.pos1]].IsRemoved, $"Position 1 is unreferenced {positionToNode[pair.pos1]}");
+			Debug.Assert(!mesh.nodes[positionToNode[pair.pos2]].IsRemoved, $"Position 2 is unreferenced {positionToNode[pair.pos2]}");
+
+			return true;
+		}
+
 		private PairCollapse GetPairWithMinimumError()
 		{
 			if (mins.Count == 0)
@@ -71,7 +92,7 @@ namespace Nanolabo
 
 		private void ComputeMins()
 		{
-			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MINS_COUNT));
+			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MINS_COUNT)); // Todo : find faster sorting
 		}
 
 		private void AddMin(PairCollapse item)
@@ -100,6 +121,8 @@ namespace Nanolabo
 			for (int p = 0; p < positionToNode.Length; p++)
 			{
 				int nodeIndex = positionToNode[p];
+				if (nodeIndex < 0)
+					continue;
 
 				int sibling = nodeIndex;
 				do
@@ -109,7 +132,10 @@ namespace Nanolabo
 					var pair = new PairCollapse();
 					pair.pos1 = firstRelative.position;
 					pair.pos2 = mesh.nodes[firstRelative.relative].position;
+
 					pairs.Add(pair);
+
+					Debug.Assert(CheckPair(pair));
 
 				} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
 			}
@@ -126,6 +152,8 @@ namespace Nanolabo
 		private void CalculateQuadric(int position)
 		{
 			int nodeIndex = positionToNode[position];
+			if (nodeIndex < 0)
+				return;
 
 			Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
 
@@ -206,8 +234,16 @@ namespace Nanolabo
 
 		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
 		{
+			Debug.Assert(CheckPairs());
+
 			int posA = mesh.nodes[nodeIndexA].position;
 			int posB = mesh.nodes[nodeIndexB].position;
+
+			Debug.Assert(!mesh.nodes[nodeIndexA].IsRemoved);
+			Debug.Assert(!mesh.nodes[nodeIndexB].IsRemoved);
+
+			Debug.Assert(mesh.CheckSiblings(nodeIndexA));
+			Debug.Assert(mesh.CheckSiblings(nodeIndexB));
 
 			// Remove all edges around A
 			int sibling = nodeIndexA;
@@ -219,13 +255,13 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-					pairs.Remove(pair);
+					pairs.Remove(pair); // Todo : Optimization by only removing first pair (first edge)
 					RemoveMin(pair);
 				} 
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
 
-			// Remove all edges around A
+			// Remove all edges around B
 			sibling = nodeIndexB;
 			do
 			{
@@ -245,6 +281,10 @@ namespace Nanolabo
 
 			// Actualize position to nodes
 			positionToNode[posA] = validNode;
+			positionToNode[posB] = -1;
+
+			if (validNode < 0)
+				return; // A disconnected triangle has been collapsed, there are no edges to register
 
 			// Recompute quadric at this position
 			CalculateQuadric(posA); // Required ?
@@ -261,16 +301,25 @@ namespace Nanolabo
 					// Actualize position to nodes
 					positionToNode[posC] = relative;
 
-					CalculateQuadric(posC); // Required ?
-
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-					CalculateError(pair); // Todo : Optimize by not calculating the error multiple times for the same edge
+
+					// Optimization by not adding a pair that has already been added
+					if (pairs.Contains(pair))
+						continue;
+
+					CalculateQuadric(posC);
+
+					CalculateError(pair);
 
 					pairs.Add(pair);
 					AddMin(pair);
+
+					Debug.Assert(CheckPair(pair));
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
+
+			Debug.Assert(CheckPairs());
 		}
 
 		private float VertexError(SymmetricMatrix q, float x, float y, float z)
@@ -321,7 +370,7 @@ namespace Nanolabo
 
 			public override string ToString()
 			{
-				return $"pos1:{pos1} pos2:{pos2} error:{error}";
+				return $"{pos1}-{pos2} error:{error}";
 			}
 		}
     }

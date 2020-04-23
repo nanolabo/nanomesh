@@ -88,6 +88,8 @@ namespace Nanolabo
                 connectedMesh.nodes[firstSibling].sibling = previousSibling;
             }
 
+            Debug.Assert(connectedMesh.Check());
+
             return connectedMesh;
         }
 
@@ -128,6 +130,12 @@ namespace Nanolabo
         public int[] GetPositionToNode()
         {
             int[] positionToNode = new int[positions.Length];
+#if DEBUG
+            for (int i = 0; i < positions.Length; i++)
+            {
+                positionToNode[i] = -1;
+            }
+#endif
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (!nodes[i].IsRemoved)
@@ -199,19 +207,21 @@ namespace Nanolabo
             }
             while ((sibling = nodes[sibling].sibling) != nodeIndex);
 
+            if (lastValid == -1)
+                return -1; // All siblings were removed
+
             // Close the loop
-            nodes[lastValid].sibling = firstValid; // Additional checks here ?
+            nodes[lastValid].sibling = firstValid;
             nodes[lastValid].position = position;
 
             return firstValid;
         }
 
-        public int ReconnectSiblings(int nodeIndexA, int nodeIndexB)
+        public int ReconnectSiblings(int nodeIndexA, int nodeIndexB, int position)
         {
             int sibling = nodeIndexA;
             int lastValid = -1;
             int firstValid = -1;
-            int position = -1;
 
             do
             {
@@ -221,7 +231,7 @@ namespace Nanolabo
                 if (firstValid == -1)
                 {
                     firstValid = sibling;
-                    position = nodes[sibling].position;
+                    //position = nodes[sibling].position;
                 }
 
                 if (lastValid != -1)
@@ -243,7 +253,7 @@ namespace Nanolabo
                 if (firstValid == -1)
                 {
                     firstValid = sibling;
-                    position = nodes[sibling].position;
+                    //position = nodes[sibling].position;
                 }
 
                 if (lastValid != -1)
@@ -256,8 +266,11 @@ namespace Nanolabo
             }
             while ((sibling = nodes[sibling].sibling) != nodeIndexB);
 
+            if (lastValid == -1)
+                return -1; // All siblings were removed
+
             // Close the loop
-            nodes[lastValid].sibling = firstValid; // Additional checks here ?
+            nodes[lastValid].sibling = firstValid;
             nodes[lastValid].position = position;
 
             return firstValid;
@@ -280,14 +293,14 @@ namespace Nanolabo
             positions[nodes[nodeIndexA].position] = position;
 
             int siblingOfA = nodeIndexA;
-            do // Iterate over faces adjacent to node A
+            do // Iterator over faces around A
             {
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
 
                 int relativeOfA = siblingOfA;
-                do // Iterate over adjacent face nodes
+                do // Circulate around face
                 {
                     int posC = nodes[relativeOfA].position;
                     if (posC == posB)
@@ -304,10 +317,13 @@ namespace Nanolabo
 
                 if (isFaceTouched && faceEdgeCount == 3)
                 {
+                    // Remove face : Mark nodes as removed an reconnect siblings around C
+
                     relativeOfA = siblingOfA;
                     do
                     {
                         nodes[relativeOfA].MarkRemoved();
+
                     } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
 
                     ReconnectSiblings(nodeIndexC);
@@ -316,7 +332,7 @@ namespace Nanolabo
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            int validNode = ReconnectSiblings(nodeIndexA, nodeIndexB);
+            int validNode = ReconnectSiblings(nodeIndexA, nodeIndexB, posA);
 
             Debug.Assert(Check(), "Mapping must be correct at the end of edge collapse");
 
