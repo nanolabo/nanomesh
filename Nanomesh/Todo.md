@@ -16,3 +16,7 @@
   - [ ] Add support for normals
 - [x] Add decimate
   - [x] Optimize until it is satisfying
+  - [ ] Take into account vertex normals
+  - [ ] Take into account borders
+  - [ ] Add an error target control
+- [ ] Add create normals function

@@ -16,6 +16,9 @@ namespace Nanolabo
         public Attribute[] attributes;
         public Node[] nodes;
 
+        public int[] PositionToNode => positionToNode ?? (positionToNode = GetPositionToNode());
+        private int[] positionToNode;
+
         internal int faceCount;
         public int FaceCount => faceCount;
 
@@ -290,7 +293,7 @@ namespace Nanolabo
             Debug.Assert(CheckSiblings(nodeIndexA), "A's siblings must be valid");
             Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
 
-            positions[nodes[nodeIndexA].position] = position;
+            positions[posA] = position;
 
             int siblingOfA = nodeIndexA;
             do // Iterator over faces around A
@@ -319,6 +322,8 @@ namespace Nanolabo
                 {
                     // Remove face : Mark nodes as removed an reconnect siblings around C
 
+                    int posC = nodes[nodeIndexC].position;
+
                     relativeOfA = siblingOfA;
                     do
                     {
@@ -326,17 +331,26 @@ namespace Nanolabo
 
                     } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
 
-                    ReconnectSiblings(nodeIndexC);
+                    int validNodeAtC = ReconnectSiblings(nodeIndexC);
+
+                    if (positionToNode != null)
+                        positionToNode[posC] = validNodeAtC;
 
                     faceCount--;
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            int validNode = ReconnectSiblings(nodeIndexA, nodeIndexB, posA);
+            int validNodeAtA = ReconnectSiblings(nodeIndexA, nodeIndexB, posA);
+
+            if (positionToNode != null)
+            {
+                positionToNode[posA] = validNodeAtA;
+                positionToNode[posB] = -1;
+            }
 
             Debug.Assert(Check(), "Mapping must be correct at the end of edge collapse");
 
-            return validNode;
+            return validNodeAtA;
         }
 
         public void Compact()

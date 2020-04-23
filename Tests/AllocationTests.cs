@@ -18,7 +18,7 @@ namespace Tests
         }
 
         [Test]
-        [Category("Benchmarking")]
+        [Category("Benchmark Iterate")]
         public unsafe void IterateUsingIEnumerator()
         {
             unchecked
@@ -44,7 +44,7 @@ namespace Tests
         }
 
         [Test]
-        [Category("Benchmarking")]
+        [Category("Benchmark Iterate")]
         public unsafe void IterateUsingUnsafe()
         {
             unchecked
@@ -71,7 +71,7 @@ namespace Tests
         }
 
         [Test]
-        [Category("Benchmarking")]
+        [Category("Benchmark Iterate")]
         public unsafe void IterateUsingArray()
         {
             unchecked
@@ -97,7 +97,7 @@ namespace Tests
         }
 
         [Test]
-        [Category("Benchmarking")]
+        [Category("Benchmark Iterate")]
         public unsafe void IterateUsingAction()
         {
             unchecked
@@ -120,7 +120,7 @@ namespace Tests
         }
 
         [Test]
-        [Category("Benchmarking")]
+        [Category("Benchmark Iterate")]
         public unsafe void IterateUsingInline()
         {
             unchecked

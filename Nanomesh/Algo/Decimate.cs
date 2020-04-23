@@ -9,7 +9,6 @@ namespace Nanolabo
     {
 		private ConnectedMesh mesh;
 
-		private int[] positionToNode;
 		private SymmetricMatrix[] matrices;
 		private HashSet<PairCollapse> pairs;
 		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
@@ -30,7 +29,6 @@ namespace Nanolabo
 			int initialTriangleCount = mesh.FaceCount;
 			int lastProgress = -1;
 
-			positionToNode = mesh.GetPositionToNode();
 			InitializePairs();
 			CalculateQuadrics();
 			CalculateErrors();
@@ -44,7 +42,7 @@ namespace Nanolabo
 
 				Debug.Assert(CheckPair(pair));
 
-				CollapseEdge(positionToNode[pair.pos1], positionToNode[pair.pos2], pair.result);
+				CollapseEdge(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2], pair.result);
 				//Console.WriteLine("Collapse : " + minPair.error);
 
 				int progress = (int)MathF.Round(100f * (initialTriangleCount - mesh.FaceCount) / (initialTriangleCount - targetTriangleCount));
@@ -74,8 +72,8 @@ namespace Nanolabo
 		private bool CheckPair(PairCollapse pair)
 		{
 			Debug.Assert(pair.pos1 != pair.pos2, "Positions must be different");
-			Debug.Assert(!mesh.nodes[positionToNode[pair.pos1]].IsRemoved, $"Position 1 is unreferenced {positionToNode[pair.pos1]}");
-			Debug.Assert(!mesh.nodes[positionToNode[pair.pos2]].IsRemoved, $"Position 2 is unreferenced {positionToNode[pair.pos2]}");
+			Debug.Assert(!mesh.nodes[mesh.PositionToNode[pair.pos1]].IsRemoved, $"Position 1 is unreferenced {mesh.PositionToNode[pair.pos1]}");
+			Debug.Assert(!mesh.nodes[mesh.PositionToNode[pair.pos2]].IsRemoved, $"Position 2 is unreferenced {mesh.PositionToNode[pair.pos2]}");
 
 			return true;
 		}
@@ -118,9 +116,9 @@ namespace Nanolabo
 		{
 			pairs.Clear();
 
-			for (int p = 0; p < positionToNode.Length; p++)
+			for (int p = 0; p < mesh.PositionToNode.Length; p++)
 			{
-				int nodeIndex = positionToNode[p];
+				int nodeIndex = mesh.PositionToNode[p];
 				if (nodeIndex < 0)
 					continue;
 
@@ -143,7 +141,7 @@ namespace Nanolabo
 
 		private void CalculateQuadrics()
 		{
-			for (int p = 0; p < positionToNode.Length; p++)
+			for (int p = 0; p < mesh.PositionToNode.Length; p++)
 			{
 				CalculateQuadric(p);
 			}
@@ -151,7 +149,7 @@ namespace Nanolabo
 
 		private void CalculateQuadric(int position)
 		{
-			int nodeIndex = positionToNode[position];
+			int nodeIndex = mesh.PositionToNode[position];
 			if (nodeIndex < 0)
 				return;
 
@@ -234,8 +232,6 @@ namespace Nanolabo
 
 		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
 		{
-			Debug.Assert(CheckPairs());
-
 			int posA = mesh.nodes[nodeIndexA].position;
 			int posB = mesh.nodes[nodeIndexB].position;
 
@@ -279,14 +275,10 @@ namespace Nanolabo
 			// Collapse edge
 			int validNode = mesh.CollapseEdge(nodeIndexA, nodeIndexB, position);
 
-			// Actualize position to nodes
-			positionToNode[posA] = validNode;
-			positionToNode[posB] = -1;
-
+			// A disconnected triangle has been collapsed, there are no edges to register
 			if (validNode < 0)
-				return; // A disconnected triangle has been collapsed, there are no edges to register
-
-			// Recompute quadric at this position
+				return;
+			
 			CalculateQuadric(posA); // Required ?
 
 			// Recreate edges around new point and recompute collapse quadric errors
@@ -298,8 +290,8 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 
-					// Actualize position to nodes
-					positionToNode[posC] = relative;
+					if (validNode < 0)
+						continue; 
 
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
 
@@ -318,8 +310,6 @@ namespace Nanolabo
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
-
-			Debug.Assert(CheckPairs());
 		}
 
 		private float VertexError(SymmetricMatrix q, float x, float y, float z)

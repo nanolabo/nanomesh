@@ -10,18 +10,18 @@ namespace Nanolabo
 
         }
 
-        //[Test]
-        //public void Monkey()
-        //{
-        //    ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\monkey.obj"));
+        [Test]
+        public void Monkey()
+        {
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\monkey.obj"));
 
-        //    Assert.IsTrue(mesh.Check());
+            Assert.IsTrue(mesh.Check());
 
-        //    DecimateModifier decimateModifier = new DecimateModifier();
-        //    decimateModifier.Run(mesh, 0.2f);
+            DecimateModifier decimateModifier = new DecimateModifier();
+            decimateModifier.Run(mesh, 0.2f);
 
-        //    Assert.IsTrue(mesh.Check());
-        //}
+            Assert.IsTrue(mesh.Check());
+        }
 
         [Test]
         [Category("Decimate")]
