@@ -1,15 +1,18 @@
 ﻿# Todo List
 
-- [ ] Make use of ArrayPool
-- [ ] Bench aggressive inlining
-- [ ] Bench stack allocated arrays for mesh traversal
-- [ ] Add a bunch of primitives
+- [x] Bench iterating methods
+- [x] Add a bunch of primitives
 - [x] Add ConnectedMesh data structure
 - [x] Add SharedMesh data structure
   - [ ] Add vertex attributes
 - [x] Add SharedMesh -> ConnectedMesh
   - [ ] Add support for hardedges
   - [ ] Add conversion of attributes
-- [ ] Add ConnectedMesh -> SharedMesh
-- [ ] Add export to obj
-- [ ] Add import from obj
+- [x] Add ConnectedMesh -> SharedMesh
+  - [ ] Add support for hardedges
+- [x] Add export to obj
+  - [ ] Add support for normals
+- [x] Add import from obj
+  - [ ] Add support for normals
+- [x] Add decimate
+  - [x] Optimize until it is satisfying
