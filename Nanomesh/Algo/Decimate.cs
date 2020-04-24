@@ -13,17 +13,28 @@ namespace Nanolabo
 		private HashSet<PairCollapse> pairs;
 		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
 
+		private int lastProgress;
+		private int initialTriangleCount;
+
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
 			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0f, 1f);
 			DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
 		}
 
-		//public void DecimateToError(ConnectedMesh mesh, float maximumError)
-		//{
-			//targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
-			//DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
-		//}
+		public void DecimateToError(ConnectedMesh mesh, float maximumError)
+		{
+			Initialize(mesh);
+
+			while (GetPairWithMinimumError().error <= maximumError)
+			{
+				Iterate();
+
+				// Todo : Progress
+			}
+
+			Console.WriteLine("over");
+		}
 
 		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
 		{
@@ -32,29 +43,11 @@ namespace Nanolabo
 
 		public void DecimateToPolycount(ConnectedMesh mesh, int targetTriangleCount)
 		{
-			this.mesh = mesh;
-			
-			matrices = new SymmetricMatrix[mesh.positions.Length];
-			pairs = new HashSet<PairCollapse>();
-
-			int initialTriangleCount = mesh.FaceCount;
-			int lastProgress = -1;
-
-			InitializePairs();
-			CalculateQuadrics();
-			CalculateErrors();
-
-			Profiling.Start("DECIMATION");
+			Initialize(mesh);
 
 			while (mesh.FaceCount > targetTriangleCount)
 			{
-				PairCollapse pair = GetPairWithMinimumError();
-				pairs.Remove(pair);
-
-				Debug.Assert(CheckPair(pair));
-
-				CollapseEdge(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2], pair.result);
-				//Console.WriteLine("Collapse : " + minPair.error);
+				Iterate();
 
 				int progress = (int)MathF.Round(100f * (initialTriangleCount - mesh.FaceCount) / (initialTriangleCount - targetTriangleCount));
 				if (progress > lastProgress)
@@ -65,9 +58,33 @@ namespace Nanolabo
 				}
 			}
 
-			Profiling.End("DECIMATION");
-
 			//mesh.Compact();
+		}
+
+		private void Initialize(ConnectedMesh mesh)
+		{
+			this.mesh = mesh;
+
+			initialTriangleCount = mesh.FaceCount;
+
+			matrices = new SymmetricMatrix[mesh.positions.Length];
+			pairs = new HashSet<PairCollapse>();
+			lastProgress = -1;
+
+			InitializePairs();
+			CalculateQuadrics();
+			CalculateErrors();
+		}
+
+		private void Iterate()
+		{
+			PairCollapse pair = GetPairWithMinimumError();
+			pairs.Remove(pair);
+
+			Debug.Assert(CheckPair(pair));
+
+			CollapseEdge(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2], pair.result);
+			//Console.WriteLine("Collapse : " + minPair.error);
 		}
 
 		private bool CheckPairs()
@@ -217,7 +234,7 @@ namespace Nanolabo
 			bool isPos1Manifold = mesh.IsManifold(node1);
 			bool isPos2Manifold = mesh.IsManifold(node2);
 			bool isEdgeManifold = mesh.IsEdgeManifold(node1, node2);
-			//bool manifold = mesh.IsEdgeManifold(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2]);
+
 			float error;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
@@ -244,7 +261,7 @@ namespace Nanolabo
 
 				if (isPos1Manifold && isPos2Manifold)
 				{
-					// Edge contained in a surface
+					// Edge is contained in a surface
 					error = MathF.Min(error1, MathF.Min(error2, error3));
 					if (error1 == error) result = p1;
 					if (error2 == error) result = p2;
@@ -254,13 +271,13 @@ namespace Nanolabo
 				{
 					// Edge is the base in a T junction
 					result = p2;
-					error = error2;
+					error = error2 + 10000;
 				}
 				else if (isPos2Manifold)
 				{
 					// Edge is the base in a T junction
 					result = p1;
-					error = error1;
+					error = error1 + 10000;
 				}
 				else
 				{
@@ -274,7 +291,7 @@ namespace Nanolabo
 					{
 						// Edge is a border
 						result = p3;
-						error = error3;
+						error = error3 + 10000;
 					}
 				}
 			}
