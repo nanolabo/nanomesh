@@ -13,13 +13,24 @@ namespace Nanolabo
 		private HashSet<PairCollapse> pairs;
 		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
 
-		public void Run(ConnectedMesh mesh, float targetTriangleRatio)
+		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
-			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
-			Run(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
+			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0f, 1f);
+			DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
 		}
 
-		public void Run(ConnectedMesh mesh, int targetTriangleCount)
+		//public void DecimateToError(ConnectedMesh mesh, float maximumError)
+		//{
+			//targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0.001f, 1f);
+			//DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
+		//}
+
+		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
+		{
+			DecimateToPolycount(mesh, (int)MathF.Round(mesh.FaceCount - polycount));
+		}
+
+		public void DecimateToPolycount(ConnectedMesh mesh, int targetTriangleCount)
 		{
 			this.mesh = mesh;
 			
@@ -197,14 +208,26 @@ namespace Nanolabo
 
 		private void CalculateError(PairCollapse pair)
 		{
+			Debug.Assert(CheckPair(pair));
+
+			int node1 = mesh.PositionToNode[pair.pos1];
+			int node2 = mesh.PositionToNode[pair.pos2];
+
 			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
-			bool border = false;
+			bool isPos1Manifold = mesh.IsManifold(node1);
+			bool isPos2Manifold = mesh.IsManifold(node2);
+			bool isEdgeManifold = mesh.IsEdgeManifold(node1, node2);
+			//bool manifold = mesh.IsEdgeManifold(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2]);
 			float error;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
 			Vector3 result = new Vector3();
 
-			if (det != 0 && !border)
+			Vector3 p1 = mesh.positions[pair.pos1];
+			Vector3 p2 = mesh.positions[pair.pos2];
+
+			// Use quadric error to determine optimal vertex position only makes sense for manifold edges
+			if (isPos1Manifold && isPos2Manifold && det != 0)
 			{
 				result.x = -1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8);
 				result.y = 1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8);
@@ -214,17 +237,50 @@ namespace Nanolabo
 			}
 			else
 			{
-				Vector3 p1 = mesh.positions[pair.pos1];
-				Vector3 p2 = mesh.positions[pair.pos2];
 				Vector3 p3 = (p1 + p2) / 2;
 				float error1 = VertexError(q, p1.x, p1.y, p1.z);
 				float error2 = VertexError(q, p2.x, p2.y, p2.z);
 				float error3 = VertexError(q, p3.x, p3.y, p3.z);
-				error = MathF.Min(error1, MathF.Min(error2, error3));
-				if (error1 == error) result = p1;
-				if (error2 == error) result = p2;
-				if (error3 == error) result = p3;
+
+				if (isPos1Manifold && isPos2Manifold)
+				{
+					// Edge contained in a surface
+					error = MathF.Min(error1, MathF.Min(error2, error3));
+					if (error1 == error) result = p1;
+					if (error2 == error) result = p2;
+					if (error3 == error) result = p3;
+				}
+				else if (isPos1Manifold)
+				{
+					// Edge is the base in a T junction
+					result = p2;
+					error = error2;
+				}
+				else if (isPos2Manifold)
+				{
+					// Edge is the base in a T junction
+					result = p1;
+					error = error1;
+				}
+				else
+				{
+					if (isEdgeManifold)
+					{
+						// Edge is in "A" case
+						result = p3;
+						error = 10000; // Don't collapse !
+					}
+					else
+					{
+						// Edge is a border
+						result = p3;
+						error = error3;
+					}
+				}
 			}
+
+			// TODO : Ponderate error with edge length to collapse first shortest edges ?
+			//error += Vector3.Magnitude(p2 - p1);
 
 			pair.result = result;
 			pair.error = error;
@@ -234,12 +290,6 @@ namespace Nanolabo
 		{
 			int posA = mesh.nodes[nodeIndexA].position;
 			int posB = mesh.nodes[nodeIndexB].position;
-
-			Debug.Assert(!mesh.nodes[nodeIndexA].IsRemoved);
-			Debug.Assert(!mesh.nodes[nodeIndexB].IsRemoved);
-
-			Debug.Assert(mesh.CheckSiblings(nodeIndexA));
-			Debug.Assert(mesh.CheckSiblings(nodeIndexB));
 
 			// Remove all edges around A
 			int sibling = nodeIndexA;
@@ -299,14 +349,14 @@ namespace Nanolabo
 					if (pairs.Contains(pair))
 						continue;
 
+					Debug.Assert(CheckPair(pair));
+
 					CalculateQuadric(posC);
 
 					CalculateError(pair);
 
 					pairs.Add(pair);
 					AddMin(pair);
-
-					Debug.Assert(CheckPair(pair));
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);

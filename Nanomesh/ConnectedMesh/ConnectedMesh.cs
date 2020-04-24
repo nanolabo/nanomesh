@@ -348,9 +348,43 @@ namespace Nanolabo
                 positionToNode[posB] = -1;
             }
 
-            Debug.Assert(Check(), "Mapping must be correct at the end of edge collapse");
-
             return validNodeAtA;
+        }
+
+        public bool IsManifold(int nodeIndex)
+        {
+            int relative = nodeIndex;
+            while ((relative = nodes[relative].relative) != nodeIndex)
+            {
+                if (!IsEdgeManifold(relative, nodeIndex))
+                    return false;
+            }
+
+            return true;
+        }
+
+        public bool IsEdgeManifold(int nodeIndexA, int nodeIndexB)
+        {
+            int posB = nodes[nodeIndexB].position;
+
+            int facesAttached = 0;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                int relativeOfA = siblingOfA;
+                do // Circulate around face
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        facesAttached++;
+                    }
+                } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
+
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            return facesAttached == 2;
         }
 
         public void Compact()
@@ -385,6 +419,8 @@ namespace Nanolabo
             nodes = newNodes;
 
             // Todo : compact positions and attributes
+
+            positionToNode = null;
 
             GC.Collect(); // Collect 
         }
