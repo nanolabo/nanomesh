@@ -114,17 +114,17 @@ namespace Nanolabo
 			return mins.First.Value;
 		}
 
-		const int MINS_COUNT = 100;
+		private int MinsCount => (int)(0.01f * mesh.faceCount) + 100;
 
 		private void ComputeMins()
 		{
-			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MINS_COUNT)); // Todo : find faster sorting
+			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
 		}
 
 		private void AddMin(PairCollapse item)
 		{
 			var current = mins.Last;
-			while (current != mins.First && item.CompareTo(current.Value) < 0 )
+			while (current != null && item.CompareTo(current.Value) < 0)
 			{
 				current = current.Previous;
 			}
@@ -132,7 +132,10 @@ namespace Nanolabo
 			if (current == mins.Last)
 				return;
 
-			mins.AddAfter(item, current);
+			if (current == null)
+				mins.AddBefore(item, mins.First);
+			else
+				mins.AddAfter(item, current);
 		}
 
 		private void RemoveMin(PairCollapse item)
@@ -430,5 +433,13 @@ namespace Nanolabo
 				return $"{pos1}-{pos2} error:{error}";
 			}
 		}
-    }
+
+		internal class PairComparer : IComparer<PairCollapse>
+		{
+			public int Compare(PairCollapse x, PairCollapse y)
+			{
+				return x == y ? 0 : x.error > y.error ? 1 : -1;
+			}
+		}
+	}
 }

@@ -362,6 +362,30 @@ namespace Nanolabo
 			return true;
 		}
 
+		public bool AddBefore(T item, LinkedHashNode<T> itemInPlace)
+		{
+			if (elements.ContainsKey(item))
+				return false;
+
+			var node = new LinkedHashNode<T>(item) { Next = itemInPlace };
+
+			if (itemInPlace.Previous != null)
+			{
+				node.Previous = itemInPlace.Previous;
+				itemInPlace.Previous.Next = node;
+			}
+			else
+			{
+				first = node;
+			}
+
+			itemInPlace.Previous = node;
+
+			elements.Add(item, node);
+
+			return true;
+		}
+
 		#endregion
 
 		/// <summary>
