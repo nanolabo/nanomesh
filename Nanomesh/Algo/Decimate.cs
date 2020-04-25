@@ -63,6 +63,12 @@ namespace Nanolabo
 
 		private void Initialize(ConnectedMesh mesh)
 		{
+			SortedSet<PairCollapse> test = new SortedSet<PairCollapse>();
+			Debug.Assert(test.Add(new PairCollapse { pos1 = 1, pos2 = 2 }));
+			Debug.Assert(!test.Add(new PairCollapse { pos1 = 1, pos2 = 2 }));
+			Debug.Assert(test.Remove(new PairCollapse { pos1 = 1, pos2 = 2 }));
+			Debug.Assert(!test.Remove(new PairCollapse { pos1 = 1, pos2 = 2 }));
+
 			this.mesh = mesh;
 
 			initialTriangleCount = mesh.FaceCount;
@@ -79,9 +85,12 @@ namespace Nanolabo
 		private void Iterate()
 		{
 			PairCollapse pair = GetPairWithMinimumError();
-			pairs.Remove(pair);
 
+			Debug.Assert(CheckMins());
 			Debug.Assert(CheckPair(pair));
+
+			RemoveMin(pair);
+			pairs.Remove(pair);
 
 			CollapseEdge(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2], pair.result);
 			//Console.WriteLine("Collapse : " + minPair.error);
@@ -92,6 +101,16 @@ namespace Nanolabo
 			foreach (var pair in pairs)
 			{
 				CheckPair(pair);
+			}
+
+			return true;
+		}
+
+		private bool CheckMins()
+		{
+			foreach (var min in mins)
+			{
+				Debug.Assert(pairs.Contains(min));
 			}
 
 			return true;
@@ -114,10 +133,12 @@ namespace Nanolabo
 			return mins.First.Value;
 		}
 
-		private int MinsCount => (int)(0.01f * mesh.faceCount) + 100;
+		private int MinsCount => 100;//Math.Clamp((int)(0.01f * mesh.faceCount) + 100, 0, pairs.Count);
 
 		private void ComputeMins()
 		{
+			// Find the k smallest elements (ordered)
+			// https://www.desmos.com/calculator/eoxaztxqaf
 			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
 		}
 
@@ -146,6 +167,7 @@ namespace Nanolabo
 		private void InitializePairs()
 		{
 			pairs.Clear();
+			mins.Clear();
 
 			for (int p = 0; p < mesh.PositionToNode.Length; p++)
 			{
@@ -234,11 +256,10 @@ namespace Nanolabo
 			int node2 = mesh.PositionToNode[pair.pos2];
 
 			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
-			bool isPos1Manifold = mesh.IsManifold(node1);
-			bool isPos2Manifold = mesh.IsManifold(node2);
-			bool isEdgeManifold = mesh.IsEdgeManifold(node1, node2);
 
-			float error;
+			var edgeInfo = mesh.GetEdgeInfo(node1, node2, out int otherNodeIndex1, out int otherNodeIndex2);
+
+			float error = 0;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
 			Vector3 result = new Vector3();
@@ -247,56 +268,53 @@ namespace Nanolabo
 			Vector3 p2 = mesh.positions[pair.pos2];
 
 			// Use quadric error to determine optimal vertex position only makes sense for manifold edges
-			if (isPos1Manifold && isPos2Manifold && det != 0)
+			if (edgeInfo == ConnectedMesh.EdgeInfo.Manifold)
 			{
-				result.x = -1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8);
-				result.y = 1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8);
-				result.z = -1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8);
-
-				error = VertexError(q, result.x, result.y, result.z);
-			}
-			else
-			{
-				Vector3 p3 = (p1 + p2) / 2;
-				float error1 = VertexError(q, p1.x, p1.y, p1.z);
-				float error2 = VertexError(q, p2.x, p2.y, p2.z);
-				float error3 = VertexError(q, p3.x, p3.y, p3.z);
-
-				if (isPos1Manifold && isPos2Manifold)
+				if (det != 0)
 				{
-					// Edge is contained in a surface
+					result.x = -1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8);
+					result.y = 1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8);
+					result.z = -1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8);
+
+					error = VertexError(q, result.x, result.y, result.z);
+				}
+				else
+				{
+					Vector3 p3 = (p1 + p2) / 2;
+					float error1 = VertexError(q, p1.x, p1.y, p1.z);
+					float error2 = VertexError(q, p2.x, p2.y, p2.z);
+					float error3 = VertexError(q, p3.x, p3.y, p3.z);
+
 					error = MathF.Min(error1, MathF.Min(error2, error3));
 					if (error1 == error) result = p1;
 					if (error2 == error) result = p2;
 					if (error3 == error) result = p3;
 				}
-				else if (isPos1Manifold)
-				{
-					// Edge is the base in a T junction
-					result = p2;
-					error = error2 + 10000;
-				}
-				else if (isPos2Manifold)
-				{
-					// Edge is the base in a T junction
-					result = p1;
-					error = error1 + 10000;
-				}
-				else
-				{
-					if (isEdgeManifold)
-					{
-						// Edge is in "A" case
-						result = p3;
-						error = 10000; // Don't collapse !
-					}
-					else
-					{
-						// Edge is a border
-						result = p3;
-						error = error3 + 10000;
-					}
-				}
+			}
+			else if (edgeInfo == ConnectedMesh.EdgeInfo.TShapeA)
+			{
+				result = p1;
+				error = VertexError(q, p1.x, p1.y, p1.z);
+			}
+			else if (edgeInfo == ConnectedMesh.EdgeInfo.TShapeB)
+			{
+				result = p2;
+				error = VertexError(q, p2.x, p2.y, p2.z);
+			}
+			else if (edgeInfo == ConnectedMesh.EdgeInfo.AShape)
+			{
+				error = 1000000;
+			}
+			else
+			{
+				Vector3 p1o = mesh.positions[mesh.nodes[otherNodeIndex1].position];
+				Vector3 p2o = mesh.positions[mesh.nodes[otherNodeIndex2].position];
+
+				var error1 = ComputeLineicError(p1, p2, p2o);
+				var error2 = ComputeLineicError(p2, p1, p1o);
+				error = MathF.Min(error1, error2);
+				if (error1 == error) result = p1;
+				if (error2 == error) result = p2;
 			}
 
 			// TODO : Ponderate error with edge length to collapse first shortest edges ?
@@ -304,6 +322,39 @@ namespace Nanolabo
 
 			pair.result = result;
 			pair.error = error;
+		}
+
+		private float ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
+		{
+			var θ = Vector3.Angle(B - A, C - A);
+			var h = Vector3.Magnitude(B - A) * MathF.Sin(θ);
+
+			return h;
+		}
+
+		private float ComputeLineicError(PairCollapse borderEdge)
+		{
+			var nodeIndex = mesh.PositionToNode[borderEdge.pos2];
+
+			int relative = nodeIndex;
+			while ((relative = mesh.nodes[relative].relative) != nodeIndex)
+			{
+				if (!mesh.IsEdgeManifold(relative, nodeIndex))
+					goto next;
+			}
+
+			throw new Exception($"Pair '{borderEdge}' is not a border since pos2 is manifold");
+
+		next:;
+
+			Vector3 A = mesh.positions[borderEdge.pos1];
+			Vector3 B = mesh.positions[borderEdge.pos2];
+			Vector3 C = mesh.positions[mesh.nodes[relative].position];
+
+			var θ = Vector3.Angle(B - A, C - A);
+			var h = Vector3.Magnitude(B - A) * MathF.Sin(θ);
+
+			return h;
 		}
 
 		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
@@ -321,8 +372,15 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
+					Debug.Assert(CheckMins());
+					bool a = mins.Contains(pair);
 					pairs.Remove(pair); // Todo : Optimization by only removing first pair (first edge)
-					RemoveMin(pair);
+					Debug.Assert(!(posA == 1487 && posC == 382));
+					mins.Remove(pair);
+					bool b = mins.Contains(pair);
+					if (a == true)
+						Debug.Assert(b == false);
+					Debug.Assert(CheckMins());
 				} 
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
@@ -338,6 +396,7 @@ namespace Nanolabo
 					var pair = new PairCollapse { pos1 = posB, pos2 = posC };
 					pairs.Remove(pair);
 					RemoveMin(pair);
+					Debug.Assert(CheckMins());
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
@@ -377,6 +436,7 @@ namespace Nanolabo
 
 					pairs.Add(pair);
 					AddMin(pair);
+					Debug.Assert(CheckMins());
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
@@ -392,7 +452,7 @@ namespace Nanolabo
 				+ q[9];
 		}
 
-		public class PairCollapse : IComparable<PairCollapse>
+		public class PairCollapse : IComparable<PairCollapse>, IEquatable<PairCollapse>
 		{
 			public int pos1;
 			public int pos2;
@@ -410,22 +470,50 @@ namespace Nanolabo
 			public override bool Equals(object obj)
 			{
 				PairCollapse pc = (PairCollapse)obj;
-				return (pc.pos1 == pos1 && pc.pos2 == pos2) || (pc.pos1 == pos2 && pc.pos2 == pos1);
+				return Compare(this, pc) == 0;
+			}
+
+			public bool Equals(PairCollapse pc)
+			{
+				return Compare(this, pc) == 0;
 			}
 
 			public int CompareTo(PairCollapse other)
 			{
-				return this == other ? 0 : this.error > other.error ? 1 : -1;
+				return Compare(this, other);
+			}
+
+			private static int Compare(PairCollapse x, PairCollapse y)
+			{
+				int lret = 0;
+				if (Object.ReferenceEquals(x, y))
+				{
+					lret = 0;
+				}
+				else if (Object.ReferenceEquals(null, x))
+				{
+					lret = 1;
+				}
+				else if (Object.ReferenceEquals(null, y))
+				{
+					lret = -1;
+				}
+				else
+				{
+					lret = ((x.pos1 == y.pos1 && x.pos2 == y.pos2) || (x.pos1 == y.pos2 && x.pos2 == y.pos1)) ? 0 : x.error > y.error ? 1 : -1;
+				}
+
+				return lret;
 			}
 
 			public static bool operator ==(PairCollapse x, PairCollapse y)
 			{
-				return x.GetHashCode() == y.GetHashCode() && x.Equals(y);
+				return Compare(x, y) == 0;
 			}
 
 			public static bool operator !=(PairCollapse x, PairCollapse y)
 			{
-				return x.GetHashCode() != y.GetHashCode() || !x.Equals(y);
+				return Compare(x, y) != 0; ;
 			}
 
 			public override string ToString()
@@ -434,11 +522,11 @@ namespace Nanolabo
 			}
 		}
 
-		internal class PairComparer : IComparer<PairCollapse>
+		private class PairComparer : IComparer<PairCollapse>
 		{
 			public int Compare(PairCollapse x, PairCollapse y)
 			{
-				return x == y ? 0 : x.error > y.error ? 1 : -1;
+				return x.CompareTo(y);
 			}
 		}
 	}

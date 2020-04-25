@@ -351,6 +351,134 @@ namespace Nanolabo
             return validNodeAtA;
         }
 
+        bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
+        {
+            int posB = nodes[nodeIndexB].position;
+
+            int facesAttached = 0;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                int relativeOfA = siblingOfA;
+                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        facesAttached++;
+                        if (facesAttached == 2)
+                            return true;
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            return false;
+        }
+
+        public enum EdgeInfo
+        {
+            Manifold,
+            AShape,
+            TShapeA,
+            TShapeB,
+            Border
+        }
+
+        public EdgeInfo GetEdgeInfo(int nodeIndexA, int nodeIndexB, out int otherEdgeA, out int otherEdgeB)
+        {
+            otherEdgeA = -1;
+            otherEdgeB = -1;
+
+            int posB = nodes[nodeIndexB].position;
+            int facesAttached = 0;
+            int sibling = nodeIndexA;
+            do
+            {
+                int relative = sibling;
+                while ((relative = nodes[relative].relative) != sibling)
+                {
+                    int posC = nodes[relative].position;
+                    if (posC == posB)
+                    {
+                        facesAttached++;
+                    } else
+                    {
+                        if (!IsEdgeInSurface(sibling, relative))
+                        {
+                            otherEdgeA = relative;
+                            goto skipA;
+                        }
+                    }
+                }
+            } while ((sibling = nodes[sibling].sibling) != nodeIndexA);
+
+            skipA:;
+
+            int posA = nodes[nodeIndexA].position;
+            sibling = nodeIndexB;
+            do
+            {
+                int relative = sibling;
+                while ((relative = nodes[relative].relative) != sibling)
+                {
+                    int posC = nodes[relative].position;
+                    if (posC != posA)
+                    {
+                        if (!IsEdgeInSurface(sibling, relative))
+                        {
+                            otherEdgeB = relative;
+                            goto skipB;
+                        }
+                    }
+                }
+            } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
+
+            skipB:;
+
+            if (IsEdgeInSurface(nodeIndexA, nodeIndexB))
+            {
+                if (otherEdgeA != -1 && otherEdgeB != -1)
+                {
+                    return EdgeInfo.AShape;
+                }
+                else if (otherEdgeA != -1)
+                {
+                    return EdgeInfo.TShapeA;
+                }
+                else if (otherEdgeB != -1)
+                {
+                    return EdgeInfo.TShapeB;
+                }
+                else
+                {
+                    return EdgeInfo.Manifold;
+                }
+            }
+            else
+            {
+                Debug.Assert(otherEdgeA != -1 && otherEdgeB != -1, "A border can't be connected to a manifold edge");
+                return EdgeInfo.Border;
+            }
+        }
+
+        public bool IsManifold(int nodeIndex, out int otherNodeIndex)
+        {
+            int relative = nodeIndex;
+            while ((relative = nodes[relative].relative) != nodeIndex)
+            {
+                if (!IsEdgeManifold(relative, nodeIndex))
+                {
+                    otherNodeIndex = relative;
+                    return false;
+                }
+                    
+            }
+
+            otherNodeIndex = -1;
+            return true;
+        }
+
         public bool IsManifold(int nodeIndex)
         {
             int relative = nodeIndex;

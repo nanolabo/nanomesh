@@ -164,5 +164,15 @@ namespace Nanolabo
         public static Vector3 PositiveInfinity => positiveInfinityVector;
 
         public static Vector3 NegativeInfinity => negativeInfinityVector;
+
+        public static float Angle(Vector3 from, Vector3 to)
+        {
+            float denominator = MathF.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
+            if (denominator < 1e-15F)
+                return 0F;
+
+            float dot = Math.Clamp(Dot(from, to) / denominator, -1F, 1F);
+            return MathF.Acos(dot);
+        }
     }
 }
