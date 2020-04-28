@@ -376,8 +376,9 @@ namespace Nanolabo
             return false;
         }
 
-        public enum EdgeInfo
+        public enum EdgeType
         {
+            Unknown,
             Manifold,
             AShape,
             TShapeA,
@@ -385,7 +386,7 @@ namespace Nanolabo
             Border
         }
 
-        public EdgeInfo GetEdgeInfo(int nodeIndexA, int nodeIndexB, out int otherEdgeA, out int otherEdgeB)
+        public EdgeType GetEdgeType(int nodeIndexA, int nodeIndexB, out int otherEdgeA, out int otherEdgeB)
         {
             otherEdgeA = -1;
             otherEdgeB = -1;
@@ -440,25 +441,25 @@ namespace Nanolabo
             {
                 if (otherEdgeA != -1 && otherEdgeB != -1)
                 {
-                    return EdgeInfo.AShape;
+                    return EdgeType.AShape;
                 }
                 else if (otherEdgeA != -1)
                 {
-                    return EdgeInfo.TShapeA;
+                    return EdgeType.TShapeA;
                 }
                 else if (otherEdgeB != -1)
                 {
-                    return EdgeInfo.TShapeB;
+                    return EdgeType.TShapeB;
                 }
                 else
                 {
-                    return EdgeInfo.Manifold;
+                    return EdgeType.Manifold;
                 }
             }
             else
             {
                 Debug.Assert(otherEdgeA != -1 && otherEdgeB != -1, "A border can't be connected to a manifold edge");
-                return EdgeInfo.Border;
+                return EdgeType.Border;
             }
         }
 

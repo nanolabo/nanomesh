@@ -174,5 +174,10 @@ namespace Nanolabo
             float dot = Math.Clamp(Dot(from, to) / denominator, -1F, 1F);
             return MathF.Acos(dot);
         }
+
+        public override string ToString()
+        {
+            return $"{x}, {y}, {z}";
+        }
     }
 }

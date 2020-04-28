@@ -84,7 +84,7 @@ namespace Nanolabo
             float k = 0;
             for (int j = 0; j < ITERATION; j++)
             {
-                var mins = pairs.OrderBy(x => x).Take(K);
+                var mins = pairs.OrderByCustom(x => x).Take(K);
                 
                 foreach (var min in mins)
                 {

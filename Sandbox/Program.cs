@@ -1,10 +1,6 @@
 ﻿using Nanolabo;
 using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using static Nanolabo.DecimateModifier;
 
 namespace Sandbox
 {
@@ -12,7 +8,7 @@ namespace Sandbox
     {
         static void Main(string[] args)
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Tests\test-models\monkey.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Tests\test-models\bunny.obj"));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 4));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
             Debug.Assert(mesh.Check());
@@ -22,8 +18,8 @@ namespace Sandbox
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
-            //decimateModifier.DecimatePolycount(mesh, 6);
-            decimateModifier.DecimateToRatio(mesh, 0.1f);
+            //decimateModifier.DecimatePolycount(mesh, 250);
+            decimateModifier.DecimateToRatio(mesh, 0.3f);
             Profiling.End("Decimating");
             Debug.Assert(mesh.Check());
 

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Nanolabo
 {
-    public class DecimateModifier
+    public partial class DecimateModifier
     {
 		private ConnectedMesh mesh;
 
@@ -15,6 +15,8 @@ namespace Nanolabo
 
 		private int lastProgress;
 		private int initialTriangleCount;
+
+		const float ε = 0.0001f;
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -30,10 +32,10 @@ namespace Nanolabo
 			{
 				Iterate();
 
-				// Todo : Progress
+				// TODO : Add Progress
 			}
 
-			Console.WriteLine("over");
+			// TODO : mesh.Compact();
 		}
 
 		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
@@ -58,17 +60,11 @@ namespace Nanolabo
 				}
 			}
 
-			//mesh.Compact();
+			// TODO : mesh.Compact();
 		}
 
 		private void Initialize(ConnectedMesh mesh)
 		{
-			SortedSet<PairCollapse> test = new SortedSet<PairCollapse>();
-			Debug.Assert(test.Add(new PairCollapse { pos1 = 1, pos2 = 2 }));
-			Debug.Assert(!test.Add(new PairCollapse { pos1 = 1, pos2 = 2 }));
-			Debug.Assert(test.Remove(new PairCollapse { pos1 = 1, pos2 = 2 }));
-			Debug.Assert(!test.Remove(new PairCollapse { pos1 = 1, pos2 = 2 }));
-
 			this.mesh = mesh;
 
 			initialTriangleCount = mesh.FaceCount;
@@ -89,11 +85,10 @@ namespace Nanolabo
 			Debug.Assert(CheckMins());
 			Debug.Assert(CheckPair(pair));
 
-			RemoveMin(pair);
 			pairs.Remove(pair);
+			mins.Remove(pair);
 
 			CollapseEdge(mesh.PositionToNode[pair.pos1], mesh.PositionToNode[pair.pos2], pair.result);
-			//Console.WriteLine("Collapse : " + minPair.error);
 		}
 
 		private bool CheckPairs()
@@ -133,7 +128,7 @@ namespace Nanolabo
 			return mins.First.Value;
 		}
 
-		private int MinsCount => 100;//Math.Clamp((int)(0.01f * mesh.faceCount) + 100, 0, pairs.Count);
+		private int MinsCount => Math.Clamp((int)(0.01f * mesh.faceCount) + 100, 0, pairs.Count);
 
 		private void ComputeMins()
 		{
@@ -159,11 +154,6 @@ namespace Nanolabo
 				mins.AddAfter(item, current);
 		}
 
-		private void RemoveMin(PairCollapse item)
-		{
-			mins.Remove(item);
-		}
-
 		private void InitializePairs()
 		{
 			pairs.Clear();
@@ -180,9 +170,7 @@ namespace Nanolabo
 				{
 					Node firstRelative = mesh.nodes[mesh.nodes[sibling].relative];
 
-					var pair = new PairCollapse();
-					pair.pos1 = firstRelative.position;
-					pair.pos2 = mesh.nodes[firstRelative.relative].position;
+					var pair = new PairCollapse(firstRelative.position, mesh.nodes[firstRelative.relative].position);
 
 					pairs.Add(pair);
 
@@ -203,7 +191,7 @@ namespace Nanolabo
 		private void CalculateQuadric(int position)
 		{
 			int nodeIndex = mesh.PositionToNode[position];
-			if (nodeIndex < 0)
+			if (nodeIndex < 0) // TODO : Remove this check
 				return;
 
 			Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
@@ -255,54 +243,57 @@ namespace Nanolabo
 			int node1 = mesh.PositionToNode[pair.pos1];
 			int node2 = mesh.PositionToNode[pair.pos2];
 
+			var edgeType = mesh.GetEdgeType(node1, node2, out int otherNodeIndex1, out int otherNodeIndex2);
+#if DEBUG
+			pair.type = edgeType;
+#endif
+
+			float error;
+			Vector3 result;
+
 			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
-
-			var edgeInfo = mesh.GetEdgeInfo(node1, node2, out int otherNodeIndex1, out int otherNodeIndex2);
-
-			float error = 0;
 			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
-
-			Vector3 result = new Vector3();
 
 			Vector3 p1 = mesh.positions[pair.pos1];
 			Vector3 p2 = mesh.positions[pair.pos2];
 
 			// Use quadric error to determine optimal vertex position only makes sense for manifold edges
-			if (edgeInfo == ConnectedMesh.EdgeInfo.Manifold)
+			if (edgeType == ConnectedMesh.EdgeType.Manifold)
 			{
-				if (det != 0)
+				if (det > ε || det < -ε)
 				{
 					result.x = -1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8);
 					result.y = 1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8);
 					result.z = -1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8);
 
-					error = VertexError(q, result.x, result.y, result.z);
+					error = ComputeVertexError(q, result.x, result.y, result.z);
 				}
 				else
 				{
 					Vector3 p3 = (p1 + p2) / 2;
-					float error1 = VertexError(q, p1.x, p1.y, p1.z);
-					float error2 = VertexError(q, p2.x, p2.y, p2.z);
-					float error3 = VertexError(q, p3.x, p3.y, p3.z);
+					float error1 = ComputeVertexError(q, p1.x, p1.y, p1.z);
+					float error2 = ComputeVertexError(q, p2.x, p2.y, p2.z);
+					float error3 = ComputeVertexError(q, p3.x, p3.y, p3.z);
 
 					error = MathF.Min(error1, MathF.Min(error2, error3));
 					if (error1 == error) result = p1;
-					if (error2 == error) result = p2;
-					if (error3 == error) result = p3;
+					else if (error2 == error) result = p2;
+					else result = p3;
 				}
 			}
-			else if (edgeInfo == ConnectedMesh.EdgeInfo.TShapeA)
+			else if (edgeType == ConnectedMesh.EdgeType.TShapeA)
 			{
 				result = p1;
-				error = VertexError(q, p1.x, p1.y, p1.z);
+				error = ComputeVertexError(q, p1.x, p1.y, p1.z);
 			}
-			else if (edgeInfo == ConnectedMesh.EdgeInfo.TShapeB)
+			else if (edgeType == ConnectedMesh.EdgeType.TShapeB)
 			{
 				result = p2;
-				error = VertexError(q, p2.x, p2.y, p2.z);
+				error = ComputeVertexError(q, p2.x, p2.y, p2.z);
 			}
-			else if (edgeInfo == ConnectedMesh.EdgeInfo.AShape)
+			else if (edgeType == ConnectedMesh.EdgeType.AShape)
 			{
+				result = Vector3.Zero;
 				error = 1000000;
 			}
 			else
@@ -314,11 +305,11 @@ namespace Nanolabo
 				var error2 = ComputeLineicError(p2, p1, p1o);
 				error = MathF.Min(error1, error2);
 				if (error1 == error) result = p1;
-				if (error2 == error) result = p2;
+				else result = p2;
 			}
 
-			// TODO : Ponderate error with edge length to collapse first shortest edges ?
-			//error += Vector3.Magnitude(p2 - p1);
+			// Ponderate error with edge length to collapse first shortest edges
+			error = (MathF.Abs(error) + ε) * Vector3.Magnitude(p2 - p1); 
 
 			pair.result = result;
 			pair.error = error;
@@ -332,32 +323,15 @@ namespace Nanolabo
 			return h;
 		}
 
-		private float ComputeLineicError(PairCollapse borderEdge)
+		private float ComputeVertexError(SymmetricMatrix q, float x, float y, float z)
 		{
-			var nodeIndex = mesh.PositionToNode[borderEdge.pos2];
-
-			int relative = nodeIndex;
-			while ((relative = mesh.nodes[relative].relative) != nodeIndex)
-			{
-				if (!mesh.IsEdgeManifold(relative, nodeIndex))
-					goto next;
-			}
-
-			throw new Exception($"Pair '{borderEdge}' is not a border since pos2 is manifold");
-
-		next:;
-
-			Vector3 A = mesh.positions[borderEdge.pos1];
-			Vector3 B = mesh.positions[borderEdge.pos2];
-			Vector3 C = mesh.positions[mesh.nodes[relative].position];
-
-			var θ = Vector3.Angle(B - A, C - A);
-			var h = Vector3.Magnitude(B - A) * MathF.Sin(θ);
-
-			return h;
+			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x
+				+ q[4] * y * y + 2 * q[5] * y * z + 2 * q[6] * y
+				+ q[7] * z * z + 2 * q[8] * z
+				+ q[9];
 		}
 
-		public void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
+		private void CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
 		{
 			int posA = mesh.nodes[nodeIndexA].position;
 			int posB = mesh.nodes[nodeIndexB].position;
@@ -371,16 +345,9 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
-					Debug.Assert(CheckMins());
-					bool a = mins.Contains(pair);
+					var pair = new PairCollapse(posA, posC);
 					pairs.Remove(pair); // Todo : Optimization by only removing first pair (first edge)
-					Debug.Assert(!(posA == 1487 && posC == 382));
 					mins.Remove(pair);
-					bool b = mins.Contains(pair);
-					if (a == true)
-						Debug.Assert(b == false);
-					Debug.Assert(CheckMins());
 				} 
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
@@ -393,10 +360,9 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					var pair = new PairCollapse { pos1 = posB, pos2 = posC };
+					var pair = new PairCollapse(posB, posC);
 					pairs.Remove(pair);
-					RemoveMin(pair);
-					Debug.Assert(CheckMins());
+					mins.Remove(pair);
 				}
 
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
@@ -419,10 +385,32 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 
-					if (validNode < 0)
-						continue; 
+					// Update quadrics and errors one level deeper
+					// Mathematically more correct, at the cost of performance
+					int sibling2 = relative;
+					while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
+					{
+						int relative2 = sibling2;
+						while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
+						{
+							int posD = mesh.nodes[relative2].position;
+							if (posD == posC)
+								continue;
 
-					var pair = new PairCollapse { pos1 = posA, pos2 = posC };
+							if (pairs.TryGetValue(new PairCollapse(posC, posD), out PairCollapse actualPair))
+							{
+								mins.Remove(actualPair);
+								CalculateQuadric(posD);
+								CalculateError(actualPair);
+								AddMin(actualPair);
+							}
+						}
+					}
+
+					if (validNode < 0)
+						continue;
+
+					var pair = new PairCollapse(posA, posC);
 
 					// Optimization by not adding a pair that has already been added
 					if (pairs.Contains(pair))
@@ -430,104 +418,14 @@ namespace Nanolabo
 
 					Debug.Assert(CheckPair(pair));
 
-					CalculateQuadric(posC);
+					CalculateQuadric(posC); // Required ? Shouldn't we keep original quadrics ?
 
 					CalculateError(pair);
 
 					pairs.Add(pair);
 					AddMin(pair);
-					Debug.Assert(CheckMins());
 				}
-
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
-		}
-
-		private float VertexError(SymmetricMatrix q, float x, float y, float z)
-		{
-			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z
-				+ 2 * q[3] * x + q[4] * y * y
-				+ 2 * q[5] * y * z + 2 * q[6] * y
-				+ q[7] * z * z
-				+ 2 * q[8] * z
-				+ q[9];
-		}
-
-		public class PairCollapse : IComparable<PairCollapse>, IEquatable<PairCollapse>
-		{
-			public int pos1;
-			public int pos2;
-			public Vector3 result;
-			public float error;
-
-			public override int GetHashCode()
-			{
-				unsafe
-				{
-					return pos1 + pos2;
-				}
-			}
-
-			public override bool Equals(object obj)
-			{
-				PairCollapse pc = (PairCollapse)obj;
-				return Compare(this, pc) == 0;
-			}
-
-			public bool Equals(PairCollapse pc)
-			{
-				return Compare(this, pc) == 0;
-			}
-
-			public int CompareTo(PairCollapse other)
-			{
-				return Compare(this, other);
-			}
-
-			private static int Compare(PairCollapse x, PairCollapse y)
-			{
-				int lret = 0;
-				if (Object.ReferenceEquals(x, y))
-				{
-					lret = 0;
-				}
-				else if (Object.ReferenceEquals(null, x))
-				{
-					lret = 1;
-				}
-				else if (Object.ReferenceEquals(null, y))
-				{
-					lret = -1;
-				}
-				else
-				{
-					lret = ((x.pos1 == y.pos1 && x.pos2 == y.pos2) || (x.pos1 == y.pos2 && x.pos2 == y.pos1)) ? 0 : x.error > y.error ? 1 : -1;
-				}
-
-				return lret;
-			}
-
-			public static bool operator ==(PairCollapse x, PairCollapse y)
-			{
-				return Compare(x, y) == 0;
-			}
-
-			public static bool operator !=(PairCollapse x, PairCollapse y)
-			{
-				return Compare(x, y) != 0; ;
-			}
-
-			public override string ToString()
-			{
-				return $"{pos1}-{pos2} error:{error}";
-			}
-		}
-
-		private class PairComparer : IComparer<PairCollapse>
-		{
-			public int Compare(PairCollapse x, PairCollapse y)
-			{
-				return x.CompareTo(y);
-			}
 		}
 	}
 }
