@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Nanolabo
+﻿namespace Nanolabo
 {
     public struct Attribute
     {
-        public Vector3 normal;
-        public Vector3 color;
+        public Vector3F normal;
+        public Vector3F color;
+        public Vector2F uv;
     }
 }

@@ -7,6 +7,8 @@ namespace Nanolabo
     public class SharedMesh
     {
         public Vector3[] vertices;
+        public Vector3F[] normals;
+        public Vector2F[] uvs;
         public int[] triangles;
 
         public void CheckValidity()
