@@ -386,13 +386,14 @@ namespace Nanolabo
             Border
         }
 
-        public EdgeType GetEdgeType(int nodeIndexA, int nodeIndexB, out int otherEdgeA, out int otherEdgeB)
+        public EdgeType GetEdgeType(int nodeIndexA, int nodeIndexB, out int borderNodeA, out int borderNodeB)
         {
-            otherEdgeA = -1;
-            otherEdgeB = -1;
+            borderNodeA = -1;
+            borderNodeB = -1;
 
+            int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
-            int facesAttached = 0;
+
             int sibling = nodeIndexA;
             do
             {
@@ -400,14 +401,11 @@ namespace Nanolabo
                 while ((relative = nodes[relative].relative) != sibling)
                 {
                     int posC = nodes[relative].position;
-                    if (posC == posB)
-                    {
-                        facesAttached++;
-                    } else
+                    if (posC != posB)
                     {
                         if (!IsEdgeInSurface(sibling, relative))
                         {
-                            otherEdgeA = relative;
+                            borderNodeA = relative;
                             goto skipA;
                         }
                     }
@@ -416,7 +414,6 @@ namespace Nanolabo
 
             skipA:;
 
-            int posA = nodes[nodeIndexA].position;
             sibling = nodeIndexB;
             do
             {
@@ -428,7 +425,7 @@ namespace Nanolabo
                     {
                         if (!IsEdgeInSurface(sibling, relative))
                         {
-                            otherEdgeB = relative;
+                            borderNodeB = relative;
                             goto skipB;
                         }
                     }
@@ -439,15 +436,15 @@ namespace Nanolabo
 
             if (IsEdgeInSurface(nodeIndexA, nodeIndexB))
             {
-                if (otherEdgeA != -1 && otherEdgeB != -1)
+                if (borderNodeA != -1 && borderNodeB != -1)
                 {
                     return EdgeType.AShape;
                 }
-                else if (otherEdgeA != -1)
+                else if (borderNodeA != -1)
                 {
                     return EdgeType.TShapeA;
                 }
-                else if (otherEdgeB != -1)
+                else if (borderNodeB != -1)
                 {
                     return EdgeType.TShapeB;
                 }
@@ -458,7 +455,10 @@ namespace Nanolabo
             }
             else
             {
-                Debug.Assert(otherEdgeA != -1 && otherEdgeB != -1, "A border can't be connected to a manifold edge");
+                if (borderNodeA == -1 || borderNodeB == -1)
+                    return EdgeType.Unknown; // Should not happen
+
+                Debug.Assert(borderNodeA != -1 && borderNodeB != -1, "A border can't be connected to a manifold edge");
                 return EdgeType.Border;
             }
         }

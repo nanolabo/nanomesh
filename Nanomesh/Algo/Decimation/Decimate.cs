@@ -299,7 +299,7 @@ namespace Nanolabo
 				result = Vector3.Zero;
 				error = double.PositiveInfinity; // Never collapse A-Shapes
 			}
-			else
+			else if (edgeType == ConnectedMesh.EdgeType.Border)
 			{
 				Vector3 p1o = mesh.positions[mesh.nodes[otherNodeIndex1].position];
 				Vector3 p2o = mesh.positions[mesh.nodes[otherNodeIndex2].position];
@@ -309,6 +309,11 @@ namespace Nanolabo
 				error = Math.Min(error1, error2);
 				if (error1 == error) result = p1;
 				else result = p2;
+			}
+			else
+			{
+				result = Vector3.Zero;
+				error = double.PositiveInfinity; // Never collapse unknown shapes
 			}
 
 			// Ponderate error with edge length to collapse first shortest edges
