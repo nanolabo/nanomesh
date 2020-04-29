@@ -9,7 +9,7 @@ namespace Nanolabo
     {
         internal readonly static char CharSlash = '/';
 
-        public static string ToInvariantString(this float value)
+        public static string ToInvariantString(this double value)
         {
             return value.ToString(CultureInfo.InvariantCulture);
         }

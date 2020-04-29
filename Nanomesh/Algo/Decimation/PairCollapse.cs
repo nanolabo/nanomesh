@@ -16,7 +16,7 @@ namespace Nanolabo
 			public int pos1;
 			public int pos2;
 			public Vector3 result;
-			public float error;
+			public double error;
 
 			public PairCollapse(int pos1, int pos2)
 			{

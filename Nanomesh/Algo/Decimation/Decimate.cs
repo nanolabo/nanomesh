@@ -16,7 +16,8 @@ namespace Nanolabo
 		private int lastProgress;
 		private int initialTriangleCount;
 
-		const float ε = 0.0001f;
+		const double εdet = 0.001f;
+		const double εprio = 0.00001f;
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -216,7 +217,7 @@ namespace Nanolabo
 
 				normal.Normalize();
 
-				float dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);
+				double dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);
 
 				symmetricMatrix += new SymmetricMatrix(normal.x, normal.y, normal.z, dot);
 
@@ -248,11 +249,8 @@ namespace Nanolabo
 			pair.type = edgeType;
 #endif
 
-			float error;
+			double error;
 			Vector3 result;
-
-			SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
-			float det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
 			Vector3 p1 = mesh.positions[pair.pos1];
 			Vector3 p2 = mesh.positions[pair.pos2];
@@ -260,22 +258,25 @@ namespace Nanolabo
 			// Use quadric error to determine optimal vertex position only makes sense for manifold edges
 			if (edgeType == ConnectedMesh.EdgeType.Manifold)
 			{
-				if (det > ε || det < -ε)
+				SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
+				double det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
+
+				if (det > εdet || det < -εdet)
 				{
-					result.x = -1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8);
-					result.y = 1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8);
-					result.z = -1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8);
+					result.x = (float)(-1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
+					result.y = (float)(1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
+					result.z = (float)(-1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
 
 					error = ComputeVertexError(q, result.x, result.y, result.z);
 				}
 				else
 				{
 					Vector3 p3 = (p1 + p2) / 2;
-					float error1 = ComputeVertexError(q, p1.x, p1.y, p1.z);
-					float error2 = ComputeVertexError(q, p2.x, p2.y, p2.z);
-					float error3 = ComputeVertexError(q, p3.x, p3.y, p3.z);
+					double error1 = ComputeVertexError(q, p1.x, p1.y, p1.z);
+					double error2 = ComputeVertexError(q, p2.x, p2.y, p2.z);
+					double error3 = ComputeVertexError(q, p3.x, p3.y, p3.z);
 
-					error = MathF.Min(error1, MathF.Min(error2, error3));
+					error = Math.Min(error1, Math.Min(error2, error3));
 					if (error1 == error) result = p1;
 					else if (error2 == error) result = p2;
 					else result = p3;
@@ -283,18 +284,20 @@ namespace Nanolabo
 			}
 			else if (edgeType == ConnectedMesh.EdgeType.TShapeA)
 			{
-				result = p1;
+				SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
 				error = ComputeVertexError(q, p1.x, p1.y, p1.z);
+				result = p1;
 			}
 			else if (edgeType == ConnectedMesh.EdgeType.TShapeB)
 			{
-				result = p2;
+				SymmetricMatrix q = matrices[pair.pos1] + matrices[pair.pos2];
 				error = ComputeVertexError(q, p2.x, p2.y, p2.z);
+				result = p2;
 			}
 			else if (edgeType == ConnectedMesh.EdgeType.AShape)
 			{
 				result = Vector3.Zero;
-				error = 1000000;
+				error = double.PositiveInfinity; // Never collapse A-Shapes
 			}
 			else
 			{
@@ -303,27 +306,25 @@ namespace Nanolabo
 
 				var error1 = ComputeLineicError(p1, p2, p2o);
 				var error2 = ComputeLineicError(p2, p1, p1o);
-				error = MathF.Min(error1, error2);
+				error = Math.Min(error1, error2);
 				if (error1 == error) result = p1;
 				else result = p2;
 			}
 
 			// Ponderate error with edge length to collapse first shortest edges
-			error = (MathF.Abs(error) + ε) * Vector3.Magnitude(p2 - p1); 
+			error = Math.Abs(error) + εprio * Vector3.Magnitude(p2 - p1); 
 
 			pair.result = result;
 			pair.error = error;
 		}
 
-		private float ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
+		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
 		{
 			var θ = Vector3.Angle(B - A, C - A);
-			var h = Vector3.Magnitude(B - A) * MathF.Sin(θ);
-
-			return h;
+			return Vector3.Magnitude(B - A) * Math.Sin(θ);
 		}
 
-		private float ComputeVertexError(SymmetricMatrix q, float x, float y, float z)
+		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
 		{
 			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x
 				+ q[4] * y * y + 2 * q[5] * y * z + 2 * q[6] * y
@@ -387,25 +388,24 @@ namespace Nanolabo
 
 					// Update quadrics and errors one level deeper
 					// Mathematically more correct, at the cost of performance
-					int sibling2 = relative;
-					while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
-					{
-						int relative2 = sibling2;
-						while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
-						{
-							int posD = mesh.nodes[relative2].position;
-							if (posD == posC)
-								continue;
-
-							if (pairs.TryGetValue(new PairCollapse(posC, posD), out PairCollapse actualPair))
-							{
-								mins.Remove(actualPair);
-								CalculateQuadric(posD);
-								CalculateError(actualPair);
-								AddMin(actualPair);
-							}
-						}
-					}
+					//int sibling2 = relative;
+					//while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
+					//{
+					//	int relative2 = sibling2;
+					//	while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
+					//	{
+					//		int posD = mesh.nodes[relative2].position;
+					//		if (posD == posC)
+					//			continue;
+					//		if (pairs.TryGetValue(new PairCollapse(posC, posD), out PairCollapse actualPair))
+					//		{
+					//			mins.Remove(actualPair);
+					//			CalculateQuadric(posD);
+					//			CalculateError(actualPair);
+					//			AddMin(actualPair);
+					//		}
+					//	}
+					//}
 
 					if (validNode < 0)
 						continue;

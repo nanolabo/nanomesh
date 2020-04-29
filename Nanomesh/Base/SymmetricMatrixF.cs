@@ -2,13 +2,13 @@
 
 namespace Nanolabo
 {
-    public unsafe struct SymmetricMatrix
+    public unsafe struct SymmetricMatrixF
     {
         public fixed float m[10];
 
         public float this[int index] => m[index];
 
-        public SymmetricMatrix(float m0, float m1, float m2, float m3, float m4, float m5, float m6, float m7, float m8, float m9)
+        public SymmetricMatrixF(float m0, float m1, float m2, float m3, float m4, float m5, float m6, float m7, float m8, float m9)
         {
             m[0] = m0;
             m[1] = m1;
@@ -22,7 +22,7 @@ namespace Nanolabo
             m[9] = m9;
         }
 
-        public SymmetricMatrix(float a, float b, float c, float d)
+        public SymmetricMatrixF(float a, float b, float c, float d)
         {
             m[0] = a * a;
             m[1] = a * b;
@@ -39,9 +39,9 @@ namespace Nanolabo
             m[9] = d * d;
         }
 
-        public static SymmetricMatrix operator +(SymmetricMatrix a, SymmetricMatrix b)
+        public static SymmetricMatrixF operator +(SymmetricMatrixF a, SymmetricMatrixF b)
         {
-            return new SymmetricMatrix(
+            return new SymmetricMatrixF(
                 a.m[0] + b.m[0], a.m[1] + b.m[1], a.m[2] + b.m[2], a.m[3] + b.m[3],
                 a.m[4] + b.m[4], a.m[5] + b.m[5], a.m[6] + b.m[6],
                 a.m[7] + b.m[7], a.m[8] + b.m[8],

@@ -6,25 +6,25 @@ namespace Nanolabo
     {
         public const float ε = 0.00001F;
 
-        public float x;
-        public float y;
-        public float z;
+        public double x;
+        public double y;
+        public double z;
 
-        public Vector3(float x, float y, float z)
+        public Vector3(double x, double y, double z)
         {
             this.x = x;
             this.y = y;
             this.z = z;
         }
 
-        public Vector3(float x, float y)
+        public Vector3(double x, double y)
         {
             this.x = x;
             this.y = y;
-            z = 0F;
+            z = 0.0;
         }
 
-        public float this[int index]
+        public double this[int index]
         {
             get
             {
@@ -75,18 +75,18 @@ namespace Nanolabo
 
         public static Vector3 operator -(Vector3 a) { return new Vector3(-a.x, -a.y, -a.z); }
 
-        public static Vector3 operator *(Vector3 a, float d) { return new Vector3(a.x * d, a.y * d, a.z * d); }
+        public static Vector3 operator *(Vector3 a, double d) { return new Vector3(a.x * d, a.y * d, a.z * d); }
 
-        public static Vector3 operator *(float d, Vector3 a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
+        public static Vector3 operator *(double d, Vector3 a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
 
-        public static Vector3 operator /(Vector3 a, float d) { return new Vector3(a.x / d, a.y / d, a.z / d); }
+        public static Vector3 operator /(Vector3 a, double d) { return new Vector3(a.x / d, a.y / d, a.z / d); }
 
         public static bool operator ==(Vector3 lhs, Vector3 rhs)
         {
-            float diff_x = lhs.x - rhs.x;
-            float diff_y = lhs.y - rhs.y;
-            float diff_z = lhs.z - rhs.z;
-            float sqrmag = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+            double diff_x = lhs.x - rhs.x;
+            double diff_y = lhs.y - rhs.y;
+            double diff_z = lhs.z - rhs.z;
+            double sqrmag = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
             return sqrmag < ε * ε;
         }
 
@@ -102,14 +102,14 @@ namespace Nanolabo
                 lhs.x * rhs.y - lhs.y * rhs.x);
         }
 
-        public static float Dot(Vector3 lhs, Vector3 rhs)
+        public static double Dot(Vector3 lhs, Vector3 rhs)
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
         }
 
         public static Vector3 Normalize(Vector3 value)
         {
-            float mag = Magnitude(value);
+            double mag = Magnitude(value);
             if (mag > ε)
                 return value / mag;
             else
@@ -118,7 +118,7 @@ namespace Nanolabo
 
         public void Normalize()
         {
-            float mag = Magnitude(this);
+            double mag = Magnitude(this);
             if (mag > ε)
                 this = this / mag;
             else
@@ -127,29 +127,29 @@ namespace Nanolabo
 
         public Vector3 Normalized => Vector3.Normalize(this);
 
-        public static float Distance(Vector3 a, Vector3 b)
+        public static double Distance(Vector3 a, Vector3 b)
         {
-            float diff_x = a.x - b.x;
-            float diff_y = a.y - b.y;
-            float diff_z = a.z - b.z;
-            return MathF.Sqrt(diff_x * diff_x + diff_y * diff_y + diff_z * diff_z);
+            double diff_x = a.x - b.x;
+            double diff_y = a.y - b.y;
+            double diff_z = a.z - b.z;
+            return Math.Sqrt(diff_x * diff_x + diff_y * diff_y + diff_z * diff_z);
         }
 
-        public static float Magnitude(Vector3 vector)
+        public static double Magnitude(Vector3 vector)
         {
-            return MathF.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
+            return Math.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
         }
 
-        public float SqrMagnitude => x * x + y * y + z * z;
+        public double SqrMagnitude => x * x + y * y + z * z;
 
         public static Vector3 Min(Vector3 lhs, Vector3 rhs)
         {
-            return new Vector3(MathF.Min(lhs.x, rhs.x), MathF.Min(lhs.y, rhs.y), MathF.Min(lhs.z, rhs.z));
+            return new Vector3(Math.Min(lhs.x, rhs.x), Math.Min(lhs.y, rhs.y), Math.Min(lhs.z, rhs.z));
         }
 
         public static Vector3 Max(Vector3 lhs, Vector3 rhs)
         {
-            return new Vector3(MathF.Max(lhs.x, rhs.x), MathF.Max(lhs.y, rhs.y), MathF.Max(lhs.z, rhs.z));
+            return new Vector3(Math.Max(lhs.x, rhs.x), Math.Max(lhs.y, rhs.y), Math.Max(lhs.z, rhs.z));
         }
 
         static readonly Vector3 zeroVector = new Vector3(0f, 0f, 0f);
@@ -165,14 +165,14 @@ namespace Nanolabo
 
         public static Vector3 NegativeInfinity => negativeInfinityVector;
 
-        public static float Angle(Vector3 from, Vector3 to)
+        public static double Angle(Vector3 from, Vector3 to)
         {
-            float denominator = MathF.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
+            double denominator = Math.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
             if (denominator < 1e-15F)
                 return 0F;
 
-            float dot = Math.Clamp(Dot(from, to) / denominator, -1F, 1F);
-            return MathF.Acos(dot);
+            double dot = Math.Clamp(Dot(from, to) / denominator, -1.0, 1.0);
+            return Math.Acos(dot);
         }
 
         public override string ToString()
