@@ -20,6 +20,9 @@ namespace Nanolabo
         public int[] PositionToNode => positionToNode ?? (positionToNode = GetPositionToNode());
         private int[] positionToNode;
 
+        public int[] AttributeToNode => attributeToNode ?? (attributeToNode = GetAttributeToNode());
+        private int[] attributeToNode;
+
         internal int faceCount;
         public int FaceCount => faceCount;
 
@@ -163,18 +166,35 @@ namespace Nanolabo
         public int[] GetPositionToNode()
         {
             int[] positionToNode = new int[positions.Length];
-#if DEBUG
+
             for (int i = 0; i < positions.Length; i++)
             {
                 positionToNode[i] = -1;
             }
-#endif
+
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (!nodes[i].IsRemoved)
                     positionToNode[nodes[i].position] = i;
             }
             return positionToNode;
+        }
+
+        public int[] GetAttributeToNode()
+        {
+            int[] attributeToNode = new int[attributes.Length];
+
+            for (int i = 0; i < attributes.Length; i++)
+            {
+                attributeToNode[i] = -1;
+            }
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (!nodes[i].IsRemoved)
+                    attributeToNode[nodes[i].attribute] = i;
+            }
+            return attributeToNode;
         }
 
         [Experimental]
@@ -493,62 +513,8 @@ namespace Nanolabo
             }
         }
 
-        public bool IsManifold(int nodeIndex, out int otherNodeIndex)
-        {
-            int relative = nodeIndex;
-            while ((relative = nodes[relative].relative) != nodeIndex)
-            {
-                if (!IsEdgeManifold(relative, nodeIndex))
-                {
-                    otherNodeIndex = relative;
-                    return false;
-                }
-                    
-            }
-
-            otherNodeIndex = -1;
-            return true;
-        }
-
-        public bool IsManifold(int nodeIndex)
-        {
-            int relative = nodeIndex;
-            while ((relative = nodes[relative].relative) != nodeIndex)
-            {
-                if (!IsEdgeManifold(relative, nodeIndex))
-                    return false;
-            }
-
-            return true;
-        }
-
-        public bool IsEdgeManifold(int nodeIndexA, int nodeIndexB)
-        {
-            int posB = nodes[nodeIndexB].position;
-
-            int facesAttached = 0;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                int relativeOfA = siblingOfA;
-                do // Circulate around face
-                {
-                    int posC = nodes[relativeOfA].position;
-                    if (posC == posB)
-                    {
-                        facesAttached++;
-                    }
-                } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
-
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            return facesAttached == 2;
-        }
-
         public void Compact()
         {
-            Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
             int validNodesCount = 0;
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -558,8 +524,26 @@ namespace Nanolabo
                 }
             }
 
-            Node[] newNodes = new Node[validNodesCount];
+            int validPosCount = 0;
+            for (int i = 0; i < positions.Length; i++)
+            {
+                if (PositionToNode[i] >= 0)
+                {
+                    validPosCount++;
+                }
+            }
 
+            int validAttrCount = 0;
+            for (int i = 0; i < attributes.Length; i++)
+            {
+                if (AttributeToNode[i] >= 0)
+                {
+                    validAttrCount++;
+                }
+            }
+
+            Node[] newNodes = new Node[validNodesCount];
+            Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (!nodes[i].IsRemoved)
@@ -569,19 +553,42 @@ namespace Nanolabo
                 }
             }
 
+            Vector3[] newPositions = new Vector3[validPosCount];
+            Dictionary<int, int> oldToNewPosIndex = new Dictionary<int, int>();
+            for (int i = 0; i < positions.Length; i++)
+            {
+                if (PositionToNode[i] >= 0)
+                {
+                    newPositions[oldToNewPosIndex.Count] = positions[i];
+                    oldToNewPosIndex.Add(i, oldToNewPosIndex.Count);
+                }
+            }
+
+            Attribute[] newAttributes = new Attribute[validAttrCount];
+            Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
+            for (int i = 0; i < positions.Length; i++)
+            {
+                if (AttributeToNode[i] >= 0)
+                {
+                    newAttributes[oldToNewAttrIndex.Count] = attributes[i];
+                    oldToNewAttrIndex.Add(i, oldToNewAttrIndex.Count);
+                }
+            }
+
             for (int i = 0; i < newNodes.Length; i++)
             {
                 newNodes[i].relative = oldToNewNodeIndex[newNodes[i].relative];
                 newNodes[i].sibling = oldToNewNodeIndex[newNodes[i].sibling];
+                newNodes[i].position = oldToNewPosIndex[newNodes[i].position];
+                newNodes[i].attribute = oldToNewAttrIndex[newNodes[i].attribute];
             }
 
             nodes = newNodes;
+            positions = newPositions;
 
-            // Todo : compact positions and attributes
-
+            // Invalidate mapping
             positionToNode = null;
-
-            GC.Collect(); // Collect 
+            attributeToNode = null;
         }
     }
 }
