@@ -6,185 +6,120 @@ namespace Nanolabo
 {
     public class ImporterOBJ
     {
-        internal readonly static char CharSlash = '/';
+        const char CHAR_SLASH = '/';
+        const int SIZE_INIT = 1024;
 
         public static SharedMesh Read(string file)
         {
             SharedMesh mesh;
             using (StreamReader reader = new StreamReader(file)) {
-                mesh = Load(reader.BaseStream);
+                mesh = Load(reader);
             }
             return mesh;
         }
 
-        public static SharedMesh Load(Stream stream)
+        public static SharedMesh Load(StreamReader reader)
         {
             SharedMesh mesh = new SharedMesh();
 
             string[] brokenString;
-            int offset = -1; // - mesh.vertices.Count - 1;
+            int offset = -1;
 
-            string[] e1, e2, e3, e4;
-            List<Vector3> normals = new List<Vector3>(1024);
+            List<Vector3> positions = new List<Vector3>(SIZE_INIT);
+            List<Vector3F> normals = new List<Vector3F>(SIZE_INIT);
+            List<Vector2F> uvs = new List<Vector2F>(SIZE_INIT);
+            List<int> triangles = new List<int>(SIZE_INIT * 3);
 
-            using (StreamReader sr = new StreamReader(stream))
+            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
+
+            string line;
+
+            while ((line = reader.ReadLine()) != null)
             {
-                int vcount = 0;
-                int ncount = 0;
-                int tcount = 0;
+                brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                string line = String.Empty;
-                while ((line = sr.ReadLine()) != null)
+                if (brokenString.Length == 0)
+                    continue;
+
+                switch (brokenString[0])
                 {
+                    case "f":
+                        VertexData[] datas = new VertexData[brokenString.Length - 1];
+                        for (int x = 1; x < brokenString.Length; x++)
+                        {
+                            var split = brokenString[x].Split(CHAR_SLASH);
 
-                    string currentText = line.Trim();
-                    brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            datas[x - 1].position = split[0].ToInt() + offset;
+                            if (split.Length > 1) datas[x - 1].uv = split[1].ToInt() + offset;
+                            if (split.Length > 2) datas[x - 1].normal = split[2].ToInt() + offset;
 
-                    if (brokenString.Length == 0)
-                        continue;
+                            if (!vertexData.ContainsKey(datas[x - 1]))
+                                vertexData.Add(datas[x - 1], vertexData.Count);
+                        }
 
-                    switch (brokenString[0])
-                    {
+                        // Handles any ngons
+                        for (int x = 2; x < brokenString.Length - 1; x++)
+                        {
+                            triangles.Add(vertexData[datas[0]]);
+                            triangles.Add(vertexData[datas[x - 1]]);
+                            triangles.Add(vertexData[datas[x]]);
+                        }
+                        break;
 
-                        case "f":
-                            tcount++;
-                            break;
+                    case "v":
+                        positions.Add(new Vector3(brokenString[1].ToDouble(), brokenString[2].ToDouble(), brokenString[3].ToDouble()));
+                        break;
 
-                        case "vn":
-                            ncount++;
-                            break;
+                    case "vt":
+                        uvs.Add(new Vector2F(brokenString[1].ToFloat(), brokenString[2].ToFloat()));
+                        break;
 
-                        case "v":
-                            vcount++;
-                            break;
-                    }
-                }
-
-                mesh.triangles = new int[tcount * 3];
-                mesh.vertices = new Vector3[vcount];
-
-                vcount = 0;
-                tcount = 0;
-
-                stream.Position = 0;
-                sr.DiscardBufferedData();
-                while ((line = sr.ReadLine()) != null)
-                {
-                    string currentText = line.Trim();
-                    brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (brokenString.Length == 0)
-                        continue;
-
-                    switch (brokenString[0])
-                    {
-                        case "usemtl":
-                            break;
-
-                        case "usemap":
-                            break;
-
-                        case "mtllib":
-                            break;
-
-                        case "vt":
-                            //mesh.uvs.Add(new Vertex2(
-                            //    brokenString[1].ToDouble(),
-                            //    brokenString[2].ToDouble()));
-                            break;
-
-                        case "vn":
-                            //normals.Add(new Vector3(
-                            //    brokenString[1].ToDouble(),
-                            //    brokenString[2].ToDouble(),
-                            //    brokenString[3].ToDouble()));
-                            break;
-
-                        case "v":
-                            mesh.vertices[vcount++] = new Vector3(brokenString[1].ToFloat(), brokenString[2].ToFloat(), brokenString[3].ToFloat());
-                            break;
-
-                        case "vc":
-                            break;
-                    }
-                }
-
-                Vector3 n1, n2, n3;
-                ncount = normals.Count;
-
-                stream.Position = 0;
-                sr.DiscardBufferedData();
-
-                while ((line = sr.ReadLine()) != null)
-                {
-                    string currentText = line.Trim();
-                    brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (brokenString.Length == 0)
-                        continue;
-
-                    switch (brokenString[0])
-                    {
-
-                        case "o":
-                        case "g":
-                            //mesh.subMeshes.Add(brokenString[1]);
-                            break;
-
-                        case "f":
-
-                            // Handles any poly
-                            for (int x = 2; x < (brokenString.Length - 1); x++)
-                            {
-
-                                e1 = brokenString[1].Split(CharSlash);
-                                e2 = brokenString[x].Split(CharSlash);
-                                e3 = brokenString[x + 1].Split(CharSlash);
-
-                                // Vertices
-                                mesh.triangles[tcount++] = e1[0].ToInt() + offset;
-                                mesh.triangles[tcount++] = e2[0].ToInt() + offset;
-                                mesh.triangles[tcount++] = e3[0].ToInt() + offset;
-
-                                // Submesh
-                                //triangle.submesh = mesh.subMeshes.Count - 1;
-                                //mesh.triangles.Add(triangle);
-
-                                // UVs (if present in the file)
-                                if (e1.Length > 1 && e2.Length > 1 && e3.Length > 1)
-                                {
-                                    if (!string.IsNullOrEmpty(e1[1]) && !string.IsNullOrEmpty(e2[1]) && !string.IsNullOrEmpty(e3[1]))
-                                    {
-                                        //triangle.uvs = new int[3];
-                                        //triangle.uvs[0] = e1[1].ToPosInt(vcount) + offset;
-                                        //triangle.uvs[1] = e2[1].ToPosInt(vcount) + offset;
-                                        //triangle.uvs[2] = e3[1].ToPosInt(vcount) + offset;
-                                    }
-                                }
-                                else
-                                {
-                                    // ev < 2, it can't contain normals. Skip to next line.
-                                    continue;
-                                }
-
-                                // Normals (if present in the file)
-                                if (e1.Length > 2 && e2.Length > 2 && e3.Length > 2
-                                    && !string.IsNullOrEmpty(e1[2]) && !string.IsNullOrEmpty(e2[2]) && !string.IsNullOrEmpty(e3[2]))
-                                {
-                                    //n1 = mesh.vertices[triangle.vertices[0]].normal = normals[e1[2].ToPosInt(ncount) + offset];
-                                    //n2 = mesh.vertices[triangle.vertices[1]].normal = normals[e2[2].ToPosInt(ncount) + offset];
-                                    //n3 = mesh.vertices[triangle.vertices[2]].normal = normals[e3[2].ToPosInt(ncount) + offset];
-                                    //Vector3 nt = n1 + n2 + n3;
-                                    //nt.normalize();
-                                    //triangle.normal = nt;
-                                }
-                            }
-                            break;
-                    }
+                    case "vn":
+                        normals.Add(new Vector3F(brokenString[1].ToFloat(), brokenString[2].ToFloat(), brokenString[3].ToFloat()));
+                        break;
                 }
             }
 
+            mesh.vertices = new Vector3[vertexData.Count];
+            mesh.uvs = new Vector2F[vertexData.Count];
+            mesh.normals = new Vector3F[vertexData.Count];
+
+            foreach (var pair in vertexData)
+            {
+                mesh.vertices[pair.Value] = positions[pair.Key.position];
+
+                if (uvs.Count > 0)
+                    mesh.uvs[pair.Value] = uvs[pair.Key.uv];
+
+                if (normals.Count > 0)
+                    mesh.normals[pair.Value] = normals[pair.Key.normal];
+            }
+
+            mesh.triangles = triangles.ToArray();
+
             return mesh;
+        }
+
+        public struct VertexData : IEquatable<VertexData>
+        {
+            public int position;
+            public int normal;
+            public int uv;
+
+            public override int GetHashCode()
+            {
+                unsafe
+                {
+                    return position ^ normal ^ uv;
+                }
+            }
+
+            public bool Equals(VertexData other)
+            {
+                return position == other.position
+                    && normal == other.normal
+                    && uv == other.uv;
+            }
         }
     }
 }
