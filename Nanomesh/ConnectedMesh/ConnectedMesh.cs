@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using static Nanolabo.ImporterOBJ;
 using Experimental = System.ObsoleteAttribute;
 
 namespace Nanolabo
@@ -24,13 +25,25 @@ namespace Nanolabo
 
         public static ConnectedMesh Build(SharedMesh mesh)
         {
+            Debug.Assert(mesh.CheckLengths(), "Attributes size mismatch");
+
             ConnectedMesh connectedMesh = new ConnectedMesh();
 
-            Vector3[] vertices = mesh.vertices;
             int[] triangles = mesh.triangles;
 
-            connectedMesh.positions = vertices;
-            connectedMesh.attributes = new Attribute[vertices.Length];
+            connectedMesh.positions = new Vector3[mesh.vertices.Length];
+            connectedMesh.attributes = new Attribute[mesh.vertices.Length];
+
+            for (int i = 0; i < mesh.vertices.Length; i++)
+                connectedMesh.positions[i] = mesh.vertices[i];
+
+            if (mesh.uvs != null)
+                for (int i = 0; i < mesh.uvs.Length; i++)
+                    connectedMesh.attributes[i].uv = mesh.uvs[i];
+
+            if (mesh.normals != null)
+                for (int i = 0; i < mesh.normals.Length; i++)
+                    connectedMesh.attributes[i].normal = mesh.normals[i];
 
             List<Node> nodesList = new List<Node>();
             Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
@@ -101,8 +114,8 @@ namespace Nanolabo
             SharedMesh mesh = new SharedMesh();
 
             List<int> triangles = new List<int>();
-
             HashSet<int> browsedNodes = new HashSet<int>();
+            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -113,12 +126,29 @@ namespace Nanolabo
                 int relative = i;
                 do
                 {
-                    browsedNodes.Add(relative);
-                    triangles.Add(nodes[relative].position);
+                    if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
+                    {
+                        VertexData data = new VertexData();
+                        data.position = nodes[relative].position;
+                        data.uv = nodes[relative].attribute;
+                        vertexData.TryAdd(data, vertexData.Count);
+
+                        triangles.Add(vertexData[data]);
+                    }
                 } while ((relative = nodes[relative].relative) != i);
             }
 
-            mesh.vertices = positions;
+            mesh.vertices = new Vector3[vertexData.Count];
+            mesh.uvs = new Vector2F[vertexData.Count];
+            mesh.normals = new Vector3F[vertexData.Count];
+
+            foreach (var pair in vertexData)
+            {
+                mesh.vertices[pair.Value] = positions[pair.Key.position];
+                mesh.uvs[pair.Value] = attributes[pair.Key.uv].uv;
+                mesh.normals[pair.Value] = attributes[pair.Key.uv].normal;
+            }
+
             mesh.triangles = triangles.ToArray();
 
             return mesh;

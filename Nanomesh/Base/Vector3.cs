@@ -102,6 +102,9 @@ namespace Nanolabo
                 lhs.x * rhs.y - lhs.y * rhs.x);
         }
 
+        public static implicit operator Vector3F(Vector3 vec) => new Vector3F((float)vec.x, (float)vec.y, (float)vec.z);
+        public static explicit operator Vector3(Vector3F vec) => new Vector3(vec.x, vec.y, vec.z);
+
         public static double Dot(Vector3 lhs, Vector3 rhs)
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
