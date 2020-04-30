@@ -325,7 +325,7 @@ namespace Nanolabo
 
 		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
 		{
-			var θ = Vector3.Angle(B - A, C - A);
+			var θ = Vector3.AngleRadians(B - A, C - A);
 			return Vector3.Magnitude(B - A) * Math.Sin(θ);
 		}
 

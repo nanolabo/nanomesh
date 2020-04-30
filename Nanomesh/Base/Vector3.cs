@@ -168,7 +168,7 @@ namespace Nanolabo
 
         public static Vector3 NegativeInfinity => negativeInfinityVector;
 
-        public static double Angle(Vector3 from, Vector3 to)
+        public static double AngleRadians(Vector3 from, Vector3 to)
         {
             double denominator = Math.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
             if (denominator < 1e-15F)
@@ -176,6 +176,11 @@ namespace Nanolabo
 
             double dot = Math.Clamp(Dot(from, to) / denominator, -1.0, 1.0);
             return Math.Acos(dot);
+        }
+
+        public static double AngleDegrees(Vector3 from, Vector3 to)
+        {
+            return AngleRadians(from, to) / Math.PI * 180d;
         }
 
         public override string ToString()
