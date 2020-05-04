@@ -424,6 +424,39 @@ namespace Nanolabo
             return false;
         }
 
+        public bool IsEdgeHard(int nodeIndexA, int nodeIndexB)
+        {
+            int posB = nodes[nodeIndexB].position;
+
+            int attrAtA = -1;
+            int attrAtB = -1;
+
+            bool hardAtA = false;
+            bool hardAtB = false;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                int relativeOfA = siblingOfA;
+                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                            hardAtB = true;
+                        attrAtB = nodes[relativeOfA].attribute;
+
+                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                            hardAtA = true;
+                        attrAtA = nodes[siblingOfA].attribute;
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            return hardAtA && hardAtB;
+        }
+
         public IEdgeType GetEdgeType(int nodeIndexA, int nodeIndexB)
         {
             int borderNodeA = -1;
@@ -509,7 +542,12 @@ namespace Nanolabo
                 else
                 {
                     if (hardAtB && hardAtB)
-                        return new IEdgeType.SURFACIC_HARD_AB();
+                    {
+                        if (IsEdgeHard(nodeIndexA, nodeIndexB))
+                            return new IEdgeType.SURFACIC_HARD_EDGE();
+                        else
+                            return new IEdgeType.SURFACIC_HARD_AB();
+                    }
                     else if (hardAtA)
                         return new IEdgeType.SURFACIC_HARD_A();
                     else if (hardAtB)

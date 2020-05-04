@@ -20,7 +20,7 @@ namespace Nanolabo
 		const double εprio = 0.00001f;
 
 		const double offset_hard = 1e6;
-		const double offset_nocollapse = 1e12;
+		const double offset_nocollapse = 1e300;
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -216,8 +216,8 @@ namespace Nanolabo
 
 				Vector3 normal;
 
-				// Todo : Look for unsassign attribute instead, to handle cases where we have normals but not everywhere
-				if (mesh.attributes.Length > 0)
+				// Todo : Look for unsassigned attribute instead, to handle cases where we have normals but not everywhere
+				if (/*mesh.attributes.Length > 0*/ false)
 				{
 					normal = (Vector3)mesh.attributes[mesh.nodes[sibling].attribute].normal;
 				}
@@ -276,7 +276,7 @@ namespace Nanolabo
 			switch (edgeType)
 			{
 				// Use quadric error to determine optimal vertex position only makes sense for manifold edges
-				case IEdgeType.SURFACIC_HARD_AB edg_surfAB: // + offset
+				case IEdgeType.SURFACIC_HARD_EDGE edg_surfAB: // + offset
 				case IEdgeType.SURFACIC edg_surf:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
@@ -285,7 +285,7 @@ namespace Nanolabo
 						if (det > εdet || det < -εdet)
 						{
 							result.x = (float)(-1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
-							result.y = (float)(1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
+							result.y = (float)(+1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
 							result.z = (float)(-1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
 							error = ComputeVertexError(q, result.x, result.y, result.z);
 						}
@@ -300,12 +300,12 @@ namespace Nanolabo
 							else if (error2 == error) result = p2;
 							else result = p3;
 						}
-						if (edgeType is IEdgeType.SURFACIC_HARD_AB)
-							error += offset_hard;
+						//if (edgeType is IEdgeType.SURFACIC_HARD_EDGE)
+						//	error += offset_hard;
 					}
 					break;
 				case IEdgeType.SURFACIC_BORDER_A_HARD_B edg_surfbordAhardB: // + offset
-				case IEdgeType.SURFACIC_HARD_A edg_surfhardA: // Todo : Check if hardness fades along edge or not
+				case IEdgeType.SURFACIC_HARD_A edg_surfhardA:
 				case IEdgeType.SURFACIC_BORDER_A edg_surfbordA:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
@@ -316,7 +316,7 @@ namespace Nanolabo
 					}
 					break;
 				case IEdgeType.SURFACIC_BORDER_B_HARD_A edg_surfbordBhardA: // + offset
-				case IEdgeType.SURFACIC_HARD_B edg_surfhardB: // Todo : Check if hardness fades along edge or not
+				case IEdgeType.SURFACIC_HARD_B edg_surfhardB:
 				case IEdgeType.SURFACIC_BORDER_B edg_surfbordB:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
@@ -338,17 +338,23 @@ namespace Nanolabo
 						else result = p2;
 					}
 					break;
+				case IEdgeType.SURFACIC_HARD_AB edg_surfAB:
+					{
+						result = (p1 + p2) / 2;
+						error = offset_nocollapse - 1; // Never collapse, but still do it before A-Shapes
+					}
+					break;
 				case IEdgeType.SURFACIC_BORDER_AB edg_bordAB:
 					{
 						// Todo : Put a warning when trying to collapse A-Shapes
-						result = Vector3.Zero;
+						result = (p1 + p2) / 2;
 						error = offset_nocollapse; // Never collapse A-Shapes
 					}
 					break;
 				default:
 					{
 						// Todo : Fix such cases. It should not happen
-						result = Vector3.Zero;
+						result = (p1 + p2) / 2;
 						error = offset_nocollapse; // Never collapse unknown shapes
 					}
 					break;
@@ -362,6 +368,18 @@ namespace Nanolabo
 			pair.error = error;
 		}
 
+		/// <summary>
+		/// A |\
+		///   | \
+		///   |__\ B
+		///   |  /
+		///   | /
+		/// C |/
+		/// </summary>
+		/// <param name="A"></param>
+		/// <param name="B"></param>
+		/// <param name="C"></param>
+		/// <returns></returns>
 		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
 		{
 			var θ = Vector3.AngleRadians(B - A, C - A);

@@ -67,6 +67,8 @@
         /// </summary>
         public struct SURFACIC_HARD_AB : IEdgeType { }
 
+        public struct SURFACIC_HARD_EDGE : IEdgeType { }
+
         /// <summary>
         /// \       /
         ///  \_____/A (hard edge here)
