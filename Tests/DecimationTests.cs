@@ -65,7 +65,7 @@ namespace Nanolabo
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToError(mesh, 0f);
+            decimateModifier.DecimateToError(mesh, 0.01f);
 
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 2);

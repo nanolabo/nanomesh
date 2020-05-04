@@ -10,25 +10,25 @@ namespace Nanolabo
 		public class PairCollapse : IComparable<PairCollapse>, IEquatable<PairCollapse>
 		{
 #if DEBUG
-			public ConnectedMesh.EdgeType type;
+			public IEdgeType type;
 #endif
 
-			public int pos1;
-			public int pos2;
+			public int posA;
+			public int posB;
 			public Vector3 result;
 			public double error;
 
 			public PairCollapse(int pos1, int pos2)
 			{
-				this.pos1 = pos1;
-				this.pos2 = pos2;
+				this.posA = pos1;
+				this.posB = pos2;
 			}
 
 			public override int GetHashCode()
 			{
 				unsafe
 				{
-					return pos1 + pos2;
+					return posA + posB;
 				}
 			}
 
@@ -65,7 +65,7 @@ namespace Nanolabo
 				}
 				else
 				{
-					lret = ((x.pos1 == y.pos1 && x.pos2 == y.pos2) || (x.pos1 == y.pos2 && x.pos2 == y.pos1)) ? 0 : x.error > y.error ? 1 : -1;
+					lret = ((x.posA == y.posA && x.posB == y.posB) || (x.posA == y.posB && x.posB == y.posA)) ? 0 : x.error > y.error ? 1 : -1;
 				}
 
 				return lret;
@@ -84,9 +84,9 @@ namespace Nanolabo
 			public override string ToString()
 			{
 #if DEBUG
-				return $"<A:{pos1} B:{pos2} error:{error} type:{type}>";
+				return $"<A:{posA} B:{posB} error:{error} type:{type}>";
 #else
-				return $"<A:{pos1} B:{pos2} error:{error}>";
+				return $"<A:{posA} B:{posB} error:{error}>";
 #endif
 			}
 		}

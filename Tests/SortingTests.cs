@@ -22,7 +22,7 @@ namespace Nanolabo
             pairs = new HashSet<PairCollapse>();
             for (int i = 0; i < SIZE; i++)
             {
-                pairs.Add(new PairCollapse() { pos1 = i, pos2 = i + SIZE, error = (float)rnd.NextDouble() });
+                pairs.Add(new PairCollapse(i, i + SIZE) { error = rnd.NextDouble() });
             }
         }
 
@@ -81,7 +81,7 @@ namespace Nanolabo
         {
             long ba = GC.GetAllocatedBytesForCurrentThread();
 
-            float k = 0;
+            double k = 0;
             for (int j = 0; j < ITERATION; j++)
             {
                 var mins = pairs.OrderByCustom(x => x).Take(K);
