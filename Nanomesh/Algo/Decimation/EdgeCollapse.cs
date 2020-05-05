@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 
 namespace Nanolabo
 {
@@ -9,9 +6,7 @@ namespace Nanolabo
     {
 		public class EdgeCollapse : IComparable<EdgeCollapse>, IEquatable<EdgeCollapse>
 		{
-#if DEBUG
 			public IEdgeType type;
-#endif
 
 			public int posA;
 			public int posB;

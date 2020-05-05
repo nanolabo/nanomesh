@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using static Nanolabo.ImporterOBJ;
-using Experimental = System.ObsoleteAttribute;
 
 namespace Nanolabo
 {
@@ -195,14 +192,6 @@ namespace Nanolabo
                     attributeToNode[nodes[i].attribute] = i;
             }
             return attributeToNode;
-        }
-
-        [Experimental]
-        public bool IsAnEdge(int nodeIndexA, int nodeIndexB)
-        {
-            // Giflé
-            return nodes[nodes[nodeIndexA].relative].position == nodes[nodeIndexB].relative
-                || nodes[nodes[nodeIndexB].relative].position == nodes[nodeIndexA].relative;
         }
 
         public int GetEdgeCount(int nodeIndex)

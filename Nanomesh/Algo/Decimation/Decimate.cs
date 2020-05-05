@@ -92,8 +92,6 @@ namespace Nanolabo
 			pairs.Remove(pair);
 			mins.Remove(pair);
 
-			Console.WriteLine(pair.type);
-
 #if DEBUG
 			if (pair.error >= offset_nocollapse)
 				Console.WriteLine("Going too far ! Destroying borders");
@@ -189,8 +187,6 @@ namespace Nanolabo
 
 				} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
 			}
-
-			Test();
 		}
 
 		private void CalculateQuadrics()
@@ -265,9 +261,7 @@ namespace Nanolabo
 			int node2 = mesh.PositionToNode[pair.posB];
 
 			var edgeType = mesh.GetEdgeType(node1, node2);
-#if DEBUG
 			pair.type = edgeType;
-#endif
 
 			double error = 0;
 			Vector3 result;
@@ -412,7 +406,6 @@ namespace Nanolabo
 						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
 						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
 
-						// Todo : Fix because if there are more than one face sharing this edge, the normal gets ponderated multiple times
 						// Todo : Interpolate differently depending on pair type
 						normalAtA = (normalAtA + normalAtB) / 2;
 
@@ -426,25 +419,9 @@ namespace Nanolabo
 			} while ((siblingOfA = mesh.nodes[siblingOfA].sibling) != nodeIndexA);
 		}
 
-		private void Test()
-		{
-			for (int i = 0; i < mesh.PositionToNode.Length; i++)
-			{
-				Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.1f));
-
-				int sibling = mesh.PositionToNode[i];
-				do
-				{
-					normalToAttr.TryAdd(mesh.attributes[mesh.nodes[sibling].attribute].normal, mesh.nodes[sibling].attribute);
-				} while ((sibling = mesh.nodes[sibling].sibling) != mesh.PositionToNode[i]);
-
-				Console.WriteLine(normalToAttr.Count);
-			}
-		}
-
 		private void MergeAttributes(int nodeIndex)
 		{
-			Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.1f));
+			Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.001f));
 			
 			int sibling = nodeIndex;
 			do
@@ -525,24 +502,26 @@ namespace Nanolabo
 
 					// Update quadrics and errors one level deeper
 					// Mathematically more correct, at the cost of performance
-					int sibling2 = relative;
-					while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
-					{
-						int relative2 = sibling2;
-						while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
-						{
-							int posD = mesh.nodes[relative2].position;
-							if (posD == posC)
-								continue;
-							if (pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
-							{
-								mins.Remove(actualPair);
-								CalculateQuadric(posD);
-								CalculateError(actualPair);
-								AddMin(actualPair);
-							}
-						}
-					}
+					//{
+					//	int sibling2 = relative;
+					//	while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
+					//	{
+					//		int relative2 = sibling2;
+					//		while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
+					//		{
+					//			int posD = mesh.nodes[relative2].position;
+					//			if (posD == posC)
+					//				continue;
+					//			if (pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
+					//			{
+					//				mins.Remove(actualPair);
+					//				CalculateQuadric(posD);
+					//				CalculateError(actualPair);
+					//				AddMin(actualPair);
+					//			}
+					//		}
+					//	}
+					//}
 
 					if (validNode < 0)
 						continue;
@@ -562,37 +541,6 @@ namespace Nanolabo
 					pairs.Add(pairAC);
 					AddMin(pairAC);
 				}
-			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
-
-			// Normals (not the best way)
-			sibling = validNode;
-			do
-			{
-				mesh.attributes[mesh.nodes[sibling].attribute].normal = Vector3F.Zero;
-
-			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
-
-			sibling = validNode;
-			do
-			{
-				int B = mesh.nodes[mesh.nodes[sibling].relative].position;
-				int C = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
-
-				Vector3F faceNormal = Vector3.Cross(
-					mesh.positions[B] - mesh.positions[posA],
-					mesh.positions[C] - mesh.positions[posA]).Normalized;
-
-				mesh.attributes[mesh.nodes[sibling].attribute].normal += faceNormal;
-
-			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
-
-			sibling = validNode;
-			do
-			{
-				Vector3F normal = mesh.attributes[mesh.nodes[sibling].attribute].normal;
-				normal.Normalize();
-				mesh.attributes[mesh.nodes[sibling].attribute].normal = normal;
-
 			} while ((sibling = mesh.nodes[sibling].sibling) != validNode);
 		}
 	}
