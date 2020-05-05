@@ -7,9 +7,9 @@ namespace Nanolabo
 {
     public partial class DecimateModifier
     {
-		private class PairComparer : IComparer<PairCollapse>
+		private class EdgeComparer : IComparer<EdgeCollapse>
 		{
-			public int Compare(PairCollapse x, PairCollapse y)
+			public int Compare(EdgeCollapse x, EdgeCollapse y)
 			{
 				return x.CompareTo(y);
 			}

@@ -7,7 +7,7 @@ namespace Nanolabo
 {
     public partial class DecimateModifier
     {
-		public class PairCollapse : IComparable<PairCollapse>, IEquatable<PairCollapse>
+		public class EdgeCollapse : IComparable<EdgeCollapse>, IEquatable<EdgeCollapse>
 		{
 #if DEBUG
 			public IEdgeType type;
@@ -18,7 +18,7 @@ namespace Nanolabo
 			public Vector3 result;
 			public double error;
 
-			public PairCollapse(int pos1, int pos2)
+			public EdgeCollapse(int pos1, int pos2)
 			{
 				this.posA = pos1;
 				this.posB = pos2;
@@ -34,21 +34,21 @@ namespace Nanolabo
 
 			public override bool Equals(object obj)
 			{
-				PairCollapse pc = (PairCollapse)obj;
+				EdgeCollapse pc = (EdgeCollapse)obj;
 				return Compare(this, pc) == 0;
 			}
 
-			public bool Equals(PairCollapse pc)
+			public bool Equals(EdgeCollapse pc)
 			{
 				return Compare(this, pc) == 0;
 			}
 
-			public int CompareTo(PairCollapse other)
+			public int CompareTo(EdgeCollapse other)
 			{
 				return Compare(this, other);
 			}
 
-			private static int Compare(PairCollapse x, PairCollapse y)
+			private static int Compare(EdgeCollapse x, EdgeCollapse y)
 			{
 				int lret = 0;
 				if (Object.ReferenceEquals(x, y))
@@ -71,12 +71,12 @@ namespace Nanolabo
 				return lret;
 			}
 
-			public static bool operator ==(PairCollapse x, PairCollapse y)
+			public static bool operator ==(EdgeCollapse x, EdgeCollapse y)
 			{
 				return Compare(x, y) == 0;
 			}
 
-			public static bool operator !=(PairCollapse x, PairCollapse y)
+			public static bool operator !=(EdgeCollapse x, EdgeCollapse y)
 			{
 				return Compare(x, y) != 0; ;
 			}

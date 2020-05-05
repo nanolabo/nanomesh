@@ -10,8 +10,8 @@ namespace Nanolabo
 		private ConnectedMesh mesh;
 
 		private SymmetricMatrix[] matrices;
-		private HashSet<PairCollapse> pairs;
-		private LinkedHashSet<PairCollapse> mins = new LinkedHashSet<PairCollapse>();
+		private HashSet<EdgeCollapse> pairs;
+		private LinkedHashSet<EdgeCollapse> mins = new LinkedHashSet<EdgeCollapse>();
 
 		private int lastProgress;
 		private int initialTriangleCount;
@@ -74,7 +74,7 @@ namespace Nanolabo
 			initialTriangleCount = mesh.FaceCount;
 
 			matrices = new SymmetricMatrix[mesh.positions.Length];
-			pairs = new HashSet<PairCollapse>();
+			pairs = new HashSet<EdgeCollapse>();
 			lastProgress = -1;
 
 			InitializePairs();
@@ -84,7 +84,7 @@ namespace Nanolabo
 
 		private void Iterate()
 		{
-			PairCollapse pair = GetPairWithMinimumError();
+			EdgeCollapse pair = GetPairWithMinimumError();
 
 			Debug.Assert(CheckMins());
 			Debug.Assert(CheckPair(pair));
@@ -122,7 +122,7 @@ namespace Nanolabo
 			return true;
 		}
 
-		private bool CheckPair(PairCollapse pair)
+		private bool CheckPair(EdgeCollapse pair)
 		{
 			Debug.Assert(pair.posA != pair.posB, "Positions must be different");
 			Debug.Assert(!mesh.nodes[mesh.PositionToNode[pair.posA]].IsRemoved, $"Position 1 is unreferenced {mesh.PositionToNode[pair.posA]}");
@@ -131,7 +131,7 @@ namespace Nanolabo
 			return true;
 		}
 
-		private PairCollapse GetPairWithMinimumError()
+		private EdgeCollapse GetPairWithMinimumError()
 		{
 			if (mins.Count == 0)
 				ComputeMins();
@@ -145,10 +145,10 @@ namespace Nanolabo
 		{
 			// Find the k smallest elements (ordered)
 			// https://www.desmos.com/calculator/eoxaztxqaf
-			mins = new LinkedHashSet<PairCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
+			mins = new LinkedHashSet<EdgeCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
 		}
 
-		private void AddMin(PairCollapse item)
+		private void AddMin(EdgeCollapse item)
 		{
 			var current = mins.Last;
 			while (current != null && item.CompareTo(current.Value) < 0)
@@ -181,7 +181,7 @@ namespace Nanolabo
 				{
 					Node firstRelative = mesh.nodes[mesh.nodes[sibling].relative];
 
-					var pair = new PairCollapse(firstRelative.position, mesh.nodes[firstRelative.relative].position);
+					var pair = new EdgeCollapse(firstRelative.position, mesh.nodes[firstRelative.relative].position);
 
 					pairs.Add(pair);
 
@@ -189,6 +189,8 @@ namespace Nanolabo
 
 				} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
 			}
+
+			Test();
 		}
 
 		private void CalculateQuadrics()
@@ -250,12 +252,12 @@ namespace Nanolabo
 
 			while (enumerator.MoveNext())
 			{
-				PairCollapse pair = enumerator.Current;
+				EdgeCollapse pair = enumerator.Current;
 				CalculateError(pair);
 			}
 		}
 
-		private void CalculateError(PairCollapse pair)
+		private void CalculateError(EdgeCollapse pair)
 		{
 			Debug.Assert(CheckPair(pair));
 
@@ -394,78 +396,70 @@ namespace Nanolabo
 				 + q[9];
 		}
 
-		private void InterpolateAttributes(PairCollapse pair)
+		private void InterpolateAttributes(EdgeCollapse pair)
 		{
 			int nodeIndexA = mesh.PositionToNode[pair.posA];
-			int nodeIndexB = mesh.PositionToNode[pair.posB];
-
-			int posA = pair.posA;
 			int posB = pair.posB;
 
-			Vector3 posAv = mesh.positions[posA];
-			Vector3 posBv = mesh.positions[posB];
-			Vector3 posCv = pair.result;
-
-			int sibling = nodeIndexA;
-			do
+			int siblingOfA = nodeIndexA;
+			do // Iterator over faces around A
 			{
-				int B = mesh.nodes[mesh.nodes[sibling].relative].position;
-				int C = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
+				int relativeOfA = siblingOfA;
+				do // Circulate around face
+				{
+					if (mesh.nodes[relativeOfA].position == posB)
+					{
+						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
+						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
 
-				Vector3F faceNormal1 = Vector3.Cross(
-					mesh.positions[B] - posAv,
-					mesh.positions[C] - posAv).Normalized;
+						// Todo : Fix because if there are more than one face sharing this edge, the normal gets ponderated multiple times
+						// Todo : Interpolate differently depending on pair type
+						normalAtA = (normalAtA + normalAtB) / 2;
 
-				Vector3F faceNormal2 = Vector3.Cross(
-					mesh.positions[B] - posCv,
-					mesh.positions[C] - posCv).Normalized;
+						mesh.attributes[mesh.nodes[siblingOfA].attribute].normal = normalAtA;
+						mesh.attributes[mesh.nodes[relativeOfA].attribute].normal = normalAtA;
 
-				Vector3F normal = mesh.attributes[mesh.nodes[sibling].attribute].normal;
+						break;
+					}
+				} while ((relativeOfA = mesh.nodes[relativeOfA].relative) != siblingOfA);
 
-				//if (Vector3F.Dot(faceNormal1, normal) < 0) faceNormal1 *= -1;
-				//if (Vector3F.Dot(faceNormal2, normal) < 0) faceNormal2 *= -1;
-
-				normal.x = MathUtils.DivideSafe(faceNormal2.x, faceNormal1.x) * normal.x;
-				normal.y = MathUtils.DivideSafe(faceNormal2.y, faceNormal1.y) * normal.y;
-				normal.z = MathUtils.DivideSafe(faceNormal2.z, faceNormal1.z) * normal.z;
-
-				normal.Normalize();
-
-				//mesh.attributes[mesh.nodes[sibling].attribute].normal = normal;
-
-			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
-
-			sibling = nodeIndexB;
-			do
-			{
-				int B = mesh.nodes[mesh.nodes[sibling].relative].position;
-				int C = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
-
-				Vector3F faceNormal1 = Vector3.Cross(
-					mesh.positions[B] - posBv,
-					mesh.positions[C] - posBv).Normalized;
-
-				Vector3F faceNormal2 = Vector3.Cross(
-					mesh.positions[B] - posCv,
-					mesh.positions[C] - posCv).Normalized;
-
-				Vector3F normal = mesh.attributes[mesh.nodes[sibling].attribute].normal;
-
-				//if (Vector3F.Dot(faceNormal1, normal) < 0) faceNormal1 *= -1;
-				//if (Vector3F.Dot(faceNormal2, normal) < 0) faceNormal2 *= -1;
-
-				normal.x = MathUtils.DivideSafe(faceNormal2.x, faceNormal1.x) * normal.x;
-				normal.y = MathUtils.DivideSafe(faceNormal2.y, faceNormal1.y) * normal.y;
-				normal.z = MathUtils.DivideSafe(faceNormal2.z, faceNormal1.z) * normal.z;
-
-				normal.Normalize();
-
-				//mesh.attributes[mesh.nodes[sibling].attribute].normal = normal;
-
-			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
+			} while ((siblingOfA = mesh.nodes[siblingOfA].sibling) != nodeIndexA);
 		}
 
-		private void CollapseEdge(PairCollapse pair)
+		private void Test()
+		{
+			for (int i = 0; i < mesh.PositionToNode.Length; i++)
+			{
+				Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.1f));
+
+				int sibling = mesh.PositionToNode[i];
+				do
+				{
+					normalToAttr.TryAdd(mesh.attributes[mesh.nodes[sibling].attribute].normal, mesh.nodes[sibling].attribute);
+				} while ((sibling = mesh.nodes[sibling].sibling) != mesh.PositionToNode[i]);
+
+				Console.WriteLine(normalToAttr.Count);
+			}
+		}
+
+		private void MergeAttributes(int nodeIndex)
+		{
+			Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.1f));
+			
+			int sibling = nodeIndex;
+			do
+			{
+				normalToAttr.TryAdd(mesh.attributes[mesh.nodes[sibling].attribute].normal, mesh.nodes[sibling].attribute);
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
+
+			sibling = nodeIndex;
+			do
+			{
+				mesh.nodes[sibling].attribute = normalToAttr[mesh.attributes[mesh.nodes[sibling].attribute].normal];
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndex);
+		}
+
+		private void CollapseEdge(EdgeCollapse pair)
 		{
 			int nodeIndexA = mesh.PositionToNode[pair.posA];
 			int nodeIndexB = mesh.PositionToNode[pair.posB];
@@ -482,7 +476,7 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					var pairAC = new PairCollapse(posA, posC);
+					var pairAC = new EdgeCollapse(posA, posC);
 					pairs.Remove(pairAC); // Todo : Optimization by only removing first pair (first edge)
 					mins.Remove(pairAC);
 				} 
@@ -497,7 +491,7 @@ namespace Nanolabo
 				while ((relative = mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = mesh.nodes[relative].position;
-					var pairBC = new PairCollapse(posB, posC);
+					var pairBC = new EdgeCollapse(posB, posC);
 					pairs.Remove(pairBC);
 					mins.Remove(pairBC);
 				}
@@ -505,7 +499,7 @@ namespace Nanolabo
 			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
 
 			// Interpolates attributes
-			//InterpolateAttributes(pair);
+			InterpolateAttributes(pair);
 
 			// Collapse edge
 			int validNode = mesh.CollapseEdge(nodeIndexA, nodeIndexB);
@@ -517,6 +511,8 @@ namespace Nanolabo
 			mesh.positions[posA] = pair.result;
 			
 			CalculateQuadric(posA); // Required ?
+
+			MergeAttributes(validNode);
 
 			// Recreate edges around new point and recompute collapse quadric errors
 			sibling = validNode;
@@ -538,7 +534,7 @@ namespace Nanolabo
 							int posD = mesh.nodes[relative2].position;
 							if (posD == posC)
 								continue;
-							if (pairs.TryGetValue(new PairCollapse(posC, posD), out PairCollapse actualPair))
+							if (pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
 							{
 								mins.Remove(actualPair);
 								CalculateQuadric(posD);
@@ -551,7 +547,7 @@ namespace Nanolabo
 					if (validNode < 0)
 						continue;
 
-					var pairAC = new PairCollapse(posA, posC);
+					var pairAC = new EdgeCollapse(posA, posC);
 
 					// Optimization by not adding a pair that has already been added
 					if (pairs.Contains(pairAC))
