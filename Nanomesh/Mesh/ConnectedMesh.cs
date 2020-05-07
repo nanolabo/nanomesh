@@ -607,7 +607,7 @@ namespace Nanolabo
 
             Attribute[] newAttributes = new Attribute[validAttrCount];
             Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
-            for (int i = 0; i < positions.Length; i++)
+            for (int i = 0; i < attributes.Length; i++)
             {
                 if (AttributeToNode[i] >= 0)
                 {
@@ -681,50 +681,8 @@ namespace Nanolabo
             }
 
             positionToNode = null;
-        }
 
-        public class Vector3Comparer : IEqualityComparer<Vector3>
-        {
-            private double tolerance;
-
-            public Vector3Comparer(double tolerance)
-            {
-                this.tolerance = tolerance;
-            }
-
-            public bool Equals(Vector3 x, Vector3 y)
-            {
-                return (int)(x.x / tolerance) == (int)(y.x / tolerance)
-                    && (int)(x.y / tolerance) == (int)(y.y / tolerance)
-                    && (int)(x.z / tolerance) == (int)(y.z / tolerance);
-            }
-
-            public int GetHashCode(Vector3 obj)
-            {
-                return (int)(obj.x / tolerance) ^ ((int)(obj.y / tolerance) << 2) ^ ((int)(obj.z / tolerance) >> 2);
-            }
-        }
-
-        public class Vector3FComparer : IEqualityComparer<Vector3F>
-        {
-            private float tolerance;
-
-            public Vector3FComparer(float tolerance)
-            {
-                this.tolerance = tolerance;
-            }
-
-            public bool Equals(Vector3F x, Vector3F y)
-            {
-                return (int)(x.x / tolerance) == (int)(y.x / tolerance)
-                    && (int)(x.y / tolerance) == (int)(y.y / tolerance)
-                    && (int)(x.z / tolerance) == (int)(y.z / tolerance);
-            }
-
-            public int GetHashCode(Vector3F obj)
-            {
-                return (int)(obj.x / tolerance) ^ ((int)(obj.y / tolerance) << 2) ^ ((int)(obj.z / tolerance) >> 2);
-            }
+            // Todo : Dereference faces that are of degree 2 or less
         }
     }
 }
