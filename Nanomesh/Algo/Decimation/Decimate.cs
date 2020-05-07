@@ -134,7 +134,20 @@ namespace Nanolabo
 			if (mins.Count == 0)
 				ComputeMins();
 
-			return mins.First.Value;
+			var edge = mins.First;
+
+			// Don't collapse edge that may invert triangles
+			while (!CollapseWillInvert(edge.Value))
+			{
+				edge = edge.Next;
+				if (edge == null)
+				{
+					ComputeMins();
+					edge = mins.First;
+				}
+			}
+
+			return edge.Value;
 		}
 
 		private int MinsCount => Math.Clamp((int)(0.01f * mesh.faceCount) + 100, 0, pairs.Count);
@@ -177,9 +190,10 @@ namespace Nanolabo
 				int sibling = nodeIndex;
 				do
 				{
-					Node firstRelative = mesh.nodes[mesh.nodes[sibling].relative];
+					int firstRelative = mesh.nodes[sibling].relative;
+					int secondRelative = mesh.nodes[firstRelative].relative;
 
-					var pair = new EdgeCollapse(firstRelative.position, mesh.nodes[firstRelative.relative].position);
+					var pair = new EdgeCollapse(mesh.nodes[firstRelative].position, mesh.nodes[secondRelative].position);
 
 					pairs.Add(pair);
 
@@ -332,6 +346,7 @@ namespace Nanolabo
 						error = Math.Min(error1, error2);
 						if (error1 == error) result = p1;
 						else result = p2;
+						//error += 10000;
 					}
 					break;
 				case IEdgeType.SURFACIC_HARD_AB edg_surfAB:
@@ -356,12 +371,61 @@ namespace Nanolabo
 					break;
 			}
 
+			// Todo check inversion : 
+
+
 			// Ponderate error with edge length to collapse first shortest edges
 			// Todo : Make it less sensitive to model scale
-			error = Math.Abs(error) + εprio * Vector3.Magnitude(p2 - p1); 
+			error = Math.Abs(error);// + εprio * Vector3.Magnitude(p2 - p1); 
 
 			pair.result = result;
 			pair.error = error;
+		}
+
+		public bool CollapseWillInvert(EdgeCollapse edge)
+		{
+			int nodeIndexA = mesh.PositionToNode[edge.posA];
+			int nodeIndexB = mesh.PositionToNode[edge.posB];
+			Vector3 positionA = mesh.positions[edge.posA];
+			Vector3 positionB = mesh.positions[edge.posB];
+
+			int sibling = nodeIndexA;
+			do
+			{
+				int posC = mesh.nodes[mesh.nodes[sibling].relative].position;
+				int posD = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
+
+				if (posC == edge.posB || posD == edge.posB)
+					continue;
+
+				float dot = Vector3F.Dot(
+					Vector3F.Cross(mesh.positions[posC] - positionA, mesh.positions[posD] - positionA).Normalized,
+					Vector3F.Cross(mesh.positions[posC] - edge.result, mesh.positions[posD] - edge.result).Normalized);
+
+				if (dot < -εdet)
+					return false;
+
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexA);
+
+			sibling = nodeIndexB;
+			do
+			{
+				int posC = mesh.nodes[mesh.nodes[sibling].relative].position;
+				int posD = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
+
+				if (posC == edge.posA || posD == edge.posA)
+					continue;
+
+				float dot = Vector3F.Dot(
+					Vector3F.Cross(mesh.positions[posC] - positionB, mesh.positions[posD] - positionB).Normalized,
+					Vector3F.Cross(mesh.positions[posC] - edge.result, mesh.positions[posD] - edge.result).Normalized);
+
+				if (dot < -εdet)
+					return false;
+
+			} while ((sibling = mesh.nodes[sibling].sibling) != nodeIndexB);
+
+			return true;
 		}
 
 		/// <summary>
@@ -379,7 +443,7 @@ namespace Nanolabo
 		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
 		{
 			var θ = Vector3.AngleRadians(B - A, C - A);
-			return Vector3.Magnitude(B - A) * Math.Sin(θ);
+			return Vector3.Magnitude(B - A) * Math.Sin(θ) / Vector3.Magnitude(C - A);
 		}
 
 		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
@@ -395,6 +459,9 @@ namespace Nanolabo
 			int nodeIndexA = mesh.PositionToNode[pair.posA];
 			int posB = pair.posB;
 
+			Vector3 positionA = mesh.positions[pair.posA];
+			Vector3 positionB = mesh.positions[pair.posB];
+
 			int siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
 			{
@@ -406,8 +473,18 @@ namespace Nanolabo
 						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
 						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
 
+						Vector3 positionN = pair.result;
+
+						double AN = Vector3.Magnitude(positionA - positionN);
+						double BN = Vector3.Magnitude(positionB - positionN);
+
+						float ratio = (float)MathUtils.DivideSafe(AN, AN + BN);
+
 						// Todo : Interpolate differently depending on pair type
-						normalAtA = (normalAtA + normalAtB) / 2;
+						normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
+						//normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
+						//normalAtA = (normalAtA + normalAtA) / 2;
+						normalAtA.Normalize();
 
 						mesh.attributes[mesh.nodes[siblingOfA].attribute].normal = normalAtA;
 						mesh.attributes[mesh.nodes[relativeOfA].attribute].normal = normalAtA;
@@ -421,7 +498,7 @@ namespace Nanolabo
 
 		private void MergeAttributes(int nodeIndex)
 		{
-			Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new ConnectedMesh.Vector3FComparer(0.001f));
+			Dictionary<Vector3F, int> normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
 			
 			int sibling = nodeIndex;
 			do
