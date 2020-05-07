@@ -50,7 +50,7 @@ namespace Nanolabo
                             var split = brokenString[x].Split(CHAR_SLASH);
 
                             datas[x - 1].position = split[0].ToInt() + offset;
-                            if (split.Length > 1) datas[x - 1].uv = split[1].ToInt() + offset;
+                            if (split.Length > 1 && !string.IsNullOrEmpty(split[1])) datas[x - 1].uv = split[1].ToInt() + offset;
                             if (split.Length > 2) datas[x - 1].normal = split[2].ToInt() + offset;
 
                             if (!vertexData.ContainsKey(datas[x - 1]))
