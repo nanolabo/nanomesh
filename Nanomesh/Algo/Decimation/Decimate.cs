@@ -470,15 +470,14 @@ namespace Nanolabo
 				{
 					if (mesh.nodes[relativeOfA].position == posB)
 					{
-						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
-						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
-
 						Vector3 positionN = pair.result;
-
 						double AN = Vector3.Magnitude(positionA - positionN);
 						double BN = Vector3.Magnitude(positionB - positionN);
-
 						float ratio = (float)MathUtils.DivideSafe(AN, AN + BN);
+
+						// Normals
+						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
+						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
 
 						// Todo : Interpolate differently depending on pair type
 						normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
@@ -488,6 +487,15 @@ namespace Nanolabo
 
 						mesh.attributes[mesh.nodes[siblingOfA].attribute].normal = normalAtA;
 						mesh.attributes[mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+
+						// UVs
+						Vector2F uvAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].uv;
+						Vector2F uvAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].uv;
+
+						uvAtA = (uvAtA + uvAtB) / 2;
+
+						mesh.attributes[mesh.nodes[siblingOfA].attribute].uv = uvAtA;
+						mesh.attributes[mesh.nodes[relativeOfA].attribute].uv = uvAtA;
 
 						break;
 					}
