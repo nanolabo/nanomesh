@@ -289,22 +289,22 @@ namespace Nanolabo
 				case IEdgeType.SURFACIC_HARD_EDGE edg_surfAB: // + offset
 				case IEdgeType.SURFACIC edg_surf:
 					{
-						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
-						double det = q.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
+						SymmetricMatrix quadric = matrices[pair.posA] + matrices[pair.posB];
+						double det = quadric.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
 
 						if (det > εdet || det < -εdet)
 						{
-							result.x = (float)(-1 / det * q.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
-							result.y = (float)(+1 / det * q.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
-							result.z = (float)(-1 / det * q.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
-							error = ComputeVertexError(q, result.x, result.y, result.z);
+							result.x = (float)(-1 / det * quadric.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
+							result.y = (float)(+1 / det * quadric.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
+							result.z = (float)(-1 / det * quadric.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
+							error = ComputeVertexError(quadric, result.x, result.y, result.z);
 						}
 						else
 						{
 							Vector3 p3 = (p1 + p2) / 2;
-							double error1 = ComputeVertexError(q, p1.x, p1.y, p1.z);
-							double error2 = ComputeVertexError(q, p2.x, p2.y, p2.z);
-							double error3 = ComputeVertexError(q, p3.x, p3.y, p3.z);
+							double error1 = ComputeVertexError(quadric, p1.x, p1.y, p1.z);
+							double error2 = ComputeVertexError(quadric, p2.x, p2.y, p2.z);
+							double error3 = ComputeVertexError(quadric, p3.x, p3.y, p3.z);
 							error = Math.Min(error1, Math.Min(error2, error3));
 							if (error1 == error) result = p1;
 							else if (error2 == error) result = p2;
@@ -443,7 +443,7 @@ namespace Nanolabo
 		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
 		{
 			var θ = Vector3.AngleRadians(B - A, C - A);
-			return Vector3.Magnitude(B - A) * Math.Sin(θ) / Vector3.Magnitude(C - A);
+			return Math.Sin(θ);
 		}
 
 		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)

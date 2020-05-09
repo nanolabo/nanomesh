@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace Nanolabo
 {
@@ -683,6 +685,31 @@ namespace Nanolabo
             positionToNode = null;
 
             // Todo : Dereference faces that are of degree 2 or less
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                int lastPos = nodes[i].position;
+                int relative = i;
+                while ((relative = nodes[relative].relative) != i) // Circulate around face
+                {
+                    int currPos = nodes[relative].position;
+                    if (lastPos == currPos)
+                    {
+                        RemoveFace(relative);
+                        break;
+                    }
+                    lastPos = currPos;
+                }
+            }
+        }
+
+        public void RemoveFace(int nodeIndex)
+        {
+            int relative = nodeIndex;
+            do
+            {
+                nodes[relative].MarkRemoved();
+                ReconnectSiblings(relative);
+            } while ((relative = nodes[relative].relative) != nodeIndex);
         }
     }
 }
