@@ -13,23 +13,23 @@ namespace Nanolabo
         const int ITERATION = 10;
         const int K = 10;
 
-        HashSet<PairCollapse> pairs;
+        HashSet<EdgeCollapse> pairs;
 
         [SetUp]
         public void Setup()
         {
             Random rnd = new Random();
-            pairs = new HashSet<PairCollapse>();
+            pairs = new HashSet<EdgeCollapse>();
             for (int i = 0; i < SIZE; i++)
             {
-                pairs.Add(new PairCollapse() { pos1 = i, pos2 = i + SIZE, error = (float)rnd.NextDouble() });
+                pairs.Add(new EdgeCollapse(i, i + SIZE) { error = rnd.NextDouble() });
             }
         }
 
         [Test]
         public void SortedSetRemoveMin()
         {
-            SortedSet<PairCollapse> sortedSet = new SortedSet<PairCollapse>(pairs);
+            SortedSet<EdgeCollapse> sortedSet = new SortedSet<EdgeCollapse>(pairs);
 
             var pair = pairs.ElementAt(SIZE / 2);
             Assert.IsTrue(sortedSet.Remove(pair));
@@ -62,7 +62,7 @@ namespace Nanolabo
         {
             long ba = GC.GetAllocatedBytesForCurrentThread();
 
-            SortedSet<PairCollapse> sortedSet = new SortedSet<PairCollapse>(pairs);
+            SortedSet<EdgeCollapse> sortedSet = new SortedSet<EdgeCollapse>(pairs);
 
             float k = 0;
             for (int j = 0; j < ITERATION; j++)
@@ -81,7 +81,7 @@ namespace Nanolabo
         {
             long ba = GC.GetAllocatedBytesForCurrentThread();
 
-            float k = 0;
+            double k = 0;
             for (int j = 0; j < ITERATION; j++)
             {
                 var mins = pairs.OrderByCustom(x => x).Take(K);
@@ -104,8 +104,8 @@ namespace Nanolabo
 
             for (int j = 0; j < ITERATION; j++)
             {
-                var pool = ArrayPool<PairCollapse>.Shared;
-                PairCollapse[] array = pool.Rent(pairs.Count);
+                var pool = ArrayPool<EdgeCollapse>.Shared;
+                EdgeCollapse[] array = pool.Rent(pairs.Count);
 
                 pairs.ToArray(ref array);
 
