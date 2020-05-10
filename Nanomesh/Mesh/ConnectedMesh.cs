@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Security.Cryptography;
 
 namespace Nanolabo
 {
@@ -514,45 +512,45 @@ namespace Nanolabo
             {
                 if ((borderNodeA != -1) && (borderNodeB != -1))
                 {
-                    return new IEdgeType.SURFACIC_BORDER_AB();
+                    return new SURFACIC_BORDER_AB();
                 }
                 else if (borderNodeA != -1)
                 {
                     if (hardAtB)
-                        return new IEdgeType.SURFACIC_BORDER_A_HARD_B();
+                        return new SURFACIC_BORDER_A_HARD_B();
                     else
-                        return new IEdgeType.SURFACIC_BORDER_A();
+                        return new SURFACIC_BORDER_A();
                 }
                 else if (borderNodeB != -1)
                 {
                     if (hardAtA)
-                        return new IEdgeType.SURFACIC_BORDER_B_HARD_A();
+                        return new SURFACIC_BORDER_B_HARD_A();
                     else
-                        return new IEdgeType.SURFACIC_BORDER_B();
+                        return new SURFACIC_BORDER_B();
                 }
                 else
                 {
                     if (hardAtB && hardAtB)
                     {
                         if (IsEdgeHard(nodeIndexA, nodeIndexB))
-                            return new IEdgeType.SURFACIC_HARD_EDGE();
+                            return new SURFACIC_HARD_EDGE();
                         else
-                            return new IEdgeType.SURFACIC_HARD_AB();
+                            return new SURFACIC_HARD_AB();
                     }
                     else if (hardAtA)
-                        return new IEdgeType.SURFACIC_HARD_A();
+                        return new SURFACIC_HARD_A();
                     else if (hardAtB)
-                        return new IEdgeType.SURFACIC_HARD_B();
+                        return new SURFACIC_HARD_B();
                     else
-                        return new IEdgeType.SURFACIC();
+                        return new SURFACIC();
                 }
             }
             else
             {
                 if (borderNodeA == -1 || borderNodeB == -1)
-                    return new IEdgeType.UNKNOWN(); // Should not happen
+                    return new UNKNOWN(); // Should not happen
 
-                return new IEdgeType.BORDER_AB  { borderNodeA = borderNodeA, borderNodeB = borderNodeB };
+                return new BORDER_AB  { borderNodeA = borderNodeA, borderNodeB = borderNodeB };
             }
         }
 

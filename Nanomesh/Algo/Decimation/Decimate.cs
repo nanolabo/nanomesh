@@ -24,7 +24,7 @@ namespace Nanolabo
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
-			targetTriangleRatio = Math.Clamp(targetTriangleRatio, 0f, 1f);
+			targetTriangleRatio = MathF.Clamp(targetTriangleRatio, 0f, 1f);
 			DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
 		}
 
@@ -150,7 +150,7 @@ namespace Nanolabo
 			return edge.Value;
 		}
 
-		private int MinsCount => Math.Clamp((int)(0.01f * mesh.faceCount) + 100, 0, pairs.Count);
+		private int MinsCount => (int)MathF.Clamp(0.01f * mesh.faceCount + 100, 0, pairs.Count);
 
 		private void ComputeMins()
 		{
@@ -286,8 +286,8 @@ namespace Nanolabo
 			switch (edgeType)
 			{
 				// Use quadric error to determine optimal vertex position only makes sense for manifold edges
-				case IEdgeType.SURFACIC_HARD_EDGE edg_surfAB: // + offset
-				case IEdgeType.SURFACIC edg_surf:
+				case SURFACIC_HARD_EDGE edg_surfAB: // + offset
+				case SURFACIC edg_surf:
 					{
 						SymmetricMatrix quadric = matrices[pair.posA] + matrices[pair.posB];
 						double det = quadric.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
@@ -314,9 +314,9 @@ namespace Nanolabo
 						//	error += offset_hard;
 					}
 					break;
-				case IEdgeType.SURFACIC_BORDER_A_HARD_B edg_surfbordAhardB: // + offset
-				case IEdgeType.SURFACIC_HARD_A edg_surfhardA:
-				case IEdgeType.SURFACIC_BORDER_A edg_surfbordA:
+				case SURFACIC_BORDER_A_HARD_B edg_surfbordAhardB: // + offset
+				case SURFACIC_HARD_A edg_surfhardA:
+				case SURFACIC_BORDER_A edg_surfbordA:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
 						error = ComputeVertexError(q, p1.x, p1.y, p1.z);
@@ -325,9 +325,9 @@ namespace Nanolabo
 						//	error += offset_hard;
 					}
 					break;
-				case IEdgeType.SURFACIC_BORDER_B_HARD_A edg_surfbordBhardA: // + offset
-				case IEdgeType.SURFACIC_HARD_B edg_surfhardB:
-				case IEdgeType.SURFACIC_BORDER_B edg_surfbordB:
+				case SURFACIC_BORDER_B_HARD_A edg_surfbordBhardA: // + offset
+				case SURFACIC_HARD_B edg_surfhardB:
+				case SURFACIC_BORDER_B edg_surfbordB:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
 						error = ComputeVertexError(q, p2.x, p2.y, p2.z);
@@ -336,7 +336,7 @@ namespace Nanolabo
 						//	error += offset_hard;
 					}
 					break;
-				case IEdgeType.BORDER_AB edg_bord:
+				case BORDER_AB edg_bord:
 					{
 						// Todo : Improve quality by finding analytical solution that minimizes the error
 						Vector3 p1o = mesh.positions[mesh.nodes[edg_bord.borderNodeA].position];
@@ -349,13 +349,13 @@ namespace Nanolabo
 						//error += 10000;
 					}
 					break;
-				case IEdgeType.SURFACIC_HARD_AB edg_surfAB:
+				case SURFACIC_HARD_AB edg_surfAB:
 					{
 						result = (p1 + p2) / 2;
 						error = offset_nocollapse - 1; // Never collapse, but still do it before A-Shapes
 					}
 					break;
-				case IEdgeType.SURFACIC_BORDER_AB edg_bordAB:
+				case SURFACIC_BORDER_AB edg_bordAB:
 					{
 						// Todo : Put a warning when trying to collapse A-Shapes
 						result = (p1 + p2) / 2;
@@ -370,9 +370,6 @@ namespace Nanolabo
 					}
 					break;
 			}
-
-			// Todo check inversion : 
-
 
 			// Ponderate error with edge length to collapse first shortest edges
 			// Todo : Make it less sensitive to model scale

@@ -174,7 +174,7 @@ namespace Nanolabo
             if (denominator < 1e-15F)
                 return 0F;
 
-            double dot = Math.Clamp(Dot(from, to) / denominator, -1.0, 1.0);
+            double dot = MathF.Clamp(Dot(from, to) / denominator, -1.0, 1.0);
             return Math.Acos(dot);
         }
 
