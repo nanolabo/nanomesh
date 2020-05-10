@@ -1,0 +1,17 @@
+{
+    "name": "Nanolabo.Unity.Editor",
+    "references": [
+        "GUID:4815b1e5d519dcd4498e828b7fb938f1"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
