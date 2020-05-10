@@ -16,10 +16,12 @@ public static class Tests
         SharedMesh sharedMesh = Nanolabo.Unity.UnityConverter.ToSharedMesh(mesh);
         ConnectedMesh connectedMesh = ConnectedMesh.Build(sharedMesh);
 
-        connectedMesh.MergePositions(0.001);
+        connectedMesh.MergePositions(0.01);
 
+        Profiling.Start("Decimating");
         DecimateModifier decimateModifier = new DecimateModifier();
         decimateModifier.DecimateToRatio(connectedMesh, 0.50f);
+        Debug.Log(Profiling.End("Decimating"));
 
         //connectedMesh.Compact();
 

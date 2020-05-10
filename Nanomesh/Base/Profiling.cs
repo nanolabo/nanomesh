@@ -18,10 +18,10 @@ namespace Nanolabo
             }
         }
 
-        public static void End(string key)
+        public static string End(string key)
         {
             TimeSpan time = EndTimer(key);
-            Console.WriteLine($"{key} done in {time.ToString("mm':'ss':'fff")}");
+            return $"{key} done in {time.ToString("mm':'ss':'fff")}";
         }
 
         private static TimeSpan EndTimer(string key)

@@ -137,15 +137,15 @@ namespace Nanolabo
 			var edge = mins.First;
 
 			// Don't collapse edge that may invert triangles
-			while (!CollapseWillInvert(edge.Value))
-			{
-				edge = edge.Next;
-				if (edge == null)
-				{
-					ComputeMins();
-					edge = mins.First;
-				}
-			}
+			//while (!CollapseWillInvert(edge.Value))
+			//{
+			//	edge = edge.Next;
+			//	if (edge == null)
+			//	{
+			//		ComputeMins();
+			//		edge = mins.First;
+			//	}
+			//}
 
 			return edge.Value;
 		}
@@ -277,9 +277,6 @@ namespace Nanolabo
 			var edgeType = mesh.GetEdgeType(node1, node2);
 			pair.type = edgeType;
 
-			double error = 0;
-			Vector3 result;
-
 			Vector3 p1 = mesh.positions[pair.posA];
 			Vector3 p2 = mesh.positions[pair.posB];
 
@@ -294,10 +291,10 @@ namespace Nanolabo
 
 						if (det > εdet || det < -εdet)
 						{
-							result.x = (float)(-1 / det * quadric.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
-							result.y = (float)(+1 / det * quadric.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
-							result.z = (float)(-1 / det * quadric.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
-							error = ComputeVertexError(quadric, result.x, result.y, result.z);
+							pair.result.x = (float)(-1 / det * quadric.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
+							pair.result.y = (float)(+1 / det * quadric.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
+							pair.result.z = (float)(-1 / det * quadric.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
+							pair.error = ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 						}
 						else
 						{
@@ -305,13 +302,13 @@ namespace Nanolabo
 							double error1 = ComputeVertexError(quadric, p1.x, p1.y, p1.z);
 							double error2 = ComputeVertexError(quadric, p2.x, p2.y, p2.z);
 							double error3 = ComputeVertexError(quadric, p3.x, p3.y, p3.z);
-							error = Math.Min(error1, Math.Min(error2, error3));
-							if (error1 == error) result = p1;
-							else if (error2 == error) result = p2;
-							else result = p3;
+							pair.error = Math.Min(error1, Math.Min(error2, error3));
+							if (error1 == pair.error) pair.result = p1;
+							else if (error2 == pair.error) pair.result = p2;
+							else pair.result = p3;
 						}
-						//if (edgeType is IEdgeType.SURFACIC_HARD_EDGE)
-						//	error += offset_hard;
+						//if (edgeType is SURFACIC_HARD_EDGE)
+						//	pair.error += offset_hard;
 					}
 					break;
 				case SURFACIC_BORDER_A_HARD_B edg_surfbordAhardB: // + offset
@@ -319,10 +316,10 @@ namespace Nanolabo
 				case SURFACIC_BORDER_A edg_surfbordA:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
-						error = ComputeVertexError(q, p1.x, p1.y, p1.z);
-						result = p1;
-						//if (edgeType is IEdgeType.SURFACIC_BORDER_A_HARD_B)
-						//	error += offset_hard;
+						pair.error = ComputeVertexError(q, p1.x, p1.y, p1.z);
+						pair.result = p1;
+						//if (edgeType is SURFACIC_BORDER_A_HARD_B)
+						//	pair.error += offset_hard;
 					}
 					break;
 				case SURFACIC_BORDER_B_HARD_A edg_surfbordBhardA: // + offset
@@ -330,10 +327,10 @@ namespace Nanolabo
 				case SURFACIC_BORDER_B edg_surfbordB:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
-						error = ComputeVertexError(q, p2.x, p2.y, p2.z);
-						result = p2;
-						//if (edgeType is IEdgeType.SURFACIC_BORDER_B_HARD_A)
-						//	error += offset_hard;
+						pair.error = ComputeVertexError(q, p2.x, p2.y, p2.z);
+						pair.result = p2;
+						//if (edgeType is SURFACIC_BORDER_B_HARD_A)
+						//	pair.error += offset_hard;
 					}
 					break;
 				case BORDER_AB edg_bord:
@@ -343,40 +340,40 @@ namespace Nanolabo
 						Vector3 p2o = mesh.positions[mesh.nodes[edg_bord.borderNodeB].position];
 						var error1 = ComputeLineicError(p1, p2, p2o);
 						var error2 = ComputeLineicError(p2, p1, p1o);
-						error = Math.Min(error1, error2);
-						if (error1 == error) result = p1;
-						else result = p2;
+						pair.error = Math.Min(error1, error2);
+						if (error1 == pair.error) pair.result = p1;
+						else pair.result = p2;
 						//error += 10000;
 					}
 					break;
 				case SURFACIC_HARD_AB edg_surfAB:
 					{
-						result = (p1 + p2) / 2;
-						error = offset_nocollapse - 1; // Never collapse, but still do it before A-Shapes
+						pair.result = (p1 + p2) / 2;
+						pair.error = offset_nocollapse - 1; // Never collapse, but still do it before A-Shapes
 					}
 					break;
 				case SURFACIC_BORDER_AB edg_bordAB:
 					{
 						// Todo : Put a warning when trying to collapse A-Shapes
-						result = (p1 + p2) / 2;
-						error = offset_nocollapse; // Never collapse A-Shapes
+						pair.result = (p1 + p2) / 2;
+						pair.error = offset_nocollapse; // Never collapse A-Shapes
 					}
 					break;
 				default:
 					{
 						// Todo : Fix such cases. It should not happen
-						result = (p1 + p2) / 2;
-						error = offset_nocollapse; // Never collapse unknown shapes
+						pair.result = (p1 + p2) / 2;
+						pair.error = offset_nocollapse; // Never collapse unknown shapes
 					}
 					break;
 			}
 
 			// Ponderate error with edge length to collapse first shortest edges
 			// Todo : Make it less sensitive to model scale
-			error = Math.Abs(error);// + εprio * Vector3.Magnitude(p2 - p1); 
+			pair.error = Math.Abs(pair.error);// + εprio * Vector3.Magnitude(p2 - p1); 
 
-			pair.result = result;
-			pair.error = error;
+			if (pair.error >= offset_nocollapse && CollapseWillInvert(pair))
+				pair.error = offset_nocollapse;
 		}
 
 		public bool CollapseWillInvert(EdgeCollapse edge)
@@ -477,8 +474,8 @@ namespace Nanolabo
 						Vector3F normalAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].normal;
 
 						// Todo : Interpolate differently depending on pair type
-						normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
-						//normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
+						//normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
+						normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
 						//normalAtA = (normalAtA + normalAtA) / 2;
 						normalAtA.Normalize();
 
@@ -489,7 +486,9 @@ namespace Nanolabo
 						Vector2F uvAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].uv;
 						Vector2F uvAtB = mesh.attributes[mesh.nodes[relativeOfA].attribute].uv;
 
-						uvAtA = (uvAtA + uvAtB) / 2;
+						//uvAtA = ratio * uvAtA + (1 - ratio) * uvAtB;
+						uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
+						//uvAtA = (uvAtA + uvAtB) / 2;
 
 						mesh.attributes[mesh.nodes[siblingOfA].attribute].uv = uvAtA;
 						mesh.attributes[mesh.nodes[relativeOfA].attribute].uv = uvAtA;

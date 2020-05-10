@@ -682,9 +682,11 @@ namespace Nanolabo
 
             positionToNode = null;
 
-            // Todo : Dereference faces that are of degree 2 or less
+            // Dereference faces that no longer exist
             for (int i = 0; i < nodes.Length; i++)
             {
+                if (nodes[i].IsRemoved)
+                    continue;
                 int lastPos = nodes[i].position;
                 int relative = i;
                 while ((relative = nodes[relative].relative) != i) // Circulate around face
