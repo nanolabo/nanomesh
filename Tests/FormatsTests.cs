@@ -18,7 +18,6 @@ namespace Nanolabo
             ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
 
             var positionToNode = mesh.GetPositionToNode();
-            mesh.CollapseEdge(positionToNode[9], positionToNode[10], (mesh.positions[9] + mesh.positions[10]) / 2);
 
             mesh.Check();
 

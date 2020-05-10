@@ -41,7 +41,7 @@ namespace Nanolabo
         // Linearly interpolates between two vectors.
         public static Vector2F Lerp(Vector2F a, Vector2F b, float t)
         {
-            t = Math.Clamp(t, 0, 1);
+            t = MathF.Clamp(t, 0, 1);
             return new Vector2F(
                 a.x + (b.x - a.x) * t,
                 a.y + (b.y - a.y) * t
@@ -165,7 +165,7 @@ namespace Nanolabo
             if (denominator < kEpsilonNormalSqrt)
                 return 0F;
 
-            float dot = Math.Clamp(Dot(from, to) / denominator, -1F, 1F);
+            float dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
             return MathF.Acos(dot);
         }
 

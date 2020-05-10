@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using static Nanolabo.ImporterOBJ;
-using Experimental = System.ObsoleteAttribute;
 
 namespace Nanolabo
 {
@@ -116,9 +113,9 @@ namespace Nanolabo
         {
             SharedMesh mesh = new SharedMesh();
 
-            List<int> triangles = new List<int>();
-            HashSet<int> browsedNodes = new HashSet<int>();
-            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
+            var triangles = new List<int>();
+            var browsedNodes = new HashSet<int>();
+            var vertexData = new Dictionary<VertexData, int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -195,14 +192,6 @@ namespace Nanolabo
                     attributeToNode[nodes[i].attribute] = i;
             }
             return attributeToNode;
-        }
-
-        [Experimental]
-        public bool IsAnEdge(int nodeIndexA, int nodeIndexB)
-        {
-            // Giflé
-            return nodes[nodes[nodeIndexA].relative].position == nodes[nodeIndexB].relative
-                || nodes[nodes[nodeIndexB].relative].position == nodes[nodeIndexA].relative;
         }
 
         public int GetEdgeCount(int nodeIndex)
@@ -329,7 +318,7 @@ namespace Nanolabo
             return firstValid;
         }
 
-        public int CollapseEdge(int nodeIndexA, int nodeIndexB, Vector3 position)
+        public int CollapseEdge(int nodeIndexA, int nodeIndexB)
         {
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
@@ -342,8 +331,6 @@ namespace Nanolabo
             Debug.Assert(CheckRelatives(nodeIndexB), "B's relatives must be valid");
             Debug.Assert(CheckSiblings(nodeIndexA), "A's siblings must be valid");
             Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
-
-            positions[posA] = position;
 
             int siblingOfA = nodeIndexA;
             do // Iterator over faces around A
@@ -401,7 +388,7 @@ namespace Nanolabo
             return validNodeAtA;
         }
 
-        bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
+        public bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
@@ -426,24 +413,50 @@ namespace Nanolabo
             return false;
         }
 
-        public enum EdgeType
+        public bool IsEdgeHard(int nodeIndexA, int nodeIndexB)
         {
-            Unknown,
-            Manifold,
-            AShape,
-            TShapeA,
-            TShapeB,
-            Border
+            int posB = nodes[nodeIndexB].position;
+
+            int attrAtA = -1;
+            int attrAtB = -1;
+
+            bool hardAtA = false;
+            bool hardAtB = false;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                int relativeOfA = siblingOfA;
+                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                            hardAtB = true;
+                        attrAtB = nodes[relativeOfA].attribute;
+
+                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                            hardAtA = true;
+                        attrAtA = nodes[siblingOfA].attribute;
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            return hardAtA && hardAtB;
         }
 
-        public EdgeType GetEdgeType(int nodeIndexA, int nodeIndexB, out int borderNodeA, out int borderNodeB)
+        public IEdgeType GetEdgeType(int nodeIndexA, int nodeIndexB)
         {
-            borderNodeA = -1;
-            borderNodeB = -1;
+            int borderNodeA = -1;
+            int borderNodeB = -1;
+            bool hardAtA = false;
+            bool hardAtB = false;
 
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
 
+            int attrIndex = -1; 
             int sibling = nodeIndexA;
             do
             {
@@ -460,10 +473,16 @@ namespace Nanolabo
                         }
                     }
                 }
+                if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
+                {
+                    hardAtA = true;
+                }
+                attrIndex = nodes[sibling].attribute;
             } while ((sibling = nodes[sibling].sibling) != nodeIndexA);
 
             skipA:;
 
+            attrIndex = -1;
             sibling = nodeIndexB;
             do
             {
@@ -480,36 +499,58 @@ namespace Nanolabo
                         }
                     }
                 }
+                if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
+                {
+                    hardAtB = true;
+                }
+                attrIndex = nodes[sibling].attribute;
             } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
 
             skipB:;
 
             if (IsEdgeInSurface(nodeIndexA, nodeIndexB))
             {
-                if (borderNodeA != -1 && borderNodeB != -1)
+                if ((borderNodeA != -1) && (borderNodeB != -1))
                 {
-                    return EdgeType.AShape;
+                    return new SURFACIC_BORDER_AB();
                 }
                 else if (borderNodeA != -1)
                 {
-                    return EdgeType.TShapeA;
+                    if (hardAtB)
+                        return new SURFACIC_BORDER_A_HARD_B();
+                    else
+                        return new SURFACIC_BORDER_A();
                 }
                 else if (borderNodeB != -1)
                 {
-                    return EdgeType.TShapeB;
+                    if (hardAtA)
+                        return new SURFACIC_BORDER_B_HARD_A();
+                    else
+                        return new SURFACIC_BORDER_B();
                 }
                 else
                 {
-                    return EdgeType.Manifold;
+                    if (hardAtB && hardAtB)
+                    {
+                        if (IsEdgeHard(nodeIndexA, nodeIndexB))
+                            return new SURFACIC_HARD_EDGE();
+                        else
+                            return new SURFACIC_HARD_AB();
+                    }
+                    else if (hardAtA)
+                        return new SURFACIC_HARD_A();
+                    else if (hardAtB)
+                        return new SURFACIC_HARD_B();
+                    else
+                        return new SURFACIC();
                 }
             }
             else
             {
                 if (borderNodeA == -1 || borderNodeB == -1)
-                    return EdgeType.Unknown; // Should not happen
+                    return new UNKNOWN(); // Should not happen
 
-                Debug.Assert(borderNodeA != -1 && borderNodeB != -1, "A border can't be connected to a manifold edge");
-                return EdgeType.Border;
+                return new BORDER_AB  { borderNodeA = borderNodeA, borderNodeB = borderNodeB };
             }
         }
 
@@ -566,7 +607,7 @@ namespace Nanolabo
 
             Attribute[] newAttributes = new Attribute[validAttrCount];
             Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
-            for (int i = 0; i < positions.Length; i++)
+            for (int i = 0; i < attributes.Length; i++)
             {
                 if (AttributeToNode[i] >= 0)
                 {
@@ -589,6 +630,84 @@ namespace Nanolabo
             // Invalidate mapping
             positionToNode = null;
             attributeToNode = null;
+        }
+
+        public void MergePositions(double tolerance = 0.01)
+        {
+            Dictionary<Vector3, int> newPositions = new Dictionary<Vector3, int>(new Vector3Comparer(tolerance));
+
+            for (int i = 0; i < positions.Length; i++)
+            {
+                newPositions.TryAdd(positions[i], newPositions.Count);
+            }
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                nodes[i].position = newPositions[positions[nodes[i].position]];
+            }
+
+            positions = new Vector3[newPositions.Count];
+            foreach (var pair in newPositions)
+            {
+                positions[pair.Value] = pair.Key;
+            }
+
+            newPositions = null;
+
+            // Remapping siblings
+            Dictionary<int, int> posToLastSibling = new Dictionary<int, int>();
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (posToLastSibling.ContainsKey(nodes[i].position))
+                {
+                    nodes[i].sibling = posToLastSibling[nodes[i].position];
+                    posToLastSibling[nodes[i].position] = i;
+                }
+                else
+                {
+                    nodes[i].sibling = -1;
+                    posToLastSibling.Add(nodes[i].position, i);
+                }
+            }
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (nodes[i].sibling < 0)
+                {
+                    // Assign last sibling to close sibling loop
+                    nodes[i].sibling = posToLastSibling[nodes[i].position];
+                }
+            }
+
+            positionToNode = null;
+
+            // Todo : Dereference faces that are of degree 2 or less
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                int lastPos = nodes[i].position;
+                int relative = i;
+                while ((relative = nodes[relative].relative) != i) // Circulate around face
+                {
+                    int currPos = nodes[relative].position;
+                    if (lastPos == currPos)
+                    {
+                        RemoveFace(relative);
+                        break;
+                    }
+                    lastPos = currPos;
+                }
+            }
+        }
+
+        public void RemoveFace(int nodeIndex)
+        {
+            int relative = nodeIndex;
+            do
+            {
+                nodes[relative].MarkRemoved();
+                ReconnectSiblings(relative);
+            } while ((relative = nodes[relative].relative) != nodeIndex);
         }
     }
 }

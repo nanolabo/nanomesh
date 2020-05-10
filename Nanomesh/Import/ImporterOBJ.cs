@@ -50,7 +50,7 @@ namespace Nanolabo
                             var split = brokenString[x].Split(CHAR_SLASH);
 
                             datas[x - 1].position = split[0].ToInt() + offset;
-                            if (split.Length > 1) datas[x - 1].uv = split[1].ToInt() + offset;
+                            if (split.Length > 1 && !string.IsNullOrEmpty(split[1])) datas[x - 1].uv = split[1].ToInt() + offset;
                             if (split.Length > 2) datas[x - 1].normal = split[2].ToInt() + offset;
 
                             if (!vertexData.ContainsKey(datas[x - 1]))
@@ -98,28 +98,6 @@ namespace Nanolabo
             mesh.triangles = triangles.ToArray();
 
             return mesh;
-        }
-
-        public struct VertexData : IEquatable<VertexData>
-        {
-            public int position;
-            public int normal;
-            public int uv;
-
-            public override int GetHashCode()
-            {
-                unsafe
-                {
-                    return position ^ normal ^ uv;
-                }
-            }
-
-            public bool Equals(VertexData other)
-            {
-                return position == other.position
-                    && normal == other.normal
-                    && uv == other.uv;
-            }
         }
     }
 }

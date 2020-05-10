@@ -14,5 +14,13 @@ namespace Nanolabo
 
             return array;
         }
+
+        public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
+        {
+            if (dictionary.ContainsKey(key))
+                return false;
+            dictionary.Add(key, value);
+            return true;
+        }
     }
 }
