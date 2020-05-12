@@ -5,7 +5,7 @@ namespace Nanolabo
     public static class MathUtils
     {
         public const float εf = 1e-15f;
-        public const double εd = 1e-15f;
+        public const double εd = 1e-40f;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float DivideSafe(float numerator, float denominator)

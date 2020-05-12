@@ -60,6 +60,49 @@ namespace Nanolabo
                 this[a12] * this[a21] * this[a33];
         }
 
+        public double DeterminantXYZ()
+        {
+            return
+                this[0] * this[4] * this[7] +
+                this[2] * this[1] * this[5] +
+                this[1] * this[5] * this[2] -
+                this[2] * this[4] * this[2] -
+                this[0] * this[5] * this[5] -
+                this[1] * this[1] * this[7];
+        }
+
+        public double DeterminantX() {
+            return
+                this[1] * this[5] * this[8] +
+                this[3] * this[4] * this[7] +
+                this[2] * this[6] * this[5] -
+                this[3] * this[5] * this[5] -
+                this[1] * this[6] * this[7] -
+                this[2] * this[4] * this[8];
+        }
+
+        public double DeterminantY()
+        {
+            return
+                this[0] * this[5] * this[8] +
+                this[3] * this[1] * this[7] +
+                this[2] * this[6] * this[2] -
+                this[3] * this[5] * this[2] -
+                this[0] * this[6] * this[7] -
+                this[2] * this[1] * this[8];
+        }
+
+        public double DeterminantZ()
+        {
+            return
+                this[0] * this[4] * this[8] +
+                this[3] * this[1] * this[5] +
+                this[1] * this[6] * this[2] -
+                this[3] * this[4] * this[2] -
+                this[0] * this[6] * this[5] -
+                this[1] * this[1] * this[8];
+        }
+
         public override string ToString()
         {
             return $"{m[0]} {m[1]} {m[2]} {m[3]} | {m[4]} {m[5]} {m[6]} | {m[7]} {m[8]} | {m[9]}";

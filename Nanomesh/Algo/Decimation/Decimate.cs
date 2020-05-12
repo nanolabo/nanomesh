@@ -95,7 +95,8 @@ namespace Nanolabo
 #if DEBUG
 			if (pair.error >= offset_nocollapse)
 				Console.WriteLine("Going too far ! Destroying borders");
-#endif
+#endif	
+			//Console.WriteLine(pair);
 
 			CollapseEdge(pair);
 		}
@@ -136,17 +137,6 @@ namespace Nanolabo
 
 			var edge = mins.First;
 
-			// Don't collapse edge that may invert triangles
-			//while (!CollapseWillInvert(edge.Value))
-			//{
-			//	edge = edge.Next;
-			//	if (edge == null)
-			//	{
-			//		ComputeMins();
-			//		edge = mins.First;
-			//	}
-			//}
-
 			return edge.Value;
 		}
 
@@ -154,6 +144,7 @@ namespace Nanolabo
 
 		private void ComputeMins()
 		{
+			Console.WriteLine("Compute Mins");
 			// Find the k smallest elements (ordered)
 			// https://www.desmos.com/calculator/eoxaztxqaf
 			mins = new LinkedHashSet<EdgeCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
@@ -287,18 +278,19 @@ namespace Nanolabo
 				case SURFACIC edg_surf:
 					{
 						SymmetricMatrix quadric = matrices[pair.posA] + matrices[pair.posB];
-						double det = quadric.Determinant(0, 1, 2, 1, 4, 5, 2, 5, 7);
+						double det = quadric.DeterminantXYZ();
 
 						if (det > εdet || det < -εdet)
 						{
-							pair.result.x = (float)(-1 / det * quadric.Determinant(1, 2, 3, 4, 5, 6, 5, 7, 8));
-							pair.result.y = (float)(+1 / det * quadric.Determinant(0, 2, 3, 1, 5, 6, 2, 7, 8));
-							pair.result.z = (float)(-1 / det * quadric.Determinant(0, 1, 3, 1, 4, 6, 2, 5, 8));
+							pair.result.x = -1d / det * quadric.DeterminantX();
+							pair.result.y = +1d / det * quadric.DeterminantY();
+							pair.result.z = -1d / det * quadric.DeterminantZ();
 							pair.error = ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 						}
 						else
 						{
-							Vector3 p3 = (p1 + p2) / 2;
+							// Not cool when it goes there...
+							Vector3 p3 = (p1 + p2) / 2d;
 							double error1 = ComputeVertexError(quadric, p1.x, p1.y, p1.z);
 							double error2 = ComputeVertexError(quadric, p2.x, p2.y, p2.z);
 							double error3 = ComputeVertexError(quadric, p3.x, p3.y, p3.z);
@@ -343,7 +335,6 @@ namespace Nanolabo
 						pair.error = Math.Min(error1, error2);
 						if (error1 == pair.error) pair.result = p1;
 						else pair.result = p2;
-						//error += 10000;
 					}
 					break;
 				case SURFACIC_HARD_AB edg_surfAB:

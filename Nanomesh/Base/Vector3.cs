@@ -4,8 +4,6 @@ namespace Nanolabo
 {
     public struct Vector3
     {
-        public const float ε = 0.00001F;
-
         public double x;
         public double y;
         public double z;
@@ -79,7 +77,7 @@ namespace Nanolabo
 
         public static Vector3 operator *(double d, Vector3 a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
 
-        public static Vector3 operator /(Vector3 a, double d) { return new Vector3(a.x / d, a.y / d, a.z / d); }
+        public static Vector3 operator /(Vector3 a, double d) { return new Vector3(MathUtils.DivideSafe(a.x, d), MathUtils.DivideSafe(a.y, d), MathUtils.DivideSafe(a.z, d)); }
 
         public static bool operator ==(Vector3 lhs, Vector3 rhs)
         {
@@ -87,7 +85,7 @@ namespace Nanolabo
             double diff_y = lhs.y - rhs.y;
             double diff_z = lhs.z - rhs.z;
             double sqrmag = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-            return sqrmag < ε * ε;
+            return sqrmag < MathUtils.εd;
         }
 
         public static bool operator !=(Vector3 lhs, Vector3 rhs)
@@ -113,19 +111,13 @@ namespace Nanolabo
         public static Vector3 Normalize(Vector3 value)
         {
             double mag = Magnitude(value);
-            if (mag > ε)
-                return value / mag;
-            else
-                return Zero;
+            return value / mag;
         }
 
         public void Normalize()
         {
             double mag = Magnitude(this);
-            if (mag > ε)
-                this = this / mag;
-            else
-                this = Zero;
+            this /= mag;
         }
 
         public Vector3 Normalized => Vector3.Normalize(this);
