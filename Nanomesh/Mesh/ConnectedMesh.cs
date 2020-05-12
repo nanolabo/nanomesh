@@ -711,5 +711,13 @@ namespace Nanolabo
                 ReconnectSiblings(relative);
             } while ((relative = nodes[relative].relative) != nodeIndex);
         }
+
+        public void Scale(double factor)
+        {
+            for (int i = 0; i < positions.Length; i++)
+            {
+                positions[i] = positions[i] * factor;
+            }
+        }
     }
 }
