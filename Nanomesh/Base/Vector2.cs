@@ -4,13 +4,13 @@ using System.Runtime.CompilerServices;
 
 namespace Nanolabo
 {
-    public struct Vector2F : IEquatable<Vector2F>
+    public struct Vector2 : IEquatable<Vector2>
     {
-        public float x;
-        public float y;
+        public double x;
+        public double y;
 
         // Access the /x/ or /y/ component using [0] or [1] respectively.
-        public float this[int index]
+        public double this[int index]
         {
             get
             {
@@ -36,55 +36,55 @@ namespace Nanolabo
         }
 
         // Constructs a new vector with given x, y components.
-        public Vector2F(float x, float y) { this.x = x; this.y = y; }
+        public Vector2(double x, double y) { this.x = x; this.y = y; }
 
         // Linearly interpolates between two vectors.
-        public static Vector2F Lerp(Vector2F a, Vector2F b, float t)
+        public static Vector2 Lerp(Vector2 a, Vector2 b, double t)
         {
             t = MathF.Clamp(t, 0, 1);
-            return new Vector2F(
+            return new Vector2(
                 a.x + (b.x - a.x) * t,
                 a.y + (b.y - a.y) * t
             );
         }
 
         // Linearly interpolates between two vectors without clamping the interpolant
-        public static Vector2F LerpUnclamped(Vector2F a, Vector2F b, float t)
+        public static Vector2 LerpUnclamped(Vector2 a, Vector2 b, double t)
         {
-            return new Vector2F(
+            return new Vector2(
                 a.x + (b.x - a.x) * t,
                 a.y + (b.y - a.y) * t
             );
         }
 
         // Moves a point /current/ towards /target/.
-        public static Vector2F MoveTowards(Vector2F current, Vector2F target, float maxDistanceDelta)
+        public static Vector2 MoveTowards(Vector2 current, Vector2 target, double maxDistanceDelta)
         {
             // avoid vector ops because current scripting backends are terrible at inlining
-            float toVector_x = target.x - current.x;
-            float toVector_y = target.y - current.y;
+            double toVector_x = target.x - current.x;
+            double toVector_y = target.y - current.y;
 
-            float sqDist = toVector_x * toVector_x + toVector_y * toVector_y;
+            double sqDist = toVector_x * toVector_x + toVector_y * toVector_y;
 
             if (sqDist == 0 || (maxDistanceDelta >= 0 && sqDist <= maxDistanceDelta * maxDistanceDelta))
                 return target;
 
-            float dist = MathF.Sqrt(sqDist);
+            double dist = Math.Sqrt(sqDist);
 
-            return new Vector2F(current.x + toVector_x / dist * maxDistanceDelta,
+            return new Vector2(current.x + toVector_x / dist * maxDistanceDelta,
                 current.y + toVector_y / dist * maxDistanceDelta);
         }
 
         // Multiplies two vectors component-wise.
-        public static Vector2F Scale(Vector2F a, Vector2F b) { return new Vector2F(a.x * b.x, a.y * b.y); }
+        public static Vector2 Scale(Vector2 a, Vector2 b) { return new Vector2(a.x * b.x, a.y * b.y); }
 
         // Multiplies every component of this vector by the same component of /scale/.
-        public void Scale(Vector2F scale) { x *= scale.x; y *= scale.y; }
+        public void Scale(Vector2 scale) { x *= scale.x; y *= scale.y; }
 
         // Makes this vector have a ::ref::magnitude of 1.
         public void Normalize()
         {
-            float mag = magnitude;
+            double mag = magnitude;
             if (mag > kEpsilon)
                 this = this / mag;
             else
@@ -92,11 +92,11 @@ namespace Nanolabo
         }
 
         // Returns this vector with a ::ref::magnitude of 1 (RO).
-        public Vector2F normalized
+        public Vector2 normalized
         {
             get
             {
-                Vector2F v = new Vector2F(x, y);
+                Vector2 v = new Vector2(x, y);
                 v.Normalize();
                 return v;
             }
@@ -111,27 +111,27 @@ namespace Nanolabo
         // also required for being able to use Vector2s as keys in hash tables
         public override bool Equals(object other)
         {
-            if (!(other is Vector2F)) return false;
+            if (!(other is Vector2)) return false;
 
-            return Equals((Vector2F)other);
+            return Equals((Vector2)other);
         }
 
 
-        public bool Equals(Vector2F other)
+        public bool Equals(Vector2 other)
         {
             return x == other.x && y == other.y;
         }
 
-        public static Vector2F Reflect(Vector2F inDirection, Vector2F inNormal)
+        public static Vector2 Reflect(Vector2 inDirection, Vector2 inNormal)
         {
-            float factor = -2F * Dot(inNormal, inDirection);
-            return new Vector2F(factor * inNormal.x + inDirection.x, factor * inNormal.y + inDirection.y);
+            double factor = -2F * Dot(inNormal, inDirection);
+            return new Vector2(factor * inNormal.x + inDirection.x, factor * inNormal.y + inDirection.y);
         }
 
 
-        public static Vector2F Perpendicular(Vector2F inDirection)
+        public static Vector2 Perpendicular(Vector2 inDirection)
         {
-            return new Vector2F(-inDirection.y, inDirection.x);
+            return new Vector2(-inDirection.y, inDirection.x);
         }
 
         /// <summary>
@@ -140,17 +140,17 @@ namespace Nanolabo
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static float Dot(Vector2F lhs, Vector2F rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
+        public static double Dot(Vector2 lhs, Vector2 rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 
         /// <summary>
         /// Returns the length of this vector (RO).
         /// </summary>
-        public float magnitude { get { return MathF.Sqrt(x * x + y * y); } }
+        public double magnitude { get { return Math.Sqrt(x * x + y * y); } }
 
         /// <summary>
         /// Returns the squared length of this vector (RO).
         /// </summary>
-        public float sqrMagnitude { get { return x * x + y * y; } }
+        public double sqrMagnitude { get { return x * x + y * y; } }
 
         /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
@@ -158,18 +158,18 @@ namespace Nanolabo
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        public static float AngleRadians(Vector2F from, Vector2F to)
+        public static double AngleRadians(Vector2 from, Vector2 to)
         {
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
-            float denominator = MathF.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
+            double denominator = Math.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
             if (denominator < kEpsilonNormalSqrt)
                 return 0F;
 
-            float dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
-            return MathF.Acos(dot);
+            double dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
+            return Math.Acos(dot);
         }
 
-        public static float AngleDegrees(Vector2F from, Vector2F to)
+        public static double AngleDegrees(Vector2 from, Vector2 to)
         {
             return AngleRadians(from, to) / MathF.PI * 180f;
         }
@@ -180,10 +180,10 @@ namespace Nanolabo
         /// <param name="from"></param>
         /// <param name="to"></param>
         /// <returns></returns>
-        public static float SignedAngle(Vector2F from, Vector2F to)
+        public static double SignedAngle(Vector2 from, Vector2 to)
         {
-            float unsigned_angle = AngleDegrees(from, to);
-            float sign = MathF.Sign(from.x * to.y - from.y * to.x);
+            double unsigned_angle = AngleDegrees(from, to);
+            double sign = Math.Sign(from.x * to.y - from.y * to.x);
             return unsigned_angle * sign;
         }
 
@@ -193,11 +193,11 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static float Distance(Vector2F a, Vector2F b)
+        public static double Distance(Vector2 a, Vector2 b)
         {
-            float diff_x = a.x - b.x;
-            float diff_y = a.y - b.y;
-            return MathF.Sqrt(diff_x * diff_x + diff_y * diff_y);
+            double diff_x = a.x - b.x;
+            double diff_y = a.y - b.y;
+            return Math.Sqrt(diff_x * diff_x + diff_y * diff_y);
         }
 
         /// <summary>
@@ -206,27 +206,27 @@ namespace Nanolabo
         /// <param name="vector"></param>
         /// <param name="maxLength"></param>
         /// <returns></returns>
-        public static Vector2F ClampMagnitude(Vector2F vector, float maxLength)
+        public static Vector2 ClampMagnitude(Vector2 vector, double maxLength)
         {
-            float sqrMagnitude = vector.sqrMagnitude;
+            double sqrMagnitude = vector.sqrMagnitude;
             if (sqrMagnitude > maxLength * maxLength)
             {
-                float mag = MathF.Sqrt(sqrMagnitude);
+                double mag = Math.Sqrt(sqrMagnitude);
 
                 //these intermediate variables force the intermediate result to be
-                //of float precision. without this, the intermediate result can be of higher
+                //of double precision. without this, the intermediate result can be of higher
                 //precision, which changes behavior.
-                float normalized_x = vector.x / mag;
-                float normalized_y = vector.y / mag;
-                return new Vector2F(normalized_x * maxLength,
+                double normalized_x = vector.x / mag;
+                double normalized_y = vector.y / mag;
+                return new Vector2(normalized_x * maxLength,
                     normalized_y * maxLength);
             }
             return vector;
         }
 
-        public static float SqrMagnitude(Vector2F a) { return a.x * a.x + a.y * a.y; }
+        public static double SqrMagnitude(Vector2 a) { return a.x * a.x + a.y * a.y; }
 
-        public float SqrMagnitude() { return x * x + y * y; }
+        public double SqrMagnitude() { return x * x + y * y; }
 
         /// <summary>
         /// Returns a vector that is made from the smallest components of two vectors.
@@ -234,7 +234,7 @@ namespace Nanolabo
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static Vector2F Min(Vector2F lhs, Vector2F rhs) { return new Vector2F(MathF.Min(lhs.x, rhs.x), MathF.Min(lhs.y, rhs.y)); }
+        public static Vector2 Min(Vector2 lhs, Vector2 rhs) { return new Vector2(Math.Min(lhs.x, rhs.x), Math.Min(lhs.y, rhs.y)); }
 
         /// <summary>
         /// Returns a vector that is made from the largest components of two vectors.
@@ -242,7 +242,7 @@ namespace Nanolabo
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static Vector2F Max(Vector2F lhs, Vector2F rhs) { return new Vector2F(MathF.Max(lhs.x, rhs.x), MathF.Max(lhs.y, rhs.y)); }
+        public static Vector2 Max(Vector2 lhs, Vector2 rhs) { return new Vector2(Math.Max(lhs.x, rhs.x), Math.Max(lhs.y, rhs.y)); }
 
         /// <summary>
         /// Adds two vectors.
@@ -250,7 +250,7 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static Vector2F operator +(Vector2F a, Vector2F b) { return new Vector2F(a.x + b.x, a.y + b.y); }
+        public static Vector2 operator +(Vector2 a, Vector2 b) { return new Vector2(a.x + b.x, a.y + b.y); }
 
         /// <summary>
         /// Subtracts one vector from another.
@@ -258,7 +258,7 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static Vector2F operator -(Vector2F a, Vector2F b) { return new Vector2F(a.x - b.x, a.y - b.y); }
+        public static Vector2 operator -(Vector2 a, Vector2 b) { return new Vector2(a.x - b.x, a.y - b.y); }
 
         /// <summary>
         /// Multiplies one vector by another.
@@ -266,7 +266,7 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static Vector2F operator *(Vector2F a, Vector2F b) { return new Vector2F(a.x * b.x, a.y * b.y); }
+        public static Vector2 operator *(Vector2 a, Vector2 b) { return new Vector2(a.x * b.x, a.y * b.y); }
 
         /// <summary>
         /// Divides one vector over another.
@@ -274,14 +274,14 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static Vector2F operator /(Vector2F a, Vector2F b) { return new Vector2F(a.x / b.x, a.y / b.y); }
+        public static Vector2 operator /(Vector2 a, Vector2 b) { return new Vector2(a.x / b.x, a.y / b.y); }
 
         /// <summary>
         /// Negates a vector.
         /// </summary>
         /// <param name="a"></param>
         /// <returns></returns>
-        public static Vector2F operator -(Vector2F a) { return new Vector2F(-a.x, -a.y); }
+        public static Vector2 operator -(Vector2 a) { return new Vector2(-a.x, -a.y); }
 
         /// <summary>
         /// Multiplies a vector by a number.
@@ -289,9 +289,7 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="d"></param>
         /// <returns></returns>
-        public static Vector2F operator *(Vector2F a, float d) { return new Vector2F(a.x * d, a.y * d); }
-
-        public static Vector2 operator *(Vector2F a, double d) { return new Vector2(a.x * d, a.y * d); }
+        public static Vector2 operator *(Vector2 a, double d) { return new Vector2(a.x * d, a.y * d); }
 
         /// <summary>
         /// Multiplies a vector by a number.
@@ -299,9 +297,7 @@ namespace Nanolabo
         /// <param name="d"></param>
         /// <param name="a"></param>
         /// <returns></returns>
-        public static Vector2F operator *(float d, Vector2F a) { return new Vector2F(a.x * d, a.y * d); }
-
-        public static Vector2 operator *(double d, Vector2F a) { return new Vector2(a.x * d, a.y * d); }
+        public static Vector2 operator *(double d, Vector2 a) { return new Vector2(a.x * d, a.y * d); }
 
         /// <summary>
         /// Divides a vector by a number.
@@ -309,7 +305,7 @@ namespace Nanolabo
         /// <param name="a"></param>
         /// <param name="d"></param>
         /// <returns></returns>
-        public static Vector2F operator /(Vector2F a, float d) { return new Vector2F(a.x / d, a.y / d); }
+        public static Vector2 operator /(Vector2 a, double d) { return new Vector2(a.x / d, a.y / d); }
 
         /// <summary>
         /// Returns true if the vectors are equal.
@@ -317,11 +313,11 @@ namespace Nanolabo
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static bool operator ==(Vector2F lhs, Vector2F rhs)
+        public static bool operator ==(Vector2 lhs, Vector2 rhs)
         {
             // Returns false in the presence of NaN values.
-            float diff_x = lhs.x - rhs.x;
-            float diff_y = lhs.y - rhs.y;
+            double diff_x = lhs.x - rhs.x;
+            double diff_y = lhs.y - rhs.y;
             return (diff_x * diff_x + diff_y * diff_y) < kEpsilon * kEpsilon;
         }
 
@@ -331,7 +327,7 @@ namespace Nanolabo
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static bool operator !=(Vector2F lhs, Vector2F rhs)
+        public static bool operator!=(Vector2 lhs, Vector2 rhs)
         {
             // Returns true in the presence of NaN values.
             return !(lhs == rhs);
@@ -341,47 +337,50 @@ namespace Nanolabo
         /// Converts a [[Vector3]] to a Vector2.
         /// </summary>
         /// <param name="v"></param>
-        public static implicit operator Vector2F(Vector3F v)
+        public static implicit operator Vector2(Vector3F v)
         {
-            return new Vector2F(v.x, v.y);
+            return new Vector2(v.x, v.y);
         }
 
         /// <summary>
         /// Converts a Vector2 to a [[Vector3]].
         /// </summary>
         /// <param name="v"></param>
-        public static implicit operator Vector3(Vector2F v)
+        public static implicit operator Vector3(Vector2 v)
         {
             return new Vector3(v.x, v.y, 0);
         }
 
-        static readonly Vector2F zeroVector = new Vector2F(0F, 0F);
-        static readonly Vector2F oneVector = new Vector2F(1F, 1F);
-        static readonly Vector2F upVector = new Vector2F(0F, 1F);
-        static readonly Vector2F downVector = new Vector2F(0F, -1F);
-        static readonly Vector2F leftVector = new Vector2F(-1F, 0F);
-        static readonly Vector2F rightVector = new Vector2F(1F, 0F);
-        static readonly Vector2F positiveInfinityVector = new Vector2F(float.PositiveInfinity, float.PositiveInfinity);
-        static readonly Vector2F negativeInfinityVector = new Vector2F(float.NegativeInfinity, float.NegativeInfinity);
+        public static implicit operator Vector2F(Vector2 vec) => new Vector2F((float)vec.x, (float)vec.y);
+        public static explicit operator Vector2(Vector2F vec) => new Vector2(vec.x, vec.y);
 
-        public static Vector2F Zero => zeroVector;
+        static readonly Vector2 zeroVector = new Vector2(0F, 0F);
+        static readonly Vector2 oneVector = new Vector2(1F, 1F);
+        static readonly Vector2 upVector = new Vector2(0F, 1F);
+        static readonly Vector2 downVector = new Vector2(0F, -1F);
+        static readonly Vector2 leftVector = new Vector2(-1F, 0F);
+        static readonly Vector2 rightVector = new Vector2(1F, 0F);
+        static readonly Vector2 positiveInfinityVector = new Vector2(double.PositiveInfinity, double.PositiveInfinity);
+        static readonly Vector2 negativeInfinityVector = new Vector2(double.NegativeInfinity, double.NegativeInfinity);
 
-        public static Vector2F One => oneVector;
+        public static Vector2 Zero => zeroVector;
 
-        public static Vector2F Up => upVector;
+        public static Vector2 One => oneVector;
 
-        public static Vector2F Down => downVector;
+        public static Vector2 Up => upVector;
 
-        public static Vector2F Left => leftVector;
+        public static Vector2 Down => downVector;
 
-        public static Vector2F Right => rightVector;
+        public static Vector2 Left => leftVector;
 
-        public static Vector2F PositiveInfinity => positiveInfinityVector;
+        public static Vector2 Right => rightVector;
 
-        public static Vector2F NegativeInfinity => negativeInfinityVector;
+        public static Vector2 PositiveInfinity => positiveInfinityVector;
 
-        public const float kEpsilon = 0.00001F;
+        public static Vector2 NegativeInfinity => negativeInfinityVector;
 
-        public const float kEpsilonNormalSqrt = 1e-15f;
+        public const double kEpsilon = 0.00001F;
+
+        public const double kEpsilonNormalSqrt = 1e-15f;
     }
 }

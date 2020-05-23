@@ -77,6 +77,8 @@ namespace Nanolabo
 
         public static Vector3F operator *(float d, Vector3F a) { return new Vector3F(a.x * d, a.y * d, a.z * d); }
 
+        public static Vector3 operator *(double d, Vector3F a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
+
         public static Vector3F operator /(Vector3F a, float d) { return new Vector3F(MathUtils.DivideSafe(a.x, d), MathUtils.DivideSafe(a.y, d), MathUtils.DivideSafe(a.z, d)); }
 
         public static bool operator ==(Vector3F lhs, Vector3F rhs)

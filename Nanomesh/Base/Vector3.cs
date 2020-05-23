@@ -135,7 +135,20 @@ namespace Nanolabo
             return Math.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
         }
 
-        public double SqrMagnitude => x * x + y * y + z * z;
+        public static Vector3 ProjectPointOnLine(Vector3 linePoint, Vector3 lineVec, Vector3 point)
+        {
+            Vector3 linePointToPoint = point - linePoint;
+            return linePoint + lineVec * Dot(linePointToPoint, lineVec);
+        }
+
+        public static double DistancePointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+        {
+            return Magnitude(ProjectPointOnLine(lineStart, lineEnd - lineStart, point) - point);
+        }
+
+        public double LengthSquared => x * x + y * y + z * z;
+
+        public double Length => Math.Sqrt(x * x + y * y + z * z);
 
         public static Vector3 Min(Vector3 lhs, Vector3 rhs)
         {
@@ -162,7 +175,7 @@ namespace Nanolabo
 
         public static double AngleRadians(Vector3 from, Vector3 to)
         {
-            double denominator = Math.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
+            double denominator = Math.Sqrt(from.LengthSquared * to.LengthSquared);
             if (denominator < 1e-15F)
                 return 0F;
 

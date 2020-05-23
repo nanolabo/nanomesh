@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Nanomesh.Collections;
+using Priority_Queue;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime;
 
 namespace Nanolabo
 {
@@ -140,14 +143,72 @@ namespace Nanolabo
 			return edge.Value;
 		}
 
-		private int MinsCount => (int)MathF.Clamp(0.01f * mesh.faceCount + 100, 0, pairs.Count);
+		private int MinsCount => (int)MathF.Clamp(0.001f * mesh.faceCount + 500, 0, pairs.Count);
 
 		private void ComputeMins()
 		{
-			Console.WriteLine("Compute Mins");
-			// Find the k smallest elements (ordered)
-			// https://www.desmos.com/calculator/eoxaztxqaf
-			mins = new LinkedHashSet<EdgeCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
+			//Console.WriteLine("Compute Mins");
+
+			int minsCount = MinsCount;
+
+			/// Using Linq
+			//mins = new LinkedHashSet<EdgeCollapse>(pairs.OrderBy(x => x).Take(MinsCount)); // Todo : find faster sorting
+
+			/// Using priority queue
+			//FastPriorityQueue<FPQEdge> queue = new FastPriorityQueue<FPQEdge>(MinsCount);
+			//foreach (var pair in pairs)
+			//{
+			//	queue.Enqueue(new FPQEdge(pair), (float)pair.error);
+			//}
+			//mins = new LinkedHashSet<EdgeCollapse>(queue.Select(x => x.edge));
+
+			/// Using MinHeap
+			//MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(MinsCount);
+			//foreach (var pair in pairs)
+			//{
+			//	queue.Add(pair);
+			//}
+			//mins = new LinkedHashSet<EdgeCollapse>(queue.Elements);
+
+			/// Using Manual Sorting
+			//EdgeCollapse[] edges = new EdgeCollapse[mc];
+			//foreach (var pair in pairs)
+			//{
+			//	int k = minsCount - 1;
+			//	while (k >= 0 && (edges[k] == null || edges[k].CompareTo(pair) > 0))
+			//	{
+			//		var swap = edges[k];
+			//		edges[k] = pair;
+			//		if (k < minsCount - 1)
+			//			edges[k + 1] = swap;
+			//		k--;
+			//	}
+			//}
+			//mins = new LinkedHashSet<EdgeCollapse>(edges);
+
+			/// Using LinkedHashSet
+			mins.Add(pairs.First());
+			foreach (var pair in pairs)
+			{
+				if (mins.Count >= minsCount)
+				{
+					PushMin(pair);
+				}
+				else
+				{
+					AddMin(pair);
+				}
+			}
+		}
+
+		public class FPQEdge : FastPriorityQueueNode
+		{
+			public FPQEdge(EdgeCollapse edge)
+			{
+				this.edge = edge;
+			}
+
+			public EdgeCollapse edge;
 		}
 
 		private void AddMin(EdgeCollapse item)
@@ -165,6 +226,23 @@ namespace Nanolabo
 				mins.AddBefore(item, mins.First);
 			else
 				mins.AddAfter(item, current);
+		}
+
+		private void PushMin(EdgeCollapse item)
+		{
+			var current = mins.Last;
+			while (current != null && item.CompareTo(current.Value) < 0)
+			{
+				current = current.Previous;
+			}
+
+			if (current == mins.Last)
+				return;
+
+			if (current == null)
+				mins.PushBefore(item, mins.First);
+			else
+				mins.PushAfter(item, current);
 		}
 
 		private void InitializePairs()
@@ -223,6 +301,18 @@ namespace Nanolabo
 				if (/*mesh.attributes.Length > 0*/ false)
 				{
 					normal = (Vector3)mesh.attributes[mesh.nodes[sibling].attribute].normal;
+
+					int posA = mesh.nodes[sibling].position;
+					int posB = mesh.nodes[mesh.nodes[sibling].relative].position;
+					int posC = mesh.nodes[mesh.nodes[mesh.nodes[sibling].relative].relative].position;
+
+					double area = 0.5 * Vector3.Cross(
+						mesh.positions[posB] - mesh.positions[posA],
+						mesh.positions[posC] - mesh.positions[posA]).Length;
+
+					normal.Normalize();
+
+					normal = area * normal;
 				}
 				else
 				{
@@ -234,9 +324,15 @@ namespace Nanolabo
 					normal = Vector3.Cross(
 						mesh.positions[posB] - mesh.positions[posA],
 						mesh.positions[posC] - mesh.positions[posA]);
-				}
 
-				normal.Normalize();
+					//double angle = Vector3.AngleRadians(mesh.positions[posB] - mesh.positions[posA], mesh.positions[posC] - mesh.positions[posA]);
+					//double length = ((mesh.positions[posB] - mesh.positions[posA]).Length + (mesh.positions[posC] - mesh.positions[posA]).Length) / 2;
+					double area = 0.5 * normal.Length;
+
+					normal.Normalize();
+
+					normal = area * normal;
+				}
 
 				double dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);
 
@@ -268,8 +364,8 @@ namespace Nanolabo
 			var edgeType = mesh.GetEdgeType(node1, node2);
 			pair.type = edgeType;
 
-			Vector3 p1 = mesh.positions[pair.posA];
-			Vector3 p2 = mesh.positions[pair.posB];
+			Vector3 posA = mesh.positions[pair.posA];
+			Vector3 posB = mesh.positions[pair.posB];
 
 			switch (edgeType)
 			{
@@ -290,14 +386,14 @@ namespace Nanolabo
 						else
 						{
 							// Not cool when it goes there...
-							Vector3 p3 = (p1 + p2) / 2d;
-							double error1 = ComputeVertexError(quadric, p1.x, p1.y, p1.z);
-							double error2 = ComputeVertexError(quadric, p2.x, p2.y, p2.z);
-							double error3 = ComputeVertexError(quadric, p3.x, p3.y, p3.z);
+							Vector3 posC = (posA + posB) / 2d;
+							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
 							pair.error = Math.Min(error1, Math.Min(error2, error3));
-							if (error1 == pair.error) pair.result = p1;
-							else if (error2 == pair.error) pair.result = p2;
-							else pair.result = p3;
+							if (error1 == pair.error) pair.result = posA;
+							else if (error2 == pair.error) pair.result = posB;
+							else pair.result = posC;
 						}
 						//if (edgeType is SURFACIC_HARD_EDGE)
 						//	pair.error += offset_hard;
@@ -308,8 +404,8 @@ namespace Nanolabo
 				case SURFACIC_BORDER_A edg_surfbordA:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
-						pair.error = ComputeVertexError(q, p1.x, p1.y, p1.z);
-						pair.result = p1;
+						pair.error = ComputeVertexError(q, posA.x, posA.y, posA.z);
+						pair.result = posA;
 						//if (edgeType is SURFACIC_BORDER_A_HARD_B)
 						//	pair.error += offset_hard;
 					}
@@ -319,41 +415,62 @@ namespace Nanolabo
 				case SURFACIC_BORDER_B edg_surfbordB:
 					{
 						SymmetricMatrix q = matrices[pair.posA] + matrices[pair.posB];
-						pair.error = ComputeVertexError(q, p2.x, p2.y, p2.z);
-						pair.result = p2;
+						pair.error = ComputeVertexError(q, posB.x, posB.y, posB.z);
+						pair.result = posB;
 						//if (edgeType is SURFACIC_BORDER_B_HARD_A)
 						//	pair.error += offset_hard;
 					}
 					break;
 				case BORDER_AB edg_bord:
 					{
+						/*
 						// Todo : Improve quality by finding analytical solution that minimizes the error
-						Vector3 p1o = mesh.positions[mesh.nodes[edg_bord.borderNodeA].position];
-						Vector3 p2o = mesh.positions[mesh.nodes[edg_bord.borderNodeB].position];
-						var error1 = ComputeLineicError(p1, p2, p2o);
-						var error2 = ComputeLineicError(p2, p1, p1o);
-						pair.error = Math.Min(error1, error2);
-						if (error1 == pair.error) pair.result = p1;
-						else pair.result = p2;
+						Vector3 borderA = mesh.positions[mesh.nodes[edg_bord.borderNodeA].position];
+						Vector3 borderB = mesh.positions[mesh.nodes[edg_bord.borderNodeB].position];
+						var error1 = ComputeLineicError(borderA, borderB, posA);
+						var error2 = ComputeLineicError(borderA, borderB, posB);
+						//var error1 = 0.1 * ComputeLineicError(p1o, p1, p2o);
+						//var error2 = 0.1 * ComputeLineicError(p1o, p2, p2o);
+						if (error1 < error2)
+						{
+							pair.error = error1;
+							pair.result = posA;
+						}
+						else
+						{
+							pair.error = error2;
+							pair.result = posB;
+						}
+						/*/
+						SymmetricMatrix quadric = matrices[pair.posA] + matrices[pair.posB];
+						Vector3 posC = (posA + posB) / 2d;
+						double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+						double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+						double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z) + 1000;
+						pair.error = Math.Min(error1, Math.Min(error2, error3));
+						if (error1 == pair.error) pair.result = posA;
+						else if (error2 == pair.error) pair.result = posB;
+						else pair.result = posC;
+						//*/
 					}
 					break;
 				case SURFACIC_HARD_AB edg_surfAB:
 					{
-						pair.result = (p1 + p2) / 2;
+						pair.result = (posA + posB) / 2;
 						pair.error = offset_nocollapse - 1; // Never collapse, but still do it before A-Shapes
 					}
 					break;
 				case SURFACIC_BORDER_AB edg_bordAB:
 					{
 						// Todo : Put a warning when trying to collapse A-Shapes
-						pair.result = (p1 + p2) / 2;
+						pair.result = (posA + posB) / 2;
 						pair.error = offset_nocollapse; // Never collapse A-Shapes
 					}
 					break;
 				default:
 					{
 						// Todo : Fix such cases. It should not happen
-						pair.result = (p1 + p2) / 2;
+						pair.result = (posA + posB) / 2;
 						pair.error = offset_nocollapse; // Never collapse unknown shapes
 					}
 					break;
@@ -416,19 +533,18 @@ namespace Nanolabo
 		/// <summary>
 		/// A |\
 		///   | \
-		///   |__\ B
+		///   |__\ X
 		///   |  /
 		///   | /
-		/// C |/
+		/// B |/
 		/// </summary>
 		/// <param name="A"></param>
 		/// <param name="B"></param>
-		/// <param name="C"></param>
+		/// <param name="X"></param>
 		/// <returns></returns>
-		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 C) 
+		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 X) 
 		{
-			var θ = Vector3.AngleRadians(B - A, C - A);
-			return Math.Sin(θ);
+			return Vector3.DistancePointLine(X, A, B);
 		}
 
 		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
@@ -442,6 +558,7 @@ namespace Nanolabo
 		private void InterpolateAttributes(EdgeCollapse pair)
 		{
 			int nodeIndexA = mesh.PositionToNode[pair.posA];
+			int nodeIndexB = mesh.PositionToNode[pair.posB];
 			int posB = pair.posB;
 
 			Vector3 positionA = mesh.positions[pair.posA];
@@ -458,7 +575,7 @@ namespace Nanolabo
 						Vector3 positionN = pair.result;
 						double AN = Vector3.Magnitude(positionA - positionN);
 						double BN = Vector3.Magnitude(positionB - positionN);
-						float ratio = (float)MathUtils.DivideSafe(AN, AN + BN);
+						double ratio = (float)MathUtils.DivideSafe(AN, AN + BN);
 
 						// Normals
 						Vector3F normalAtA = mesh.attributes[mesh.nodes[siblingOfA].attribute].normal;
