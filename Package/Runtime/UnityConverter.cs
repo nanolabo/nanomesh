@@ -38,6 +38,7 @@ namespace Nanolabo.Unity
         public static Mesh ToUnityMesh(this SharedMesh sharedMesh)
         {
             Mesh mesh = new Mesh();
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
             UVector3[] vertices = new UVector3[sharedMesh.vertices.Length];
             for (int i = 0; i < vertices.Length; i++)

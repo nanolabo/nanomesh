@@ -1,11 +1,7 @@
-﻿using Nanomesh.Collections;
-using Priority_Queue;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime;
-
 namespace Nanolabo
 {
     public partial class DecimateModifier
@@ -13,7 +9,7 @@ namespace Nanolabo
 		private ConnectedMesh mesh;
 
 		private SymmetricMatrix[] matrices;
-		private HashSet<EdgeCollapse> pairs;
+		private FastHashSet<EdgeCollapse> pairs;
 		private LinkedHashSet<EdgeCollapse> mins = new LinkedHashSet<EdgeCollapse>();
 
 		private int lastProgress;
@@ -77,7 +73,7 @@ namespace Nanolabo
 			initialTriangleCount = mesh.FaceCount;
 
 			matrices = new SymmetricMatrix[mesh.positions.Length];
-			pairs = new HashSet<EdgeCollapse>();
+			pairs = new FastHashSet<EdgeCollapse>();
 			lastProgress = -1;
 
 			InitializePairs();
@@ -190,31 +186,21 @@ namespace Nanolabo
 			mins.Add(pairs.First());
 			foreach (var pair in pairs)
 			{
-				if (mins.Count >= minsCount)
-				{
-					PushMin(pair);
-				}
-				else
+				if (mins.Count < minsCount)
 				{
 					AddMin(pair);
 				}
+				else
+				{
+					PushMin(pair);
+				}
 			}
-		}
-
-		public class FPQEdge : FastPriorityQueueNode
-		{
-			public FPQEdge(EdgeCollapse edge)
-			{
-				this.edge = edge;
-			}
-
-			public EdgeCollapse edge;
 		}
 
 		private void AddMin(EdgeCollapse item)
 		{
 			var current = mins.Last;
-			while (current != null && item.CompareTo(current.Value) < 0)
+			while (current != null && item < current.Value)
 			{
 				current = current.Previous;
 			}
@@ -228,13 +214,16 @@ namespace Nanolabo
 				mins.AddAfter(item, current);
 		}
 
+		// Todo : Optimize performance
 		private void PushMin(EdgeCollapse item)
 		{
 			var current = mins.Last;
-			while (current != null && item.CompareTo(current.Value) < 0)
+			while (current != null && item < current.Value)
 			{
 				current = current.Previous;
 			}
+
+			// Optimization : Insert center
 
 			if (current == mins.Last)
 				return;
@@ -327,11 +316,9 @@ namespace Nanolabo
 
 					//double angle = Vector3.AngleRadians(mesh.positions[posB] - mesh.positions[posA], mesh.positions[posC] - mesh.positions[posA]);
 					//double length = ((mesh.positions[posB] - mesh.positions[posA]).Length + (mesh.positions[posC] - mesh.positions[posA]).Length) / 2;
-					double area = 0.5 * normal.Length;
 
-					normal.Normalize();
-
-					normal = area * normal;
+					//normal = normal.Normalized;
+					normal = 0.5 * normal;
 				}
 
 				double dot = Vector3.Dot(-normal, mesh.positions[mesh.nodes[sibling].position]);

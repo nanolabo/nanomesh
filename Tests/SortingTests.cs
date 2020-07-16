@@ -9,7 +9,7 @@ namespace Nanolabo
 {
     public class SortingTests
     {
-        const int SIZE = 100000;
+        const int SIZE = 1000;
         const int ITERATION = 10;
         const int K = 10;
 
@@ -31,8 +31,23 @@ namespace Nanolabo
         {
             SortedSet<EdgeCollapse> sortedSet = new SortedSet<EdgeCollapse>(pairs);
 
-            var pair = pairs.ElementAt(SIZE / 2);
-            Assert.IsTrue(sortedSet.Remove(pair));
+            //var pair = pairs.ElementAt(SIZE / 2);
+            //Assert.IsTrue(sortedSet.Remove(pair));
+            //Assert.IsFalse(sortedSet.Remove(pair));
+
+            //pair = pairs.Min();
+            //Assert.IsTrue(sortedSet.Remove(pair));
+            //Assert.IsFalse(sortedSet.Remove(pair));
+
+            for (int i = 0; i < SIZE; i++)
+            {
+                TestContext.Out.WriteLine(pairs.Min().error);
+                //Assert.IsTrue(sortedSet.Remove(pairs.Min()));
+                Assert.IsTrue(sortedSet.Remove(pairs.Min()));
+            }
+
+            TestContext.Out.WriteLine(sortedSet.Count);
+            Assert.IsTrue(sortedSet.Count == 0);
         }
 
         [Test]

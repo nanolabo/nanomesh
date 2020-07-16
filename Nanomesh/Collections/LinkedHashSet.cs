@@ -362,12 +362,70 @@ namespace Nanolabo
 			return true;
 		}
 
+		public bool PushAfter(T item, LinkedHashNode<T> itemInPlace)
+		{
+			if (elements.ContainsKey(item))
+				return false;
+
+			var node = Last;
+			Unlink(node);
+			elements.Remove(node.Value);
+			node.Value = item;
+			node.Next = null;
+			node.Previous = itemInPlace;
+
+			if (itemInPlace.Next != null)
+			{
+				node.Next = itemInPlace.Next;
+				itemInPlace.Next.Previous = node;
+			}
+			else
+			{
+				last = node;
+			}
+
+			itemInPlace.Next = node;
+
+			elements.Add(item, node);
+
+			return true;
+		}
+
 		public bool AddBefore(T item, LinkedHashNode<T> itemInPlace)
 		{
 			if (elements.ContainsKey(item))
 				return false;
 
 			var node = new LinkedHashNode<T>(item) { Next = itemInPlace };
+
+			if (itemInPlace.Previous != null)
+			{
+				node.Previous = itemInPlace.Previous;
+				itemInPlace.Previous.Next = node;
+			}
+			else
+			{
+				first = node;
+			}
+
+			itemInPlace.Previous = node;
+
+			elements.Add(item, node);
+
+			return true;
+		}
+
+		public bool PushBefore(T item, LinkedHashNode<T> itemInPlace)
+		{
+			if (elements.ContainsKey(item))
+				return false;
+
+			var node = Last;
+			Unlink(node);
+			elements.Remove(node.Value);
+			node.Value = item;
+			node.Previous = null;
+			node.Next = itemInPlace;
 
 			if (itemInPlace.Previous != null)
 			{
@@ -459,7 +517,7 @@ namespace Nanolabo
 				Value = value;
 			}
 
-			public readonly TElement Value;
+			public TElement Value;
 			public LinkedHashNode<TElement> Next;
 			public LinkedHashNode<TElement> Previous;
 		}
