@@ -13,10 +13,10 @@ namespace Nanolabo
 			public Vector3 result;
 			public double error;
 
-			public EdgeCollapse(int pos1, int pos2)
+			public EdgeCollapse(int posA, int posB)
 			{
-				this.posA = pos1;
-				this.posB = pos2;
+				this.posA = posA;
+				this.posB = posB;
 			}
 
 			public override int GetHashCode()
@@ -29,51 +29,54 @@ namespace Nanolabo
 
 			public override bool Equals(object obj)
 			{
-				EdgeCollapse pc = (EdgeCollapse)obj;
-				return Compare(this, pc) == 0;
+				return Equals((EdgeCollapse)obj);
 			}
 
 			public bool Equals(EdgeCollapse pc)
 			{
-				return Compare(this, pc) == 0;
+				if (ReferenceEquals(this, pc))
+				{
+					return true;
+				}
+				else
+				{
+					return (posA == pc.posA && posB == pc.posB) || (posA == pc.posB && posB == pc.posA);
+				}
 			}
 
 			public int CompareTo(EdgeCollapse other)
 			{
-				return Compare(this, other);
+				return error > other.error ? 1 : error < other.error ? -1 : 0;
 			}
 
-			private static int Compare(EdgeCollapse x, EdgeCollapse y)
+			public static bool operator >(EdgeCollapse x, EdgeCollapse y)
 			{
-				int lret = 0;
-				if (Object.ReferenceEquals(x, y))
-				{
-					lret = 0;
-				}
-				else if (Object.ReferenceEquals(null, x))
-				{
-					lret = 1;
-				}
-				else if (Object.ReferenceEquals(null, y))
-				{
-					lret = -1;
-				}
-				else
-				{
-					lret = ((x.posA == y.posA && x.posB == y.posB) || (x.posA == y.posB && x.posB == y.posA)) ? 0 : x.error > y.error ? 1 : -1;
-				}
+				return x.error > y.error;
+			}
 
-				return lret;
+			public static bool operator >=(EdgeCollapse x, EdgeCollapse y)
+			{
+				return x.error >= y.error;
+			}
+
+			public static bool operator <(EdgeCollapse x, EdgeCollapse y)
+			{
+				return x.error < y.error;
+			}
+
+			public static bool operator <=(EdgeCollapse x, EdgeCollapse y)
+			{
+				return x.error <= y.error;
 			}
 
 			public static bool operator ==(EdgeCollapse x, EdgeCollapse y)
 			{
-				return Compare(x, y) == 0;
+				return x.Equals(y);
 			}
 
 			public static bool operator !=(EdgeCollapse x, EdgeCollapse y)
 			{
-				return Compare(x, y) != 0; ;
+				return !x.Equals(y);
 			}
 
 			public override string ToString()
