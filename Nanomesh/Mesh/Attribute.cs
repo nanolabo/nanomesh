@@ -17,7 +17,7 @@ namespace Nanolabo
 
         public override int GetHashCode()
         {
-            unsafe
+            unchecked
             {
                 return normal.GetHashCode() ^ (color.GetHashCode() << 2) ^ (uv.GetHashCode() >> 2);
             }

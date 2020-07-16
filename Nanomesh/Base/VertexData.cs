@@ -10,7 +10,7 @@ namespace Nanolabo
 
         public override int GetHashCode()
         {
-            unsafe
+            unchecked
             {
                 return position ^ (normal << 2) ^ (uv >> 2);
             }
