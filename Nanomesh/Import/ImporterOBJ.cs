@@ -1,19 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Nanolabo
 {
     public class ImporterOBJ
     {
+
         const char CHAR_SLASH = '/';
         const int SIZE_INIT = 1024;
 
         public static SharedMesh Read(string file)
         {
             SharedMesh mesh;
-            using (StreamReader reader = new StreamReader(file)) {
-                mesh = Load(reader);
+            using (FileStream fs = new FileStream(file, FileMode.Open))
+            {
+                using (StreamReader reader = new StreamReader(fs))
+                {
+                    mesh = Load(reader);
+                }
             }
             return mesh;
         }

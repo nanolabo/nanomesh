@@ -7,9 +7,9 @@ namespace Nanomesh.Native
     public class NativeInterface
     {
         [UnmanagedCallersOnly(EntryPoint = "OptimizeBrake", CallingConvention = CallingConvention.StdCall)]
-        public static int OptimizeBrake(IntPtr pString)
+        public static int OptimizeBrake()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"..\..\..\..\Tests\test-models\brake.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"C:\Users\OlivierGiniaux\Projects\nanolabo\Tests\test-models\brake.obj");
             ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
             mesh.MergePositions(0.0001);
             DecimateModifier decimateModifier = new DecimateModifier();

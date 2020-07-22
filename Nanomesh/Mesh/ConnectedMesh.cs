@@ -398,6 +398,7 @@ namespace Nanolabo
             do // Iterator over faces around A
             {
                 int relativeOfA = siblingOfA;
+
                 while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
                 {
                     int posC = nodes[relativeOfA].position;
