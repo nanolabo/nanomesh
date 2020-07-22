@@ -1,18 +1,10 @@
 using System;
-using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 
 namespace Nanolabo
 {
-	/// <summary>
-	/// Remove is O(1)
-	/// Add is O(1)
-	/// Insert from T is O(1)
-	/// Get first or last is O(1)
-	/// </summary>
-	[Serializable]
-	public class LinkedHashSet<T> : ISet<T>, IReadOnlyCollection<T>
+	public class LinkedHashSet<T> : IReadOnlyCollection<T>
 	{
 		private readonly Dictionary<T, LinkedHashNode<T>> elements;
 		private LinkedHashNode<T> first, last;
@@ -69,15 +61,6 @@ namespace Nanolabo
 		#region Implementation of ICollection<T>
 
 		/// <summary>
-		/// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1"/>.
-		/// </summary>
-		/// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
-		void ICollection<T>.Add(T item)
-		{
-			Add(item);
-		}
-
-		/// <summary>
 		/// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
 		/// </summary>
 		/// <returns>
@@ -86,17 +69,6 @@ namespace Nanolabo
 		public int Count
 		{
 			get { return elements.Count; }
-		}
-
-		/// <summary>
-		/// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
-		/// </summary>
-		/// <returns>
-		/// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
-		/// </returns>
-		bool ICollection<T>.IsReadOnly
-		{
-			get { return false; }
 		}
 
 		/// <summary>
@@ -219,23 +191,6 @@ namespace Nanolabo
 		}
 
 		/// <summary>
-		/// Determines whether a set is a subset of a specified collection.
-		/// </summary>
-		/// <returns>
-		/// true if the current set is a subset of <paramref name="other"/>; otherwise, false.
-		/// </returns>
-		/// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-		public bool IsSubsetOf(IEnumerable<T> other)
-		{
-			var otherSet = AsSet(other);
-
-			if (Count > otherSet.Count)
-				return false;
-
-			return elements.Keys.All(otherSet.Contains);
-		}
-
-		/// <summary>
 		/// Determines whether the current set is a superset of a specified collection.
 		/// </summary>
 		/// <returns>
@@ -265,35 +220,6 @@ namespace Nanolabo
 
 			// All others must be present, plus we need to have at least one additional item.
 			return numberOfOthersPresent == numberOfOthers && numberOfOthers < Count;
-		}
-
-		/// <summary>
-		/// Determines whether the current set is a proper (strict) subset of a specified collection.
-		/// </summary>
-		/// <returns>
-		/// true if the current set is a correct subset of <paramref name="other"/>; otherwise, false.
-		/// </returns>
-		/// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-		public bool IsProperSubsetOf(IEnumerable<T> other)
-		{
-			var otherSet = AsSet(other);
-
-			if (Count >= otherSet.Count)
-				return false;
-
-			return elements.Keys.All(otherSet.Contains);
-		}
-
-		/// <summary>
-		/// Determines whether the current set overlaps with the specified collection.
-		/// </summary>
-		/// <returns>
-		/// true if the current set and <paramref name="other"/> share at least one common element; otherwise, false.
-		/// </returns>
-		/// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
-		public bool Overlaps(IEnumerable<T> other)
-		{
-			return other.Any(Contains);
 		}
 
 		/// <summary>
@@ -507,9 +433,6 @@ namespace Nanolabo
 				last = node.Previous;
 		}
 
-#if !NETSTANDARD1_0
-		[Serializable]
-#endif
 		public class LinkedHashNode<TElement>
 		{
 			public LinkedHashNode(TElement value)
@@ -522,12 +445,6 @@ namespace Nanolabo
 			public LinkedHashNode<TElement> Previous;
 		}
 
-		/// <summary>
-		/// Enumerator for <see cref="LinkedHashSet{T}"/>
-		/// </summary>
-#if !NETSTANDARD1_0
-		[Serializable]
-#endif
 		public struct Enumerator : IEnumerator<T>
 		{
 			private LinkedHashNode<T> _node;

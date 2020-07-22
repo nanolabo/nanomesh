@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sandbox", "Sandbox\Sandbox.csproj", "{773E9BAD-F28D-469D-9F38-FF2406990BFA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nanomesh.Native", "Nanomesh.Native\Nanomesh.Native.csproj", "{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
