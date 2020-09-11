@@ -22,14 +22,15 @@ namespace Nanolabo
 		const double offset_hard = 1e6;
 		const double offset_nocollapse = 1e300;
 
-		public static string Benchmark()
+		public static double Benchmark()
 		{
 			SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 7);
 			ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
-			Profiling.Start("Benchmark Decimation");
-			DecimateModifier decimateModifier = new DecimateModifier();
-			decimateModifier.DecimateToRatio(mesh, 0.50f);
-			return Profiling.End("Benchmark Decimation");
+		
+			return Profiling.Time(() => {
+				DecimateModifier decimateModifier = new DecimateModifier();
+				decimateModifier.DecimateToRatio(mesh, 0.50f);
+			}).TotalMilliseconds;
 		}
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)

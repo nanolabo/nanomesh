@@ -6,10 +6,9 @@ namespace Nanomesh.Native
     public class NativeInterfaceX
     {
         [UnmanagedCallersOnly(EntryPoint = "Benchmark")]
-        public static int Benchmark()
+        public static double Benchmark()
         {
-            DecimateModifier.Benchmark();
-            return 123;
+            return DecimateModifier.Benchmark();
         }
     }
 }

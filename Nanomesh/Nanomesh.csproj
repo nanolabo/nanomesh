@@ -2,23 +2,34 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Configurations>Debug;Release;Obfuscated</Configurations>
+    <Configurations>Debug;Release;Obfuscated;Native</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Obfuscated|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Native|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="&quot;..\Tools\Confuser\Confuser.CLI.exe&quot; Obfuscation.crproj" />
+    <Exec Command="if $(ConfigurationName) == Native (&#xD;&#xA;  echo &quot;Process over&quot;.&#xD;&#xA;) else (&#xD;&#xA;  if $(ConfigurationName) == Obfuscated (&#xD;&#xA;    &quot;..\Tools\Confuser\Confuser.CLI.exe&quot; Obfuscation.crproj&#xD;&#xA;  ) else (&#xD;&#xA;    echo &quot;Process over&quot;.&#xD;&#xA;  )&#xD;&#xA;&#xD;&#xA;  copy /Y &quot;$(TargetDir)Nanomesh.dll&quot; &quot;$(SolutionDir)Package\Nanomesh.dll&quot;&#xD;&#xA;  copy /Y &quot;$(TargetDir)Nanomesh.pdb&quot; &quot;$(SolutionDir)Package\Nanomesh.pdb&quot;&#xD;&#xA;)&#xD;&#xA;" />
   </Target>
 
 </Project>
