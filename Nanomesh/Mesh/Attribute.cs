@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public struct Attribute : IEquatable<Attribute>
     {

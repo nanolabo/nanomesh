@@ -1,0 +1,33 @@
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
+
+namespace Nanomesh.Benchmarks
+{
+    [MemoryDiagnoser]
+    [SimpleJob(RuntimeMoniker.Mono, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    [SimpleJob(RuntimeMoniker.CoreRt31, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    [SimpleJob(RuntimeMoniker.NetCoreApp50, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    [SimpleJob(RuntimeMoniker.NetCoreApp31, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    public class Benchmark
+    {
+        [Params(true, false)]
+        public bool Precise { get; set; }
+
+        private ConnectedMesh _mesh;
+
+        [IterationSetup]
+        public void IterationSetup()
+        {
+            _mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 4));
+            _mesh.MergePositions(0.001);
+        }
+
+        [Benchmark]
+        public void DecimateSphere()
+        {
+            DecimateModifier decimateModifier = new DecimateModifier();
+            decimateModifier.preciseMode = Precise;
+            decimateModifier.DecimateToPolycount(_mesh, 500);
+        }
+    }
+}

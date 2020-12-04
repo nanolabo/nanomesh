@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public partial class DecimateModifier
     {
@@ -15,6 +15,8 @@ namespace Nanolabo
 
 		private int lastProgress;
 		private int initialTriangleCount;
+
+		public bool preciseMode = false;
 
 		const double εdet = 0.001f;
 		const double εprio = 0.00001f;
@@ -688,30 +690,31 @@ namespace Nanolabo
 				{
 					int posC = mesh.nodes[relative].position;
 
-					// Update quadrics and errors one level deeper
-					// Mathematically more correct, at the cost of performance
-					//{
-					//	int sibling2 = relative;
-					//	while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
-					//	{
-					//		int relative2 = sibling2;
-					//		while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
-					//		{
-					//			int posD = mesh.nodes[relative2].position;
-					//			if (posD == posC)
-					//				continue;
-					//			if (pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
-					//			{
-					//				mins.Remove(actualPair);
-					//				CalculateQuadric(posD);
-					//				CalculateError(actualPair);
-					//				AddMin(actualPair);
-					//			}
-					//		}
-					//	}
-					//}
+                    // Update quadrics and errors one level deeper
+                    // Mathematically more correct, at the cost of performance
+                    if (preciseMode)
+					{
+                        int sibling2 = relative;
+                        while ((sibling2 = mesh.nodes[sibling2].sibling) != relative)
+                        {
+                            int relative2 = sibling2;
+                            while ((relative2 = mesh.nodes[relative2].relative) != sibling2)
+                            {
+                                int posD = mesh.nodes[relative2].position;
+                                if (posD == posC)
+                                    continue;
+                                if (pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
+                                {
+                                    mins.Remove(actualPair);
+                                    CalculateQuadric(posD);
+                                    CalculateError(actualPair);
+                                    AddMin(actualPair);
+                                }
+                            }
+                        }
+                    }
 
-					if (validNode < 0)
+                    if (validNode < 0)
 						continue;
 
 					var pairAC = new EdgeCollapse(posA, posC);

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Nanolabo
+namespace Nanomesh.Tests
 {
     public static class EnumerableUtils
     {

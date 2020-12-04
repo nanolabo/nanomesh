@@ -3,9 +3,9 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using static Nanolabo.DecimateModifier;
+using static Nanomesh.DecimateModifier;
 
-namespace Nanolabo
+namespace Nanomesh.Tests
 {
     public class SortingTests
     {

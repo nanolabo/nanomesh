@@ -1,4 +1,4 @@
-﻿namespace Nanolabo
+﻿namespace Nanomesh
 {
     public interface IEdgeType
     {

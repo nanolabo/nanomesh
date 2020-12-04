@@ -1,10 +1,10 @@
-﻿using Nanolabo;
+﻿using Nanomesh;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Tests
+namespace Nanomesh.Tests
 {
     class AllocationTests
     {

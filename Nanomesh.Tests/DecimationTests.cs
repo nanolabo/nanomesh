@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace Nanolabo
+namespace Nanomesh.Tests
 {
     public class DecimationTests
     {

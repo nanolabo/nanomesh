@@ -1,8 +1,8 @@
-﻿using Nanolabo;
+﻿using Nanomesh;
 using System;
 using System.Diagnostics;
 
-namespace Sandbox
+namespace Nanomesh.Sandbox
 {
     class Program
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public struct Vector2 : IEquatable<Vector2>
     {

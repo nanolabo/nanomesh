@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public static partial class PrimitiveUtils
     {

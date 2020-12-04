@@ -1,7 +1,7 @@
 ﻿using NUnit.Framework;
 using System.IO;
 
-namespace Nanolabo
+namespace Nanomesh.Tests
 {
     public class FormatsTests
     {

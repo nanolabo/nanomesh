@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public partial class ConnectedMesh
     {

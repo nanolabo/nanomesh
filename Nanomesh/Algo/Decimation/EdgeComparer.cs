@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public partial class DecimateModifier
     {

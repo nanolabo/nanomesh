@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public static class TextUtils
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Nanolabo
+namespace Nanomesh
 {
     public class NormalsModifier
     {

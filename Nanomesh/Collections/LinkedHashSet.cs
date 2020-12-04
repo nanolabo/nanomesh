@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Nanolabo
+namespace Nanomesh
 {
 	public class LinkedHashSet<T> : IReadOnlyCollection<T>
 	{
