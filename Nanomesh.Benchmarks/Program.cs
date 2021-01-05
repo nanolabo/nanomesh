@@ -11,6 +11,10 @@ namespace Nanomesh.Benchmarks
         [STAThread]
         public static void Main(string[] args)
         {
+            //Benchmark benchmark = new Benchmark();
+            //benchmark.IterationSetup();
+            //benchmark.DecimateSphere();
+
             ManualConfig conf = new ManualConfig();
             conf.AddExporter(DefaultConfig.Instance.GetExporters().ToArray());
             conf.AddLogger(DefaultConfig.Instance.GetLoggers().ToArray());
@@ -18,7 +22,8 @@ namespace Nanomesh.Benchmarks
             conf.AddDiagnoser(MemoryDiagnoser.Default);
 
             var switcher = new BenchmarkSwitcher(new[] {
-                typeof(Benchmark),
+                typeof(DecimationBenchmark),
+                typeof(SortingBenchmark),
             });
 
             switcher.Run(args, config: conf);

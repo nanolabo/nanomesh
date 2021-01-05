@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Nanomesh
 {
-	public class LinkedHashSet<T> : IReadOnlyCollection<T>
+	public class LinkedHashSet<T> : IReadOnlyCollection<T> where T : IComparable<T>
 	{
 		private readonly Dictionary<T, LinkedHashNode<T>> elements;
 		private LinkedHashNode<T> first, last;
@@ -480,6 +480,40 @@ namespace Nanomesh
 			public void Dispose()
 			{
 			}
+		}
+
+		public void AddMin(T item)
+		{
+			var current = Last;
+			while (current != null && item.CompareTo(current.Value) < 0)
+			{
+				current = current.Previous;
+			}
+
+			if (current == Last)
+				return;
+
+			if (current == null)
+				AddBefore(item, First);
+			else
+				AddAfter(item, current);
+		}
+
+		public void PushMin(T item)
+		{
+			var current = Last;
+			while (current != null && item.CompareTo(current.Value) < 0)
+			{
+				current = current.Previous;
+			}
+
+			if (current == Last)
+				return;
+
+			if (current == null)
+				PushBefore(item, First);
+			else
+				PushAfter(item, current);
 		}
 	}
 }
