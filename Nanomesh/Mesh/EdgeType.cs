@@ -11,7 +11,7 @@
     ///  /  ^  \
     /// /       \
     /// </summary>
-    public struct SURFACIC : IEdgeType { }
+    public readonly struct SURFACIC : IEdgeType { }
 
     /// <summary>
     /// ______
@@ -20,7 +20,7 @@
     /// /____\|
     /// \    /|
     /// </summary>
-    public struct SURFACIC_BORDER_AB : IEdgeType { }
+    public readonly struct SURFACIC_BORDER_AB : IEdgeType { }
 
     /// <summary>
     /// _________
@@ -30,7 +30,7 @@
     ///    /|\B
     ///   / | \
     /// </summary>
-    public struct SURFACIC_BORDER_A : IEdgeType { }
+    public readonly struct SURFACIC_BORDER_A : IEdgeType { }
 
     /// <summary>
     /// _________
@@ -40,7 +40,7 @@
     ///    /|\A
     ///   / | \
     /// </summary>
-    public struct SURFACIC_BORDER_B : IEdgeType { }
+    public readonly struct SURFACIC_BORDER_B : IEdgeType { }
 
     /// <summary>
     /// _________
@@ -50,7 +50,7 @@
     ///    /|\B (hard edge here)
     ///   / | \
     /// </summary>
-    public struct SURFACIC_BORDER_A_HARD_B : IEdgeType { }
+    public readonly struct SURFACIC_BORDER_A_HARD_B : IEdgeType { }
 
     /// <summary>
     /// _________
@@ -60,7 +60,7 @@
     ///    /|\A (hard edge here)
     ///   / | \
     /// </summary>
-    public struct SURFACIC_BORDER_B_HARD_A : IEdgeType { }
+    public readonly struct SURFACIC_BORDER_B_HARD_A : IEdgeType { }
 
     /// <summary>
     /// \       /
@@ -68,9 +68,9 @@
     ///  /  ^  \
     /// /       \
     /// </summary>
-    public struct SURFACIC_HARD_AB : IEdgeType { }
+    public readonly struct SURFACIC_HARD_AB : IEdgeType { }
 
-    public struct SURFACIC_HARD_EDGE : IEdgeType { }
+    public readonly struct SURFACIC_HARD_EDGE : IEdgeType { }
 
     /// <summary>
     /// \       /
@@ -78,7 +78,7 @@
     ///  /  ^  \
     /// /       \
     /// </summary>
-    public struct SURFACIC_HARD_A : IEdgeType { }
+    public readonly struct SURFACIC_HARD_A : IEdgeType { }
 
     /// <summary>
     /// \       /
@@ -86,7 +86,7 @@
     ///  /  ^  \
     /// /       \
     /// </summary>
-    public struct SURFACIC_HARD_B : IEdgeType { }
+    public readonly struct SURFACIC_HARD_B : IEdgeType { }
 
     /// <summary>
     ///  A        B
@@ -96,14 +96,20 @@
     ///     \  /
     ///      \/
     /// </summary>
-    public struct BORDER_AB : IEdgeType
+    public readonly struct BORDER_AB : IEdgeType
     {
-        public int borderNodeA;
-        public int borderNodeB;
+        public readonly int borderNodeA;
+        public readonly int borderNodeB;
+
+        public BORDER_AB(in int borderNodeA, in int borderNodeB)
+        {
+            this.borderNodeA = borderNodeA;
+            this.borderNodeB = borderNodeB;
+        }
     }
 
     /// <summary>
     /// This case should normally never happen
     /// </summary>
-    public struct UNKNOWN : IEdgeType { }
+    public readonly struct UNKNOWN : IEdgeType { }
 }

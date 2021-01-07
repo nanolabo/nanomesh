@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Nanomesh
 {
@@ -154,8 +155,8 @@ namespace Nanomesh
             return mesh;
         }
 
-        // inline ?
-        public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool AreNodesSiblings(in int nodeIndexA, in int nodeIndexB)
         {
             return nodes[nodeIndexA].position == nodes[nodeIndexB].position;
         }
@@ -194,12 +195,12 @@ namespace Nanomesh
             return attributeToNode;
         }
 
-        public int GetEdgeCount(int nodeIndex)
+        public int GetEdgeCount(in int nodeIndex)
         {
             return GetRelativesCount(nodeIndex) + 1;
         }
 
-        public int GetRelativesCount(int nodeIndex)
+        public int GetRelativesCount(in int nodeIndex)
         {
             int k = 0;
             int relative = nodeIndex;
@@ -210,7 +211,7 @@ namespace Nanomesh
             return k;
         }
 
-        public int GetSiblingsCount(int nodeIndex)
+        public int GetSiblingsCount(in int nodeIndex)
         {
             int k = 0;
             int sibling = nodeIndex;
@@ -221,7 +222,7 @@ namespace Nanomesh
             return k;
         }
 
-        public int ReconnectSiblings(int nodeIndex)
+        public int ReconnectSiblings(in int nodeIndex)
         {
             int sibling = nodeIndex;
             int lastValid = -1;
@@ -259,7 +260,7 @@ namespace Nanomesh
             return firstValid;
         }
 
-        public int ReconnectSiblings(int nodeIndexA, int nodeIndexB, int position)
+        public int ReconnectSiblings(in int nodeIndexA, in int nodeIndexB, in int position)
         {
             int sibling = nodeIndexA;
             int lastValid = -1;
@@ -318,7 +319,7 @@ namespace Nanomesh
             return firstValid;
         }
 
-        public int CollapseEdge(int nodeIndexA, int nodeIndexB)
+        public int CollapseEdge(in int nodeIndexA, in int nodeIndexB)
         {
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
@@ -388,7 +389,7 @@ namespace Nanomesh
             return validNodeAtA;
         }
 
-        public bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
+        public bool IsEdgeInSurface(in int nodeIndexA, in int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
@@ -414,7 +415,7 @@ namespace Nanomesh
             return false;
         }
 
-        public bool IsEdgeHard(int nodeIndexA, int nodeIndexB)
+        public bool IsEdgeHard(in int nodeIndexA, in int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
@@ -448,7 +449,7 @@ namespace Nanomesh
         }
 
         // Only works with triangles !
-        public Vector3F GetFaceNormal(int nodeIndex)
+        public Vector3F GetFaceNormal(in int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
             int posB = nodes[nodes[nodeIndex].relative].position;
@@ -462,7 +463,7 @@ namespace Nanomesh
         }
 
         // Only works with triangles !
-        public double GetFaceArea(int nodeIndex)
+        public double GetFaceArea(in int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
             int posB = nodes[nodes[nodeIndex].relative].position;
@@ -475,7 +476,7 @@ namespace Nanomesh
             return 0.5 * normal.Length;
         }
 
-        public IEdgeType GetEdgeType(int nodeIndexA, int nodeIndexB)
+        public void GetEdgeType(in int nodeIndexA, in int nodeIndexB, out IEdgeType edgeType)
         {
             int borderNodeA = -1;
             int borderNodeB = -1;
@@ -495,7 +496,7 @@ namespace Nanomesh
                     int posC = nodes[relative].position;
                     if (posC != posB)
                     {
-                        if (!IsEdgeInSurface(sibling, relative))
+                        if (!IsEdgeInSurface(in sibling, in relative))
                         {
                             borderNodeA = relative;
                             goto skipA;
@@ -521,7 +522,7 @@ namespace Nanomesh
                     int posC = nodes[relative].position;
                     if (posC != posA)
                     {
-                        if (!IsEdgeInSurface(sibling, relative))
+                        if (!IsEdgeInSurface(in sibling, in relative))
                         {
                             borderNodeB = relative;
                             goto skipB;
@@ -541,45 +542,45 @@ namespace Nanomesh
             {
                 if ((borderNodeA != -1) && (borderNodeB != -1))
                 {
-                    return new SURFACIC_BORDER_AB();
+                    edgeType = new SURFACIC_BORDER_AB();
                 }
                 else if (borderNodeA != -1)
                 {
                     if (hardAtB)
-                        return new SURFACIC_BORDER_A_HARD_B();
+                        edgeType = new SURFACIC_BORDER_A_HARD_B();
                     else
-                        return new SURFACIC_BORDER_A();
+                        edgeType = new SURFACIC_BORDER_A();
                 }
                 else if (borderNodeB != -1)
                 {
                     if (hardAtA)
-                        return new SURFACIC_BORDER_B_HARD_A();
+                        edgeType = new SURFACIC_BORDER_B_HARD_A();
                     else
-                        return new SURFACIC_BORDER_B();
+                        edgeType = new SURFACIC_BORDER_B();
                 }
                 else
                 {
                     if (hardAtB && hardAtB)
                     {
                         if (IsEdgeHard(nodeIndexA, nodeIndexB))
-                            return new SURFACIC_HARD_EDGE();
+                            edgeType = new SURFACIC_HARD_EDGE();
                         else
-                            return new SURFACIC_HARD_AB();
+                            edgeType = new SURFACIC_HARD_AB();
                     }
                     else if (hardAtA)
-                        return new SURFACIC_HARD_A();
+                        edgeType = new SURFACIC_HARD_A();
                     else if (hardAtB)
-                        return new SURFACIC_HARD_B();
+                        edgeType = new SURFACIC_HARD_B();
                     else
-                        return new SURFACIC();
+                        edgeType = new SURFACIC();
                 }
             }
             else
             {
                 if (borderNodeA == -1 || borderNodeB == -1)
-                    return new UNKNOWN(); // Should not happen
-
-                return new BORDER_AB  { borderNodeA = borderNodeA, borderNodeB = borderNodeB };
+                    edgeType = new UNKNOWN(); // Should not happen
+                else
+                    edgeType = new BORDER_AB(borderNodeA, borderNodeB);
             }
         }
 
@@ -731,7 +732,7 @@ namespace Nanomesh
             }
         }
 
-        public void RemoveFace(int nodeIndex)
+        public void RemoveFace(in int nodeIndex)
         {
             int relative = nodeIndex;
             do

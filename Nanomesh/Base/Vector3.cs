@@ -2,11 +2,11 @@
 
 namespace Nanomesh
 {
-    public struct Vector3
+    public readonly struct Vector3
     {
-        public double x;
-        public double y;
-        public double z;
+        public readonly double x;
+        public readonly double y;
+        public readonly double z;
 
         public Vector3(double x, double y, double z)
         {
@@ -36,17 +36,17 @@ namespace Nanomesh
                 }
             }
 
-            set
-            {
-                switch (index)
-                {
-                    case 0: x = value; break;
-                    case 1: y = value; break;
-                    case 2: z = value; break;
-                    default:
-                        throw new IndexOutOfRangeException("Invalid Vector3 index!");
-                }
-            }
+            //set
+            //{
+            //    switch (index)
+            //    {
+            //        case 0: x = value; break;
+            //        case 1: y = value; break;
+            //        case 2: z = value; break;
+            //        default:
+            //            throw new IndexOutOfRangeException("Invalid Vector3 index!");
+            //    }
+            //}
         }
 
         public override int GetHashCode()
@@ -114,11 +114,11 @@ namespace Nanomesh
             return value / mag;
         }
 
-        public void Normalize()
-        {
-            double mag = Magnitude(this);
-            this /= mag;
-        }
+        //public void Normalize()
+        //{
+        //    double mag = Magnitude(this);
+        //    this /= mag;
+        //}
 
         public Vector3 Normalized => Vector3.Normalize(this);
 

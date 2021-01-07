@@ -134,3 +134,4 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
+Nanomesh.Tests/output

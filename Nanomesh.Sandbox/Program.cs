@@ -1,6 +1,7 @@
 ﻿using Nanomesh;
 using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace Nanomesh.Sandbox
 {
@@ -8,7 +9,9 @@ namespace Nanomesh.Sandbox
     {
         static void Main(string[] args)
         {
-            Benchmark();
+            //Benchmark();
+            
+            DecimateFile();
 
             Console.WriteLine("Done !");
             Console.ReadKey();
@@ -16,8 +19,8 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            //ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Tests\test-models\alien.obj"));
-            ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 5));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\alien.obj"));
+            //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 5));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
             Debug.Assert(mesh.Check());
 
@@ -33,7 +36,7 @@ namespace Nanomesh.Sandbox
             //decimateModifier.DecimateToError(mesh, 0);
             //decimateModifier.DecimatePolycount(mesh, 1);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
-            decimateModifier.DecimateToPolycount(mesh, 500);
+            decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
 
             //mesh.Compact();
@@ -42,7 +45,8 @@ namespace Nanomesh.Sandbox
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
-            ExporterOBJ.Save(mesh.ToSharedMesh(), @"C:\Users\OlivierGiniaux\Downloads\decimation.obj");
+            Directory.CreateDirectory(@"..\..\..\..\Nanomesh.Tests\output\");
+            ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
         }
 
         static void Benchmark()

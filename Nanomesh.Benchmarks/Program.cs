@@ -24,6 +24,7 @@ namespace Nanomesh.Benchmarks
             var switcher = new BenchmarkSwitcher(new[] {
                 typeof(DecimationBenchmark),
                 typeof(SortingBenchmark),
+                typeof(ParamBenchmark),
             });
 
             switcher.Run(args, config: conf);

@@ -15,7 +15,7 @@ namespace Nanomesh
 		private FastHashSet<EdgeCollapse> _pairs;
 		private LinkedHashSet<EdgeCollapse> _mins = new LinkedHashSet<EdgeCollapse>();
 
-		private int _lastProgress;
+		private int _lastProgress = int.MinValue;
 		private int _initialTriangleCount;
 
 		const double _ƐDET = 0.001f;
@@ -37,8 +37,7 @@ namespace Nanomesh
 				decimateModifier.DecimateToRatio(mesh, 0.50f);
 			}).TotalMilliseconds;
 
-
-			ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables("%UserProfile%/Desktop/Output.obj"));
+			//ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables("%UserProfile%/Desktop/Output.obj"));
 
 			return ms;
 		}
@@ -77,10 +76,9 @@ namespace Nanomesh
 				Iterate();
 
 				int progress = (int)MathF.Round(100f * (_initialTriangleCount - mesh.FaceCount) / (_initialTriangleCount - targetTriangleCount));
-				if (progress > _lastProgress)
+				if (progress >= _lastProgress + 10)
 				{
-					if (progress % 10 == 0)
-						Console.WriteLine("Progress : " + progress + "%");
+					Console.WriteLine("Progress : " + progress + "%");
 					_lastProgress = progress;
 				}
 			}
@@ -209,7 +207,7 @@ namespace Nanomesh
 			}
 		}
 
-		private void CalculateQuadric(int position)
+		private void CalculateQuadric(in int position)
 		{
 			int nodeIndex = _mesh.PositionToNode[position];
 			if (nodeIndex < 0) // TODO : Remove this check
@@ -239,7 +237,7 @@ namespace Nanomesh
 						_mesh.positions[posB] - _mesh.positions[posA],
 						_mesh.positions[posC] - _mesh.positions[posA]).Length;
 
-					normal.Normalize();
+					normal = normal.Normalized;
 
 					normal = area * normal;
 				}
@@ -288,7 +286,7 @@ namespace Nanomesh
 			int node1 = _mesh.PositionToNode[pair.posA];
 			int node2 = _mesh.PositionToNode[pair.posB];
 
-			var edgeType = _mesh.GetEdgeType(node1, node2);
+			_mesh.GetEdgeType(node1, node2, out IEdgeType edgeType);
 			pair.type = edgeType;
 
 			Vector3 posA = _mesh.positions[pair.posA];
@@ -305,9 +303,10 @@ namespace Nanomesh
 
 						if (det > _ƐDET || det < -_ƐDET)
 						{
-							pair.result.x = -1d / det * quadric.DeterminantX();
-							pair.result.y = +1d / det * quadric.DeterminantY();
-							pair.result.z = -1d / det * quadric.DeterminantZ();
+							pair.result = new Vector3(
+								-1d / det * quadric.DeterminantX(),
+								+1d / det * quadric.DeterminantY(),
+								-1d / det * quadric.DeterminantZ());
 							pair.error = ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 						}
 						else
@@ -469,12 +468,12 @@ namespace Nanomesh
 		/// <param name="B"></param>
 		/// <param name="X"></param>
 		/// <returns></returns>
-		private double ComputeLineicError(Vector3 A, Vector3 B, Vector3 X) 
+		private double ComputeLineicError(in Vector3 A, in Vector3 B, in Vector3 X) 
 		{
 			return Vector3.DistancePointLine(X, A, B);
 		}
 
-		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
+		private double ComputeVertexError(in SymmetricMatrix q, double x, double y, double z)
 		{
 			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x
 				 + q[4] * y * y + 2 * q[5] * y * z + 2 * q[6] * y
@@ -537,7 +536,7 @@ namespace Nanomesh
 
 		private Dictionary<Vector3F, int> _normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
 
-		private void MergeAttributes(int nodeIndex)
+		private void MergeAttributes(in int nodeIndex)
 		{
 			_normalToAttr.Clear();
 
