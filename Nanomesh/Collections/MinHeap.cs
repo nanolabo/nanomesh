@@ -1,114 +1,139 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Nanomesh.Collections
 {
-    public class MinHeap<T> /*: IEnumerable<T>*/ where T : IComparable<T>
+    public class MinHeap<T> : IEnumerable<T>
     {
-        public T[] Elements => _elements;
+        private List<T> values;
+        private IComparer<T> comparer;
 
-        private readonly T[] _elements;
-        private int _size;
-
-        public MinHeap(int size)
+        public MinHeap(IEnumerable<T> items, IComparer<T> comparer)
         {
-            _elements = new T[size];
-        }
+            values = new List<T>();
+            this.comparer = comparer;
+            values.Add(default(T));
+            values.AddRange(items);
 
-        private int GetLeftChildIndex(int elementIndex) => 2 * elementIndex + 1;
-        private int GetRightChildIndex(int elementIndex) => 2 * elementIndex + 2;
-        private int GetParentIndex(int elementIndex) => (elementIndex - 1) / 2;
-
-        private bool HasLeftChild(int elementIndex) => GetLeftChildIndex(elementIndex) < _size;
-        private bool HasRightChild(int elementIndex) => GetRightChildIndex(elementIndex) < _size;
-        private bool IsRoot(int elementIndex) => elementIndex == 0;
-
-        private T GetLeftChild(int elementIndex) => _elements[GetLeftChildIndex(elementIndex)];
-        private T GetRightChild(int elementIndex) => _elements[GetRightChildIndex(elementIndex)];
-        private T GetParent(int elementIndex) => _elements[GetParentIndex(elementIndex)];
-
-        private void Swap(int firstIndex, int secondIndex)
-        {
-            var temp = _elements[firstIndex];
-            _elements[firstIndex] = _elements[secondIndex];
-            _elements[secondIndex] = temp;
-        }
-
-        public bool IsEmpty()
-        {
-            return _size == 0;
-        }
-
-        public T Peek()
-        {
-            if (_size == 0)
-                throw new IndexOutOfRangeException();
-
-            return _elements[0];
-        }
-
-        public T Pop()
-        {
-            if (_size == 0)
-                throw new IndexOutOfRangeException();
-
-            var result = _elements[0];
-            _elements[0] = _elements[_size - 1];
-            _size--;
-
-            ReCalculateDown();
-
-            return result;
-        }
-
-        public void Add(T element)
-        {
-            if (_size == _elements.Length)
+            for (int i = values.Count / 2; i >= 1; i--)
             {
-                if (_elements[_elements.Length - 1].CompareTo(element) > 0)
+                BubbleDown(i);
+            }
+        }
+
+        public MinHeap(IEnumerable<T> items) : this(items, Comparer<T>.Default) { }
+
+        public MinHeap(IComparer<T> comparer) : this(new T[0], comparer) { }
+
+        public MinHeap() : this(Comparer<T>.Default) { }
+
+        public int Count => values.Count - 1;
+
+        public T Min => values[1];
+
+        /// <summary>
+        /// Extract the smallest element.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public T ExtractMin()
+        {
+            int count = Count;
+
+            if (count == 0)
+            {
+                throw new InvalidOperationException("Heap is empty.");
+            }
+
+            var min = Min;
+            values[1] = values[count];
+            values.RemoveAt(count);
+
+            if (values.Count > 1)
+            {
+                BubbleDown(1);
+            }
+
+            return min;
+        }
+
+        /// <summary>
+        /// Insert the value.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        public void Add(T item)
+        {
+            values.Add(item);
+            BubbleUp(Count);
+        }
+
+        private void BubbleUp(int index)
+        {
+            int parent = index / 2;
+
+            while (index > 1 && CompareResult(parent, index) > 0)
+            {
+                Exchange(index, parent);
+                index = parent;
+                parent /= 2;
+            }
+        }
+
+        private void BubbleDown(int index)
+        {
+            int min;
+
+            while (true)
+            {
+                int left = index * 2;
+                int right = index * 2 + 1;
+
+                if (left < values.Count &&
+                    CompareResult(left, index) < 0)
                 {
-                    _elements[_elements.Length - 1] = element;
+                    min = left;
+                }
+                else
+                {
+                    min = index;
+                }
+
+                if (right < values.Count &&
+                    CompareResult(right, min) < 0)
+                {
+                    min = right;
+                }
+
+                if (min != index)
+                {
+                    Exchange(index, min);
+                    index = min;
+                }
+                else
+                {
+                    return;
                 }
             }
-            else
-            {
-                _elements[_size] = element;
-                _size++;
-            }
-
-            ReCalculateUp();
         }
 
-        private void ReCalculateDown()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int CompareResult(int index1, int index2)
         {
-            int index = 0;
-            while (HasLeftChild(index))
-            {
-                var smallerIndex = GetLeftChildIndex(index);
-                if (HasRightChild(index) && GetRightChild(index).CompareTo(GetLeftChild(index)) < 0)
-                {
-                    smallerIndex = GetRightChildIndex(index);
-                }
-
-                if (_elements[smallerIndex].CompareTo(_elements[index]) >= 0)
-                {
-                    break;
-                }
-
-                Swap(smallerIndex, index);
-                index = smallerIndex;
-            }
+            return comparer.Compare(values[index1], values[index2]);
         }
 
-        private void ReCalculateUp()
+        private void Exchange(int index, int max)
         {
-            var index = _size - 1;
-            while (!IsRoot(index) && _elements[index].CompareTo(GetParent(index)) < 0)
-            {
-                var parentIndex = GetParentIndex(index);
-                Swap(parentIndex, index);
-                index = parentIndex;
-            }
+            var tmp = values[index];
+            values[index] = values[max];
+            values[max] = tmp;
         }
+
+        public IEnumerator<T> GetEnumerator() => values.Skip(1).GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

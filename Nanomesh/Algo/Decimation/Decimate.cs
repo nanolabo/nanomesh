@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Nanomesh
 {
@@ -94,7 +95,6 @@ namespace Nanomesh
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
 			_pairs = new FastHashSet<EdgeCollapse>();
-			_lastProgress = -1;
 
 			InitializePairs();
 			CalculateQuadrics();
@@ -112,7 +112,7 @@ namespace Nanomesh
 			_mins.Remove(pair);
 
 #if DEBUG
-			if (pair.error >= offset_nocollapse)
+			if (pair.error >= _OFFSET_NOCOLLAPSE)
 				Console.WriteLine("Going too far ! Destroying borders");
 #endif
 			//Console.WriteLine(pair);
@@ -151,7 +151,7 @@ namespace Nanomesh
 
 		private EdgeCollapse GetPairWithMinimumError()
 		{
-			if (_mins.Count == 0)
+			if (_mins.Count < 100)
 				ComputeMins();
 
 			var edge = _mins.First;
@@ -163,13 +163,17 @@ namespace Nanomesh
 
 		private void ComputeMins()
 		{
-            MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(MinsCount);
-            foreach (var pair in _pairs)
-            {
-                queue.Add(pair);
-            }
+			Console.WriteLine("Compute Mins");
 
-			_mins = new LinkedHashSet<EdgeCollapse>(queue.Elements);
+            //MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(_pairs);
+            //foreach (var pair in _pairs)
+            //{
+            //    queue.Add(pair);
+            //}
+
+            //_mins = new LinkedHashSet<EdgeCollapse>(queue.Elements);
+
+            _mins = new LinkedHashSet<EdgeCollapse>(_pairs.OrderBy(x => x).Take(MinsCount));
 		}
 
 		private void InitializePairs()
@@ -207,7 +211,7 @@ namespace Nanomesh
 			}
 		}
 
-		private void CalculateQuadric(in int position)
+		private void CalculateQuadric(int position)
 		{
 			int nodeIndex = _mesh.PositionToNode[position];
 			if (nodeIndex < 0) // TODO : Remove this check
@@ -286,7 +290,7 @@ namespace Nanomesh
 			int node1 = _mesh.PositionToNode[pair.posA];
 			int node2 = _mesh.PositionToNode[pair.posB];
 
-			_mesh.GetEdgeType(node1, node2, out IEdgeType edgeType);
+			IEdgeType edgeType = _mesh.GetEdgeType(node1, node2);
 			pair.type = edgeType;
 
 			Vector3 posA = _mesh.positions[pair.posA];
@@ -468,12 +472,12 @@ namespace Nanomesh
 		/// <param name="B"></param>
 		/// <param name="X"></param>
 		/// <returns></returns>
-		private double ComputeLineicError(in Vector3 A, in Vector3 B, in Vector3 X) 
+		private double ComputeLineicError(Vector3 A, Vector3 B, in Vector3 X) 
 		{
 			return Vector3.DistancePointLine(X, A, B);
 		}
 
-		private double ComputeVertexError(in SymmetricMatrix q, double x, double y, double z)
+		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
 		{
 			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x
 				 + q[4] * y * y + 2 * q[5] * y * z + 2 * q[6] * y
@@ -536,7 +540,7 @@ namespace Nanomesh
 
 		private Dictionary<Vector3F, int> _normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
 
-		private void MergeAttributes(in int nodeIndex)
+		private void MergeAttributes(int nodeIndex)
 		{
 			_normalToAttr.Clear();
 
