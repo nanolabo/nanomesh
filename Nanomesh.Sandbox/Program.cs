@@ -19,7 +19,7 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\alien.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\buggy.obj"));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 8));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
             Debug.Assert(mesh.Check());
@@ -29,7 +29,7 @@ namespace Nanomesh.Sandbox
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             //NormalsModifier normalsModifier = new NormalsModifier();
-            //normalsModifier.Run(mesh, 40f);
+            //normalsModifier.Run(mesh, 180f);
 
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
@@ -61,12 +61,12 @@ namespace Nanomesh.Sandbox
 
             double ms = Profiling.Time(() => {
                 DecimateModifier decimateModifier = new DecimateModifier();
-                decimateModifier.DecimateToRatio(mesh, 0.50f);
+                decimateModifier.DecimateToPolycount(mesh, 500);
             }).TotalMilliseconds;
 
             sw.Stop();
 
-            Console.WriteLine(sw);
+            Console.WriteLine(sw.ElapsedMilliseconds);
 
             ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables(@"..\..\..\..\Nanomesh.Tests\output\decimation.obj"));
         }

@@ -451,17 +451,17 @@ namespace Nanomesh
         }
 
         // Only works with triangles !
-        public Vector3F GetFaceNormal(int nodeIndex)
+        public Vector3 GetFaceNormal(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
             int posB = nodes[nodes[nodeIndex].relative].position;
             int posC = nodes[nodes[nodes[nodeIndex].relative].relative].position;
 
-            var normal = Vector3F.Cross(
+            var normal = Vector3.Cross(
                 positions[posB] - positions[posA],
                 positions[posC] - positions[posA]);
 
-            return normal;
+            return normal.Normalized;
         }
 
         // Only works with triangles !

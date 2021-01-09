@@ -4,7 +4,7 @@
     {
         public readonly double m0, m1, m2, m3, m4, m5, m6, m7, m8, m9;
 
-        public SymmetricMatrix(double m0, double m1, double m2, double m3, double m4, double m5, double m6, double m7, double m8, double m9)
+        public SymmetricMatrix(in double m0, in double m1, in double m2, in double m3, in double m4, in double m5, in double m6, in double m7, in double m8, in double m9)
         {
             this.m0 = m0;
             this.m1 = m1;
@@ -18,7 +18,7 @@
             this.m9 = m9;
         }
 
-        public SymmetricMatrix(double a, double b, double c, double d)
+        public SymmetricMatrix(in double a, in double b, in double c, in double d)
         {
             m0 = a * a;
             m1 = a * b;

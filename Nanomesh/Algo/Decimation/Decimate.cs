@@ -95,7 +95,6 @@ namespace Nanomesh
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
 
-			Debug.Assert(CheckMins());
 			Debug.Assert(CheckPair(pair));
 
 			_pairs.Remove(pair);
@@ -139,7 +138,7 @@ namespace Nanomesh
 			return edge.Value;
 		}
 
-		private int MinsCount => (int)MathF.Clamp(500, 0, _pairs.Count);
+		private int MinsCount => MathF.Clamp(500, 0, _pairs.Count);
 
 		private void ComputeMins()
 		{
@@ -198,47 +197,25 @@ namespace Nanomesh
 			{
 				Debug.Assert(_mesh.CheckRelatives(sibling));
 
-				Vector3 normal;
-
 				// Todo : Look for unsassigned attribute instead, to handle cases where we have normals but not everywhere
-				if (/*mesh.attributes.Length > 0*/ false)
+				if (_mesh.attributes.Length != 0)
 				{
-					normal = (Vector3)_mesh.attributes[_mesh.nodes[sibling].attribute].normal;
+					// Use triangle normal if there are no normals
+					Vector3 faceNormal = _mesh.GetFaceNormal(sibling);
 
-					int posA = _mesh.nodes[sibling].position;
-					int posB = _mesh.nodes[_mesh.nodes[sibling].relative].position;
-					int posC = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
-
-					double area = 0.5 * Vector3.Cross(
-						_mesh.positions[posB] - _mesh.positions[posA],
-						_mesh.positions[posC] - _mesh.positions[posA]).Length;
-
-					normal = normal.Normalized;
-
-					normal = area * normal;
+					double dot = Vector3.Dot(-faceNormal, _mesh.positions[_mesh.nodes[sibling].position]);
+					symmetricMatrix += new SymmetricMatrix(faceNormal.x, faceNormal.y, faceNormal.z, dot);
 				}
 				else
 				{
-					// Use triangle normal if there are no normals
-					int posA = _mesh.nodes[sibling].position;
-					int posB = _mesh.nodes[_mesh.nodes[sibling].relative].position;
-					int posC = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
-
-					normal = Vector3.Cross(
-						_mesh.positions[posB] - _mesh.positions[posA],
-						_mesh.positions[posC] - _mesh.positions[posA]);
-
-					//double angle = Vector3.AngleRadians(mesh.positions[posB] - mesh.positions[posA], mesh.positions[posC] - mesh.positions[posA]);
-					//double length = ((mesh.positions[posB] - mesh.positions[posA]).Length + (mesh.positions[posC] - mesh.positions[posA]).Length) / 2;
-
-					//normal = normal.Normalized;
-					normal = 0.5 * normal;
+					int relative = sibling;
+					do
+					{
+						Vector3 localNormal = (Vector3)_mesh.attributes[_mesh.nodes[sibling].attribute].normal.Normalized;
+						double dot = Vector3.Dot(-localNormal, _mesh.positions[_mesh.nodes[relative].position]);
+						symmetricMatrix += new SymmetricMatrix(localNormal.x, localNormal.y, localNormal.z, dot);
+					} while ((relative = _mesh.nodes[relative].relative) != sibling);
 				}
-
-				double dot = Vector3.Dot(-normal, _mesh.positions[_mesh.nodes[sibling].position]);
-
-				symmetricMatrix += new SymmetricMatrix(normal.x, normal.y, normal.z, dot);
-
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			_matrices[position] = symmetricMatrix;
@@ -440,6 +417,7 @@ namespace Nanomesh
 			//	pair.error = _OFFSET_NOCOLLAPSE;
 		}
 
+		// Todo : Fix this (doesn't seems to work properly
 		public bool CollapseWillInvert(EdgeCollapse edge)
 		{
 			int nodeIndexA = _mesh.PositionToNode[edge.posA];
@@ -498,12 +476,12 @@ namespace Nanomesh
 		/// <param name="B"></param>
 		/// <param name="X"></param>
 		/// <returns></returns>
-		private double ComputeLineicError(Vector3 A, Vector3 B, in Vector3 X) 
+		private double ComputeLineicError(in Vector3 A, in Vector3 B, in Vector3 X) 
 		{
 			return Vector3.DistancePointLine(X, A, B);
 		}
 
-		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
+		private double ComputeVertexError(in SymmetricMatrix q, double x, double y, double z)
 		{
 			return q.m0 * x * x + 2 * q.m1 * x * y + 2 * q.m2 * x * z + 2 * q.m3 * x
 				 + q.m4 * y * y + 2 * q.m5 * y * z + 2 * q.m6 * y
@@ -513,12 +491,16 @@ namespace Nanomesh
 
 		private void InterpolateAttributes(EdgeCollapse pair)
 		{
-			int nodeIndexA = _mesh.PositionToNode[pair.posA];
-			int nodeIndexB = _mesh.PositionToNode[pair.posB];
+			int posA = pair.posA;
 			int posB = pair.posB;
 
-			Vector3 positionA = _mesh.positions[pair.posA];
-			Vector3 positionB = _mesh.positions[pair.posB];
+			int nodeIndexA = _mesh.PositionToNode[posA];
+			int nodeIndexB = _mesh.PositionToNode[posB];
+
+			Vector3 positionA = _mesh.positions[posA];
+			Vector3 positionB = _mesh.positions[posB];
+
+			HashSet<int> procNormals = new HashSet<int>();
 
 			int siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
@@ -528,6 +510,12 @@ namespace Nanomesh
 				{
 					if (_mesh.nodes[relativeOfA].position == posB)
 					{
+						if (procNormals.Contains(_mesh.nodes[relativeOfA].attribute))
+							continue;
+
+						if (procNormals.Contains(_mesh.nodes[siblingOfA].attribute))
+							continue;
+
 						Vector3 positionN = pair.result;
 						double AN = Vector3.Magnitude(positionA - positionN);
 						double BN = Vector3.Magnitude(positionB - positionN);
@@ -557,11 +545,82 @@ namespace Nanomesh
 						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
 						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
 
+						procNormals.Add(_mesh.nodes[siblingOfA].attribute);
+						procNormals.Add(_mesh.nodes[relativeOfA].attribute);
+
 						break;
 					}
 				} while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+
+			return;
+
+			siblingOfA = nodeIndexA;
+			do // Iterator over faces around A
+			{
+				if (procNormals.Contains(_mesh.nodes[siblingOfA].attribute))
+					continue;
+
+				int posC = _mesh.nodes[_mesh.nodes[siblingOfA].relative].position;
+				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfA].relative].relative].position;
+
+				if (posC == posB || posD == posB)
+                {
+					continue;
+                }
+
+				Vector3 faceNormalBefore = Vector3.Cross(
+					_mesh.positions[posC] - positionA,
+					_mesh.positions[posD] - positionA).Normalized;
+
+				Vector3 faceNormalAfter = Vector3.Cross(
+					_mesh.positions[posC] - pair.result,
+					_mesh.positions[posD] - pair.result).Normalized;
+
+				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
+				rotation.Normalize();
+
+				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
+
+				_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = rotation * normal;
+
+				procNormals.Add(_mesh.nodes[siblingOfA].attribute);
+
+			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+
+			int siblingOfB = nodeIndexB;
+			do // Iterator over faces around B
+			{
+				if (procNormals.Contains(_mesh.nodes[siblingOfB].attribute))
+					continue;
+
+				int posC = _mesh.nodes[_mesh.nodes[siblingOfB].relative].position;
+				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfB].relative].relative].position;
+
+				if (posC == posA || posD == posA)
+				{
+					continue;
+				}
+
+				Vector3 faceNormalBefore = Vector3.Cross(
+					_mesh.positions[posC] - positionB,
+					_mesh.positions[posD] - positionB).Normalized;
+
+				Vector3 faceNormalAfter = Vector3.Cross(
+					_mesh.positions[posC] - pair.result,
+					_mesh.positions[posD] - pair.result).Normalized;
+
+				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
+				rotation.Normalize();
+
+				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal;
+
+				_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal = rotation * normal;
+
+				procNormals.Add(_mesh.nodes[siblingOfB].attribute);
+
+			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}
 
 		private Dictionary<Vector3F, int> _normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
