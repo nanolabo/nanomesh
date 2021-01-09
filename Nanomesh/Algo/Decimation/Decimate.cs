@@ -13,8 +13,9 @@ namespace Nanomesh
 		private ConnectedMesh _mesh;
 
 		private SymmetricMatrix[] _matrices;
+		private NodeTopology[] _nodeTopologies;
 		private FastHashSet<EdgeCollapse> _pairs;
-		private LinkedHashSet<EdgeCollapse> _mins = new LinkedHashSet<EdgeCollapse>();
+		private LinkedHashSet<EdgeCollapse> _mins;
 
 		private int _lastProgress = int.MinValue;
 		private int _initialTriangleCount;
@@ -24,24 +25,6 @@ namespace Nanomesh
 
 		const double _OFFSET_HARD = 1e6;
 		const double _OFFSET_NOCOLLAPSE = 1e300;
-
-		public static double Benchmark()
-		{
-			SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 7);
-			ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
-
-			NormalsModifier normals = new NormalsModifier();
-			normals.Run(mesh, 30);
-
-			double ms = Profiling.Time(() => {
-				DecimateModifier decimateModifier = new DecimateModifier();
-				decimateModifier.DecimateToRatio(mesh, 0.50f);
-			}).TotalMilliseconds;
-
-			//ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables("%UserProfile%/Desktop/Output.obj"));
-
-			return ms;
-		}
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -56,8 +39,6 @@ namespace Nanomesh
 			while (GetPairWithMinimumError().error <= maximumError)
 			{
 				Iterate();
-
-				// TODO : Add Progress
 			}
 
 			// TODO : mesh.Compact();
@@ -89,16 +70,25 @@ namespace Nanomesh
 
 		private void Initialize(ConnectedMesh mesh)
 		{
-			this._mesh = mesh;
+			_mesh = mesh;
 
 			_initialTriangleCount = mesh.FaceCount;
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
+			_nodeTopologies = new NodeTopology[mesh.positions.Length];
 			_pairs = new FastHashSet<EdgeCollapse>();
+			_mins = new LinkedHashSet<EdgeCollapse>();
 
 			InitializePairs();
-			CalculateQuadrics();
-			CalculateErrors();
+
+			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
+				CalculateQuadric(p);
+
+			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
+				CalculateTopology(p);
+
+			foreach (var pair in _pairs)
+				CalculateError(pair);
 		}
 
 		private void Iterate()
@@ -118,16 +108,6 @@ namespace Nanomesh
 			//Console.WriteLine(pair);
 
 			CollapseEdge(pair);
-		}
-
-		private bool CheckPairs()
-		{
-			foreach (var pair in _pairs)
-			{
-				CheckPair(pair);
-			}
-
-			return true;
 		}
 
 		private bool CheckMins()
@@ -151,7 +131,7 @@ namespace Nanomesh
 
 		private EdgeCollapse GetPairWithMinimumError()
 		{
-			if (_mins.Count < 100)
+			if (_mins.Count == 0)
 				ComputeMins();
 
 			var edge = _mins.First;
@@ -200,14 +180,6 @@ namespace Nanomesh
 					Debug.Assert(CheckPair(pair));
 
 				} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
-			}
-		}
-
-		private void CalculateQuadrics()
-		{
-			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
-			{
-				CalculateQuadric(p);
 			}
 		}
 
@@ -272,35 +244,96 @@ namespace Nanomesh
 			_matrices[position] = symmetricMatrix;
 		}
 
-		private void CalculateErrors()
+		private void CalculateTopology(int position)
 		{
-			var enumerator = _pairs.GetEnumerator();
-
-			while (enumerator.MoveNext())
-			{
-				EdgeCollapse pair = enumerator.Current;
-				CalculateError(pair);
-			}
+			int nodeIndex = _mesh.PositionToNode[position];
+			_nodeTopologies[position] = _mesh.GetNodeTopology(nodeIndex);
 		}
 
 		private void CalculateError(EdgeCollapse pair)
 		{
-			Debug.Assert(CheckPair(pair));
-
-			int node1 = _mesh.PositionToNode[pair.posA];
-			int node2 = _mesh.PositionToNode[pair.posB];
-
-			IEdgeType edgeType = _mesh.GetEdgeType(node1, node2);
-			pair.type = edgeType;
+            Debug.Assert(CheckPair(pair));
 
 			Vector3 posA = _mesh.positions[pair.posA];
 			Vector3 posB = _mesh.positions[pair.posB];
 
+			int nodeA = _mesh.PositionToNode[pair.posA];
+			int nodeB = _mesh.PositionToNode[pair.posB];
+
+			NodeTopology topoA = _nodeTopologies[pair.posA];
+			NodeTopology topoB = _nodeTopologies[pair.posB];
+
+			EdgeTopology edgeType = EdgeTopology.SurfacicSmooth;
+
+			pair.error = 0;
+
+			Debug.Assert((topoA == NodeTopology.Border || topoB == NodeTopology.Border) && _mesh.IsEdgeInSurface(nodeA, nodeB), "Should not happen");
+
+			if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
+			{
+				if (_mesh.IsEdgeInSurface(nodeA, nodeB))
+				{
+					edgeType = EdgeTopology.SurfacicBorderAB;
+				}
+				else
+				{
+					edgeType = EdgeTopology.BorderAB;
+				}
+			}
+			else if (topoA == NodeTopology.Border)
+			{
+				if (topoB == NodeTopology.Hard)
+                {
+					edgeType = EdgeTopology.SurfacicBorderAHardB;
+				}
+				else
+                {
+					edgeType = EdgeTopology.SurfacicBorderA;
+				}
+			}
+			else if (topoB == NodeTopology.Border)
+			{
+				if (topoA == NodeTopology.Hard)
+                {
+					edgeType = EdgeTopology.SurfacicBorderBHardA;
+				}
+				else
+                {
+					edgeType = EdgeTopology.SurfacicBorderB;
+				}
+			}
+			else
+			{
+				if (topoA == NodeTopology.Hard && topoB == NodeTopology.Hard)
+				{
+					if (_mesh.IsEdgeHard(nodeA, nodeB))
+                    {
+						edgeType = EdgeTopology.SurfacicHardEdge;
+					}
+					else
+                    {
+						edgeType = EdgeTopology.SurfacicHardAB;
+					}
+				}
+				else if (topoA == NodeTopology.Hard)
+                {
+					edgeType = EdgeTopology.SurfacicHardA;
+				}
+				else if (topoB == NodeTopology.Hard)
+                {
+					edgeType = EdgeTopology.SurfacicHardB;
+				}
+				else
+                {
+					edgeType = EdgeTopology.SurfacicSmooth;
+				}
+			}
+
 			switch (edgeType)
 			{
-				// Use quadric error to determine optimal vertex position only makes sense for manifold edges
-				case SURFACIC_HARD_EDGE edg_surfAB: // + offset
-				case SURFACIC edg_surf:
+                // Use quadric error to determine optimal vertex position only makes sense for manifold edges
+                case EdgeTopology.SurfacicHardEdge: // + offset
+				case EdgeTopology.SurfacicSmooth:
 					{
 						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
 						double det = quadric.DeterminantXYZ();
@@ -311,7 +344,7 @@ namespace Nanomesh
 								-1d / det * quadric.DeterminantX(),
 								+1d / det * quadric.DeterminantY(),
 								-1d / det * quadric.DeterminantZ());
-							pair.error = ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
+							pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 						}
 						else
 						{
@@ -320,7 +353,7 @@ namespace Nanomesh
 							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							pair.error = Math.Min(error1, Math.Min(error2, error3));
+							pair.error += Math.Min(error1, Math.Min(error2, error3));
 							if (error1 == pair.error) pair.result = posA;
 							else if (error2 == pair.error) pair.result = posB;
 							else pair.result = posC;
@@ -329,29 +362,29 @@ namespace Nanomesh
 						//	pair.error += offset_hard;
 					}
 					break;
-				case SURFACIC_BORDER_A_HARD_B edg_surfbordAhardB: // + offset
-				case SURFACIC_HARD_A edg_surfhardA:
-				case SURFACIC_BORDER_A edg_surfbordA:
+				case EdgeTopology.SurfacicBorderAHardB: // + offset
+				case EdgeTopology.SurfacicHardA:
+				case EdgeTopology.SurfacicBorderA:
 					{
 						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error = ComputeVertexError(q, posA.x, posA.y, posA.z);
+						pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
 						pair.result = posA;
 						//if (edgeType is SURFACIC_BORDER_A_HARD_B)
 						//	pair.error += offset_hard;
 					}
 					break;
-				case SURFACIC_BORDER_B_HARD_A edg_surfbordBhardA: // + offset
-				case SURFACIC_HARD_B edg_surfhardB:
-				case SURFACIC_BORDER_B edg_surfbordB:
+				case EdgeTopology.SurfacicBorderBHardA: // + offset
+				case EdgeTopology.SurfacicHardB:
+				case EdgeTopology.SurfacicBorderB:
 					{
 						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error = ComputeVertexError(q, posB.x, posB.y, posB.z);
+						pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
 						pair.result = posB;
 						//if (edgeType is SURFACIC_BORDER_B_HARD_A)
 						//	pair.error += offset_hard;
 					}
 					break;
-				case BORDER_AB edg_bord:
+				case EdgeTopology.BorderAB:
 					{
 						/*
 						// Todo : Improve quality by finding analytical solution that minimizes the error
@@ -377,31 +410,24 @@ namespace Nanomesh
 						double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 						double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 						double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z) + 1000;
-						pair.error = Math.Min(error1, Math.Min(error2, error3));
+						pair.error += Math.Min(error1, Math.Min(error2, error3));
 						if (error1 == pair.error) pair.result = posA;
 						else if (error2 == pair.error) pair.result = posB;
 						else pair.result = posC;
 						//*/
 					}
 					break;
-				case SURFACIC_HARD_AB edg_surfAB:
+				case EdgeTopology.SurfacicHardAB:
 					{
 						pair.result = (posA + posB) / 2;
-						pair.error = _OFFSET_NOCOLLAPSE - 1; // Never collapse, but still do it before A-Shapes
+						pair.error += _OFFSET_NOCOLLAPSE - 1; // Never collapse, but still do it before A-Shapes
 					}
 					break;
-				case SURFACIC_BORDER_AB edg_bordAB:
+				case EdgeTopology.SurfacicBorderAB:
 					{
 						// Todo : Put a warning when trying to collapse A-Shapes
 						pair.result = (posA + posB) / 2;
-						pair.error = _OFFSET_NOCOLLAPSE; // Never collapse A-Shapes
-					}
-					break;
-				default:
-					{
-						// Todo : Fix such cases. It should not happen
-						pair.result = (posA + posB) / 2;
-						pair.error = _OFFSET_NOCOLLAPSE; // Never collapse unknown shapes
+						pair.error += _OFFSET_NOCOLLAPSE; // Never collapse A-Shapes
 					}
 					break;
 			}
@@ -411,7 +437,7 @@ namespace Nanomesh
 			pair.error = Math.Abs(pair.error);// + εprio * Vector3.Magnitude(p2 - p1); 
 
 			if (pair.error >= _OFFSET_NOCOLLAPSE && CollapseWillInvert(pair))
-				pair.error = _OFFSET_NOCOLLAPSE;
+				pair.error += _OFFSET_NOCOLLAPSE;
 		}
 
 		public bool CollapseWillInvert(EdgeCollapse edge)
@@ -479,10 +505,10 @@ namespace Nanomesh
 
 		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
 		{
-			return q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x
-				 + q[4] * y * y + 2 * q[5] * y * z + 2 * q[6] * y
-				 + q[7] * z * z + 2 * q[8] * z
-				 + q[9];
+			return q.m0 * x * x + 2 * q.m1 * x * y + 2 * q.m2 * x * z + 2 * q.m3 * x
+				 + q.m4 * y * y + 2 * q.m5 * y * z + 2 * q.m6 * y
+				 + q.m7 * z * z + 2 * q.m8 * z
+				 + q.m9;
 		}
 
 		private void InterpolateAttributes(EdgeCollapse pair)
@@ -515,7 +541,7 @@ namespace Nanomesh
 						//normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
 						normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
 						//normalAtA = (normalAtA + normalAtA) / 2;
-						normalAtA.Normalize();
+						normalAtA = normalAtA.Normalized;
 
 						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
 						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
@@ -557,6 +583,8 @@ namespace Nanomesh
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
+		private HashSet<int> _posToRefresh = new HashSet<int>(6);
+
 		private void CollapseEdge(EdgeCollapse pair)
 		{
 			int nodeIndexA = _mesh.PositionToNode[pair.posA];
@@ -575,8 +603,11 @@ namespace Nanomesh
 				{
 					int posC = _mesh.nodes[relative].position;
 					var pairAC = new EdgeCollapse(posA, posC);
-					_pairs.Remove(pairAC); // Todo : Optimization by only removing first pair (first edge)
-					_mins.Remove(pairAC);
+					// Todo : Optimization by only removing first pair (first edge)
+					if (_pairs.Remove(pairAC))
+                    {
+						_mins.Remove(pairAC);
+					}
 				} 
 
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexA);
@@ -590,8 +621,10 @@ namespace Nanomesh
 				{
 					int posC = _mesh.nodes[relative].position;
 					var pairBC = new EdgeCollapse(posB, posC);
-					_pairs.Remove(pairBC);
-					_mins.Remove(pairBC);
+					if (_pairs.Remove(pairBC))
+                    {
+						_mins.Remove(pairBC);
+					}
 				}
 
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexB);
@@ -599,20 +632,24 @@ namespace Nanomesh
 			// Interpolates attributes
 			InterpolateAttributes(pair);
 
-			// Collapse edge
+			// Collapse edge ✨
 			int validNode = _mesh.CollapseEdge(nodeIndexA, nodeIndexB);
 
 			// A disconnected triangle has been collapsed, there are no edges to register
 			if (validNode < 0)
 				return;
 
+			posA = _mesh.nodes[validNode].position;
+
 			_mesh.positions[posA] = pair.result;
-			
-			CalculateQuadric(posA); // Required ?
 
 			MergeAttributes(validNode);
 
-			// Recreate edges around new point and recompute collapse quadric errors
+			CalculateQuadric(posA);
+			CalculateTopology(posA);
+
+			_posToRefresh.Clear();
+
 			sibling = validNode;
 			do
 			{
@@ -620,51 +657,38 @@ namespace Nanomesh
 				while ((relative = _mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = _mesh.nodes[relative].position;
+					_posToRefresh.Add(posC);
 
-                    // Update quadrics and errors one level deeper
-                    // Mathematically more correct, at the cost of performance
-                    if (preciseMode)
+					if (preciseMode)
 					{
-                        int sibling2 = relative;
-                        while ((sibling2 = _mesh.nodes[sibling2].sibling) != relative)
-                        {
-                            int relative2 = sibling2;
-                            while ((relative2 = _mesh.nodes[relative2].relative) != sibling2)
-                            {
-                                int posD = _mesh.nodes[relative2].position;
-                                if (posD == posC)
-                                    continue;
-
-                                if (_pairs.TryGetValue(new EdgeCollapse(posC, posD), out EdgeCollapse actualPair))
-                                {
-                                    _mins.Remove(actualPair);
-                                    CalculateQuadric(posD);
-                                    CalculateError(actualPair);
-                                    //AddMin(actualPair);
-                                }
-                            }
-                        }
-                    }
-
-                    if (validNode < 0)
-						continue;
-
-					var pairAC = new EdgeCollapse(posA, posC);
-
-					// Optimization by not adding a pair that has already been added
-					if (_pairs.Contains(pairAC))
-						continue;
-
-					Debug.Assert(CheckPair(pairAC));
-
-					CalculateQuadric(posC); // Required ? Shouldn't we keep original quadrics ?
-
-					CalculateError(pairAC);
-
-					_pairs.Add(pairAC);
-					//AddMin(pairAC);
+						int sibling2 = relative;
+						while ((sibling2 = _mesh.nodes[sibling2].sibling) != relative)
+						{
+							int relative2 = sibling2;
+							while ((relative2 = _mesh.nodes[relative2].relative) != sibling2)
+							{
+								int posD = _mesh.nodes[relative2].position;
+								if (posD != posC)
+									_posToRefresh.Add(posD);
+							}
+						}
+					}
 				}
 			} while ((sibling = _mesh.nodes[sibling].sibling) != validNode);
+
+			foreach (var posC in _posToRefresh)
+			{
+				CalculateQuadric(posC);
+				CalculateTopology(posC);
+			}
+
+			foreach (var posC in _posToRefresh)
+			{
+				var pairAC = new EdgeCollapse(posA, posC);
+				CalculateError(pairAC);
+				_pairs.Add(pairAC);
+				//_mins.AddMin(pairAC);
+			}
 		}
 	}
 }

@@ -2,11 +2,11 @@
 
 namespace Nanomesh
 {
-    public struct Vector3F
+    public readonly struct Vector3F
     {
-        public float x;
-        public float y;
-        public float z;
+        public readonly float x;
+        public readonly float y;
+        public readonly float z;
 
         public Vector3F(float x, float y, float z)
         {
@@ -31,18 +31,6 @@ namespace Nanomesh
                     case 0: return x;
                     case 1: return y;
                     case 2: return z;
-                    default:
-                        throw new IndexOutOfRangeException("Invalid Vector3F index!");
-                }
-            }
-
-            set
-            {
-                switch (index)
-                {
-                    case 0: x = value; break;
-                    case 1: y = value; break;
-                    case 2: z = value; break;
                     default:
                         throw new IndexOutOfRangeException("Invalid Vector3F index!");
                 }
@@ -111,12 +99,6 @@ namespace Nanomesh
         {
             float mag = Magnitude(value);
             return value / mag;
-        }
-
-        public void Normalize()
-        {
-            float mag = Magnitude(this);
-            this /= mag;
         }
 
         public Vector3F Normalized => Vector3F.Normalize(this);

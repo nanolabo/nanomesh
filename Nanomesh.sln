@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nanomesh.Sandbox", "Nanomes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nanomesh.Native", "Nanomesh.Native\Nanomesh.Native.csproj", "{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nanomesh.Benchmarks", "Nanomesh.Benchmarks\Nanomesh.Benchmarks.csproj", "{F0462821-8D82-4399-A37E-E6DADF05F70B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nanomesh.Benchmarks", "Nanomesh.Benchmarks\Nanomesh.Benchmarks.csproj", "{F0462821-8D82-4399-A37E-E6DADF05F70B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +19,7 @@ Global
 		Native|Any CPU = Native|Any CPU
 		Obfuscated|Any CPU = Obfuscated|Any CPU
 		Release|Any CPU = Release|Any CPU
+		Symbols|Any CPU = Symbols|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -29,6 +30,8 @@ Global
 		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Obfuscated|Any CPU.Build.0 = Obfuscated|Any CPU
 		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Symbols|Any CPU.ActiveCfg = Symbols|Any CPU
+		{44A9A1A7-C613-4BA0-AE33-D182BDD19FB8}.Symbols|Any CPU.Build.0 = Symbols|Any CPU
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Native|Any CPU.ActiveCfg = Native|Any CPU
@@ -37,6 +40,8 @@ Global
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Obfuscated|Any CPU.Build.0 = Obfuscated|Any CPU
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Symbols|Any CPU.ActiveCfg = Release|Any CPU
+		{2845B015-ED93-4AE0-8E56-94AE3F498DB3}.Symbols|Any CPU.Build.0 = Release|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Native|Any CPU.ActiveCfg = Native|Any CPU
@@ -45,6 +50,8 @@ Global
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Obfuscated|Any CPU.Build.0 = Obfuscated|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Symbols|Any CPU.ActiveCfg = Release|Any CPU
+		{773E9BAD-F28D-469D-9F38-FF2406990BFA}.Symbols|Any CPU.Build.0 = Release|Any CPU
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Native|Any CPU.ActiveCfg = Native|Any CPU
@@ -53,6 +60,7 @@ Global
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Obfuscated|Any CPU.Build.0 = Obfuscated|Any CPU
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C27C71D0-7852-42CB-B81C-C3F2DE4CA00D}.Symbols|Any CPU.ActiveCfg = Release|Any CPU
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Native|Any CPU.ActiveCfg = Release|Any CPU
@@ -61,6 +69,8 @@ Global
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Obfuscated|Any CPU.Build.0 = Release|Any CPU
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Symbols|Any CPU.ActiveCfg = Release|Any CPU
+		{F0462821-8D82-4399-A37E-E6DADF05F70B}.Symbols|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
