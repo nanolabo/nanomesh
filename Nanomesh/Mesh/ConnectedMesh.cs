@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Nanomesh
@@ -250,7 +251,9 @@ namespace Nanomesh
             while ((sibling = nodes[sibling].sibling) != nodeIndex);
 
             if (lastValid == -1)
+            {
                 return -1; // All siblings were removed
+            }
 
             // Close the loop
             nodes[lastValid].sibling = firstValid;
@@ -333,14 +336,14 @@ namespace Nanomesh
             Debug.Assert(CheckSiblings(nodeIndexB), "B's siblings must be valid");
 
             int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
+            do // Iterates over faces around A
             {
                 bool isFaceTouched = false;
                 int faceEdgeCount = 0;
                 int nodeIndexC = -1;
 
                 int relativeOfA = siblingOfA;
-                do // Circulate around face
+                do // Circulate in face
                 {
                     int posC = nodes[relativeOfA].position;
                     if (posC == posB)
@@ -475,112 +478,31 @@ namespace Nanomesh
             return 0.5 * normal.Length;
         }
 
-        public IEdgeType GetEdgeType(int nodeIndexA, int nodeIndexB)
+        public NodeTopology GetNodeTopology(int nodeIndex)
         {
-            int borderNodeA = -1;
-            int borderNodeB = -1;
-            bool hardAtA = false;
-            bool hardAtB = false;
+            NodeTopology nodeTopology = NodeTopology.Surface;
 
-            int posA = nodes[nodeIndexA].position;
-            int posB = nodes[nodeIndexB].position;
-
-            int attrIndex = -1; 
-            int sibling = nodeIndexA;
+            int attrIndex = -1;
+            int sibling = nodeIndex;
             do
             {
                 int relative = sibling;
                 while ((relative = nodes[relative].relative) != sibling)
                 {
                     int posC = nodes[relative].position;
-                    if (posC != posB)
+                    if (!IsEdgeInSurface(sibling, relative)) // There might be a faster solution to check if this node has a border or not
                     {
-                        if (!IsEdgeInSurface(sibling, relative))
-                        {
-                            borderNodeA = relative;
-                            goto skipA;
-                        }
+                        return nodeTopology;
                     }
                 }
                 if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
                 {
-                    hardAtA = true;
+                    nodeTopology = NodeTopology.Hard;
                 }
                 attrIndex = nodes[sibling].attribute;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndexA);
+            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
 
-            skipA:;
-
-            attrIndex = -1;
-            sibling = nodeIndexB;
-            do
-            {
-                int relative = sibling;
-                while ((relative = nodes[relative].relative) != sibling)
-                {
-                    int posC = nodes[relative].position;
-                    if (posC != posA)
-                    {
-                        if (!IsEdgeInSurface(sibling, relative))
-                        {
-                            borderNodeB = relative;
-                            goto skipB;
-                        }
-                    }
-                }
-                if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
-                {
-                    hardAtB = true;
-                }
-                attrIndex = nodes[sibling].attribute;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
-
-            skipB:;
-
-            if (IsEdgeInSurface(nodeIndexA, nodeIndexB))
-            {
-                if ((borderNodeA != -1) && (borderNodeB != -1))
-                {
-                    return new SURFACIC_BORDER_AB();
-                }
-                else if (borderNodeA != -1)
-                {
-                    if (hardAtB)
-                        return new SURFACIC_BORDER_A_HARD_B();
-                    else
-                        return new SURFACIC_BORDER_A();
-                }
-                else if (borderNodeB != -1)
-                {
-                    if (hardAtA)
-                        return new SURFACIC_BORDER_B_HARD_A();
-                    else
-                        return new SURFACIC_BORDER_B();
-                }
-                else
-                {
-                    if (hardAtB && hardAtB)
-                    {
-                        if (IsEdgeHard(nodeIndexA, nodeIndexB))
-                            return new SURFACIC_HARD_EDGE();
-                        else
-                            return new SURFACIC_HARD_AB();
-                    }
-                    else if (hardAtA)
-                        return new SURFACIC_HARD_A();
-                    else if (hardAtB)
-                        return new SURFACIC_HARD_B();
-                    else
-                        return new SURFACIC();
-                }
-            }
-            else
-            {
-                if (borderNodeA == -1 || borderNodeB == -1)
-                    return new UNKNOWN(); // Should not happen
-
-                return new BORDER_AB(borderNodeA, borderNodeB);
-            }
+            return nodeTopology;
         }
 
         public void Compact()

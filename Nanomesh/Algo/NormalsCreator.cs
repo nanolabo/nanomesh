@@ -40,7 +40,7 @@ namespace Nanomesh
 					mesh.positions[posB] - mesh.positions[posA],
 					mesh.positions[posC] - mesh.positions[posA]);
 
-				faceNormal.Normalize();
+				faceNormal = faceNormal.Normalized;
 
 				return faceNormal;
 			}
@@ -77,7 +77,7 @@ namespace Nanomesh
 
 					} while ((sibling2 = mesh.nodes[sibling2].sibling) != nodeIndex);
 
-					sum.Normalize();
+					sum = sum.Normalized;
 
 					Attribute attribute = mesh.attributes[mesh.nodes[sibling1].attribute];
 					attribute.normal = sum;

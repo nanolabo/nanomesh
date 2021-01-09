@@ -2,11 +2,11 @@
 
 namespace Nanomesh
 {
-    public struct Vector3
+    public readonly struct Vector3
     {
-        public double x;
-        public double y;
-        public double z;
+        public readonly double x;
+        public readonly double y;
+        public readonly double z;
 
         public Vector3(double x, double y, double z)
         {
@@ -35,18 +35,6 @@ namespace Nanomesh
                         throw new IndexOutOfRangeException("Invalid Vector3 index!");
                 }
             }
-
-            set
-            {
-                switch (index)
-                {
-                    case 0: x = value; break;
-                    case 1: y = value; break;
-                    case 2: z = value; break;
-                    default:
-                        throw new IndexOutOfRangeException("Invalid Vector3 index!");
-                }
-            }
         }
 
         public override int GetHashCode()
@@ -67,19 +55,19 @@ namespace Nanomesh
             return x == other.x && y == other.y && z == other.z;
         }
 
-        public static Vector3 operator +(Vector3 a, Vector3 b) { return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
+        public static Vector3 operator +(in Vector3 a, in Vector3 b) { return new Vector3(a.x + b.x, a.y + b.y, a.z + b.z); }
 
-        public static Vector3 operator -(Vector3 a, Vector3 b) { return new Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
+        public static Vector3 operator -(in Vector3 a, in Vector3 b) { return new Vector3(a.x - b.x, a.y - b.y, a.z - b.z); }
 
-        public static Vector3 operator -(Vector3 a) { return new Vector3(-a.x, -a.y, -a.z); }
+        public static Vector3 operator -(in Vector3 a) { return new Vector3(-a.x, -a.y, -a.z); }
 
-        public static Vector3 operator *(Vector3 a, double d) { return new Vector3(a.x * d, a.y * d, a.z * d); }
+        public static Vector3 operator *(in Vector3 a, double d) { return new Vector3(a.x * d, a.y * d, a.z * d); }
 
-        public static Vector3 operator *(double d, Vector3 a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
+        public static Vector3 operator *(double d, in Vector3 a) { return new Vector3(a.x * d, a.y * d, a.z * d); }
 
-        public static Vector3 operator /(Vector3 a, double d) { return new Vector3(MathUtils.DivideSafe(a.x, d), MathUtils.DivideSafe(a.y, d), MathUtils.DivideSafe(a.z, d)); }
+        public static Vector3 operator /(in Vector3 a, double d) { return new Vector3(MathUtils.DivideSafe(a.x, d), MathUtils.DivideSafe(a.y, d), MathUtils.DivideSafe(a.z, d)); }
 
-        public static bool operator ==(Vector3 lhs, Vector3 rhs)
+        public static bool operator ==(in Vector3 lhs, in Vector3 rhs)
         {
             double diff_x = lhs.x - rhs.x;
             double diff_y = lhs.y - rhs.y;
@@ -112,12 +100,6 @@ namespace Nanomesh
         {
             double mag = Magnitude(value);
             return value / mag;
-        }
-
-        public void Normalize()
-        {
-            double mag = Magnitude(this);
-            this /= mag;
         }
 
         public Vector3 Normalized => Vector3.Normalize(this);

@@ -6,8 +6,6 @@ namespace Nanomesh
     {
 		public class EdgeCollapse : IComparable<EdgeCollapse>, IEquatable<EdgeCollapse>
 		{
-			public IEdgeType type;
-
 			public int posA;
 			public int posB;
 			public Vector3 result;
@@ -82,7 +80,7 @@ namespace Nanomesh
 			public override string ToString()
 			{
 #if DEBUG
-				return $"<A:{posA} B:{posB} error:{error} type:{type}>";
+				return $"<A:{posA} B:{posB} error:{error}>";
 #else
 				return $"<A:{posA} B:{posB} error:{error}>";
 #endif

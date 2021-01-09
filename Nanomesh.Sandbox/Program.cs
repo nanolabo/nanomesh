@@ -51,7 +51,24 @@ namespace Nanomesh.Sandbox
 
         static void Benchmark()
         {
-            Console.WriteLine(DecimateModifier.Benchmark());
+            SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 7);
+            ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
+
+            NormalsModifier normals = new NormalsModifier();
+            normals.Run(mesh, 30);
+
+            Stopwatch sw = Stopwatch.StartNew();
+
+            double ms = Profiling.Time(() => {
+                DecimateModifier decimateModifier = new DecimateModifier();
+                decimateModifier.DecimateToRatio(mesh, 0.50f);
+            }).TotalMilliseconds;
+
+            sw.Stop();
+
+            Console.WriteLine(sw);
+
+            ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables(@"..\..\..\..\Nanomesh.Tests\output\decimation.obj"));
         }
     }
 }
