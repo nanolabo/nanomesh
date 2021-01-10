@@ -4,12 +4,12 @@
     {
         Surface = 0,
         Hard = 1,
-        Border = 2,
-        HardAndBorder = 4
+        Border = 2
     }
 
     public enum EdgeTopology
     {
+        Unknown,
         /// <summary>
         /// \       /
         ///  \_____/

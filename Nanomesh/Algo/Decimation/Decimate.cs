@@ -8,7 +8,7 @@ namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-		public bool preciseMode = false;
+		public bool preciseMode = true;
 
 		private ConnectedMesh _mesh;
 
@@ -139,7 +139,7 @@ namespace Nanomesh
 			return edge.Value;
 		}
 
-		private int MinsCount => (int)MathF.Clamp(0.01f * _mesh.faceCount + 50000, 0, _pairs.Count);
+		private int MinsCount => (int)MathF.Clamp(500, 0, _pairs.Count);
 
 		private void ComputeMins()
 		{
@@ -262,72 +262,72 @@ namespace Nanomesh
 
 			NodeTopology topoA = _nodeTopologies[pair.posA];
 			NodeTopology topoB = _nodeTopologies[pair.posB];
+            pair.error = 0;
 
-			EdgeTopology edgeType = EdgeTopology.SurfacicSmooth;
+            EdgeTopology edgeType;
 
-			pair.error = 0;
-
-			Debug.Assert((topoA == NodeTopology.Border || topoB == NodeTopology.Border) && _mesh.IsEdgeInSurface(nodeA, nodeB), "Should not happen");
-
-			if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
-			{
-				if (_mesh.IsEdgeInSurface(nodeA, nodeB))
-				{
-					edgeType = EdgeTopology.SurfacicBorderAB;
-				}
-				else
-				{
-					edgeType = EdgeTopology.BorderAB;
-				}
-			}
-			else if (topoA == NodeTopology.Border)
-			{
-				if (topoB == NodeTopology.Hard)
+            if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
+            {
+                if (_mesh.IsEdgeInSurface(nodeA, nodeB))
                 {
-					edgeType = EdgeTopology.SurfacicBorderAHardB;
-				}
-				else
+                    edgeType = EdgeTopology.SurfacicBorderAB;
+                }
+                else
                 {
-					edgeType = EdgeTopology.SurfacicBorderA;
-				}
-			}
-			else if (topoB == NodeTopology.Border)
-			{
-				if (topoA == NodeTopology.Hard)
+                    edgeType = EdgeTopology.BorderAB;
+                }
+            }
+            else if (topoA == NodeTopology.Border)
+            {
+                if (topoB == NodeTopology.Hard)
                 {
-					edgeType = EdgeTopology.SurfacicBorderBHardA;
-				}
-				else
+                    edgeType = EdgeTopology.SurfacicBorderAHardB;
+                }
+                else
                 {
-					edgeType = EdgeTopology.SurfacicBorderB;
-				}
-			}
-			else
-			{
-				if (topoA == NodeTopology.Hard && topoB == NodeTopology.Hard)
-				{
-					if (_mesh.IsEdgeHard(nodeA, nodeB))
+                    edgeType = EdgeTopology.SurfacicBorderA;
+                }
+            }
+            else if (topoB == NodeTopology.Border)
+            {
+                if (topoA == NodeTopology.Hard)
+                {
+                    edgeType = EdgeTopology.SurfacicBorderBHardA;
+                }
+                else
+                {
+                    edgeType = EdgeTopology.SurfacicBorderB;
+                }
+            }
+            else
+            {
+                if (topoA == NodeTopology.Hard && topoB == NodeTopology.Hard)
+                {
+                    if (_mesh.IsEdgeHard(nodeA, nodeB))
                     {
-						edgeType = EdgeTopology.SurfacicHardEdge;
-					}
-					else
+                        edgeType = EdgeTopology.SurfacicHardEdge;
+                    }
+                    else
                     {
-						edgeType = EdgeTopology.SurfacicHardAB;
-					}
-				}
-				else if (topoA == NodeTopology.Hard)
+                        edgeType = EdgeTopology.SurfacicHardAB;
+                    }
+                }
+                else if (topoA == NodeTopology.Hard)
                 {
-					edgeType = EdgeTopology.SurfacicHardA;
-				}
-				else if (topoB == NodeTopology.Hard)
+                    edgeType = EdgeTopology.SurfacicHardA;
+                }
+                else if (topoB == NodeTopology.Hard)
                 {
-					edgeType = EdgeTopology.SurfacicHardB;
-				}
-				else
+                    edgeType = EdgeTopology.SurfacicHardB;
+                }
+                else
                 {
-					edgeType = EdgeTopology.SurfacicSmooth;
-				}
-			}
+                    edgeType = EdgeTopology.SurfacicSmooth;
+                }
+            }
+
+            if (edgeType == EdgeTopology.Unknown)
+				throw new Exception("Should not happen");
 
 			switch (edgeType)
 			{
@@ -436,8 +436,8 @@ namespace Nanomesh
 			// Todo : Make it less sensitive to model scale
 			pair.error = Math.Abs(pair.error);// + εprio * Vector3.Magnitude(p2 - p1); 
 
-			if (pair.error >= _OFFSET_NOCOLLAPSE && CollapseWillInvert(pair))
-				pair.error += _OFFSET_NOCOLLAPSE;
+			//if (pair.error >= _OFFSET_NOCOLLAPSE && CollapseWillInvert(pair))
+			//	pair.error = _OFFSET_NOCOLLAPSE;
 		}
 
 		public bool CollapseWillInvert(EdgeCollapse edge)
@@ -531,7 +531,7 @@ namespace Nanomesh
 						Vector3 positionN = pair.result;
 						double AN = Vector3.Magnitude(positionA - positionN);
 						double BN = Vector3.Magnitude(positionB - positionN);
-						double ratio = (float)MathUtils.DivideSafe(AN, AN + BN);
+						double ratio = MathUtils.DivideSafe(AN, AN + BN);
 
 						// Normals
 						Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
@@ -583,7 +583,7 @@ namespace Nanomesh
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
-		private HashSet<int> _posToRefresh = new HashSet<int>(6);
+		private HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>(6);
 
 		private void CollapseEdge(EdgeCollapse pair)
 		{
@@ -648,7 +648,7 @@ namespace Nanomesh
 			CalculateQuadric(posA);
 			CalculateTopology(posA);
 
-			_posToRefresh.Clear();
+			_edgeToRefresh.Clear();
 
 			sibling = validNode;
 			do
@@ -657,7 +657,7 @@ namespace Nanomesh
 				while ((relative = _mesh.nodes[relative].relative) != sibling)
 				{
 					int posC = _mesh.nodes[relative].position;
-					_posToRefresh.Add(posC);
+					_edgeToRefresh.Add(new EdgeCollapse(posA, posC));
 
 					if (preciseMode)
 					{
@@ -669,25 +669,28 @@ namespace Nanomesh
 							{
 								int posD = _mesh.nodes[relative2].position;
 								if (posD != posC)
-									_posToRefresh.Add(posD);
+                                {
+									_edgeToRefresh.Add(new EdgeCollapse(posC, posD));
+								}
 							}
 						}
 					}
 				}
 			} while ((sibling = _mesh.nodes[sibling].sibling) != validNode);
 
-			foreach (var posC in _posToRefresh)
+			foreach (var edge in _edgeToRefresh)
 			{
-				CalculateQuadric(posC);
-				CalculateTopology(posC);
+				CalculateQuadric(edge.posB);
+				CalculateTopology(edge.posB);
 			}
 
-			foreach (var posC in _posToRefresh)
+			foreach (var edge in _edgeToRefresh)
 			{
-				var pairAC = new EdgeCollapse(posA, posC);
-				CalculateError(pairAC);
-				_pairs.Add(pairAC);
-				//_mins.AddMin(pairAC);
+				CalculateError(edge);
+				_pairs.Remove(edge);
+				_pairs.Add(edge);
+				_mins.Remove(edge);
+				_mins.AddMin(edge);
 			}
 		}
 	}

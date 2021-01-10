@@ -492,7 +492,7 @@ namespace Nanomesh
                     int posC = nodes[relative].position;
                     if (!IsEdgeInSurface(sibling, relative)) // There might be a faster solution to check if this node has a border or not
                     {
-                        return nodeTopology;
+                        return NodeTopology.Border;
                     }
                 }
                 if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
