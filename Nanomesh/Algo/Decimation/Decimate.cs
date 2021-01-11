@@ -8,7 +8,8 @@ namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-		public bool preciseMode = true;
+		public bool UpdateFarBeighbors = true;
+		public bool UpdateMinsOnCollapse = true;
 
 		private ConnectedMesh _mesh;
 
@@ -502,7 +503,20 @@ namespace Nanomesh
 
 			HashSet<int> procNormals = new HashSet<int>();
 
-			int siblingOfA = nodeIndexA;
+            Vector3 positionN = pair.result;
+            double AN = Vector3.Magnitude(positionA - positionN);
+            double BN = Vector3.Magnitude(positionB - positionN);
+            double ratio = MathUtils.DivideSafe(AN, AN + BN);
+
+			/* // Other way (same results I think)
+            double ratio = 0;
+            double dot = Vector3.Dot(pair.result - positionA, positionB - positionA);
+            if (dot > 0)
+                ratio = Math.Sqrt(dot);
+            ratio /= (positionB - positionA).Length;
+			*/
+
+            int siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
 			{
 				int relativeOfA = siblingOfA;
@@ -515,11 +529,6 @@ namespace Nanomesh
 
 						if (procNormals.Contains(_mesh.nodes[siblingOfA].attribute))
 							continue;
-
-						Vector3 positionN = pair.result;
-						double AN = Vector3.Magnitude(positionA - positionN);
-						double BN = Vector3.Magnitude(positionB - positionN);
-						double ratio = MathUtils.DivideSafe(AN, AN + BN);
 
 						// Normals
 						Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
@@ -718,7 +727,7 @@ namespace Nanomesh
 					int posC = _mesh.nodes[relative].position;
 					_edgeToRefresh.Add(new EdgeCollapse(posA, posC));
 
-					if (preciseMode)
+					if (UpdateFarBeighbors)
 					{
 						int sibling2 = relative;
 						while ((sibling2 = _mesh.nodes[sibling2].sibling) != relative)
@@ -749,7 +758,8 @@ namespace Nanomesh
 				_pairs.Remove(edge);
 				_pairs.Add(edge);
 				_mins.Remove(edge);
-				_mins.AddMin(edge);
+				if (UpdateMinsOnCollapse)
+					_mins.AddMin(edge);
 			}
 		}
 	}
