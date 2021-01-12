@@ -27,7 +27,7 @@ namespace Nanomesh.Benchmarks
         public void DecimateSphere()
         {
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.UpdateFarBeighbors = Precise;
+            decimateModifier.UpdateFarNeighbors = Precise;
             decimateModifier.DecimateToPolycount(_mesh, 500);
         }
     }

@@ -489,7 +489,6 @@ namespace Nanomesh
                 int relative = sibling;
                 while ((relative = nodes[relative].relative) != sibling)
                 {
-                    int posC = nodes[relative].position;
                     if (!IsEdgeInSurface(sibling, relative)) // There might be a faster solution to check if this node has a border or not
                     {
                         return NodeTopology.Border;
@@ -503,6 +502,28 @@ namespace Nanomesh
             } while ((sibling = nodes[sibling].sibling) != nodeIndex);
 
             return nodeTopology;
+        }
+
+        // bad api
+        public int GetEdgeNextBorder(int nodeIndexA, int nodeIndexB)
+        {
+            int posA = nodes[nodeIndexA].position;
+
+            int sibling = nodeIndexB;
+            do
+            {
+                int relative = sibling;
+                while ((relative = nodes[relative].relative) != sibling)
+                {
+                    int posC = nodes[relative].position;
+                    if ((posC != posA) && !IsEdgeInSurface(sibling, relative))
+                    {
+                        return posC;
+                    }
+                }
+            } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
+
+            return -1;
         }
 
         public void Compact()

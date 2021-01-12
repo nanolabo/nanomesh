@@ -13,7 +13,7 @@ namespace Nanomesh.Tests
         [Test]
         public void Monkey()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\monkey.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/monkey.obj"));
 
             Assert.IsTrue(mesh.Check());
 
@@ -28,7 +28,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Trisoup()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\trisoup.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/trisoup.obj"));
 
             Assert.IsTrue(mesh.Check());
 
@@ -44,7 +44,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Cube()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\cube.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/cube.obj"));
 
             Assert.IsTrue(mesh.Check());
 
@@ -60,15 +60,17 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Plane()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\plane.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/plane.obj"));
 
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
             decimateModifier.DecimateToError(mesh, 0.01f);
 
+            ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
+
             Assert.IsTrue(mesh.Check());
-            Assert.IsTrue(mesh.FaceCount == 2);
+            Assert.AreEqual(2, mesh.FaceCount);
         }
 
         [Test]
@@ -76,7 +78,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Star()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\star.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/star.obj"));
 
             Assert.IsTrue(mesh.Check());
 
@@ -92,7 +94,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Hourglass()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\test-models\hourglass.obj"));
+            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/hourglass.obj"));
 
             Assert.IsTrue(mesh.Check());
 

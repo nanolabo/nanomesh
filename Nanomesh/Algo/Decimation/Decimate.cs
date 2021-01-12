@@ -8,8 +8,8 @@ namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-		public bool UpdateFarBeighbors = true;
-		public bool UpdateMinsOnCollapse = true;
+		public bool UpdateFarNeighbors = true;
+		public bool UpdateMinsOnCollapse = false;
 
 		private ConnectedMesh _mesh;
 
@@ -199,11 +199,10 @@ namespace Nanomesh
 				Debug.Assert(_mesh.CheckRelatives(sibling));
 
 				// Todo : Look for unsassigned attribute instead, to handle cases where we have normals but not everywhere
-				if (_mesh.attributes.Length != 0)
+				if (true /*_mesh.attributes.Length == 0 || _nodeTopologies[position] != NodeTopology.Surface*/)
 				{
 					// Use triangle normal if there are no normals
 					Vector3 faceNormal = _mesh.GetFaceNormal(sibling);
-
 					double dot = Vector3.Dot(-faceNormal, _mesh.positions[_mesh.nodes[sibling].position]);
 					symmetricMatrix += new SymmetricMatrix(faceNormal.x, faceNormal.y, faceNormal.z, dot);
 				}
@@ -212,7 +211,7 @@ namespace Nanomesh
 					int relative = sibling;
 					do
 					{
-						Vector3 localNormal = (Vector3)_mesh.attributes[_mesh.nodes[sibling].attribute].normal.Normalized;
+						Vector3 localNormal = (Vector3)_mesh.attributes[_mesh.nodes[relative].attribute].normal.Normalized;
 						double dot = Vector3.Dot(-localNormal, _mesh.positions[_mesh.nodes[relative].position]);
 						symmetricMatrix += new SymmetricMatrix(localNormal.x, localNormal.y, localNormal.z, dot);
 					} while ((relative = _mesh.nodes[relative].relative) != sibling);
@@ -364,35 +363,41 @@ namespace Nanomesh
 					break;
 				case EdgeTopology.BorderAB:
 					{
-						/*
-						// Todo : Improve quality by finding analytical solution that minimizes the error
-						Vector3 borderA = mesh.positions[mesh.nodes[edg_bord.borderNodeA].position];
-						Vector3 borderB = mesh.positions[mesh.nodes[edg_bord.borderNodeB].position];
-						var error1 = ComputeLineicError(borderA, borderB, posA);
-						var error2 = ComputeLineicError(borderA, borderB, posB);
-						//var error1 = 0.1 * ComputeLineicError(p1o, p1, p2o);
-						//var error2 = 0.1 * ComputeLineicError(p1o, p2, p2o);
-						if (error1 < error2)
-						{
-							pair.error = error1;
-							pair.result = posA;
+						int posAnext, posBnext;
+
+						if ((posAnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
+						 && (posBnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
+                        {
+							// Todo : Better solution : find closest point between [Aa] and [Bb]
+							Vector3 borderA = _mesh.positions[posAnext];
+							Vector3 borderB = _mesh.positions[posBnext];
+							var error1 = ComputeLineicError(posA, borderB, posB);
+							var error2 = ComputeLineicError(posB, borderA, posA);
+							if (error1 < error2)
+							{
+								pair.error = error1;
+								pair.result = posA;
+							}
+							else
+							{
+								pair.error = error2;
+								pair.result = posB;
+							}
 						}
-						else
-						{
-							pair.error = error2;
-							pair.result = posB;
+                        else
+                        {
+							// Spacer4t solution. Does not work well on plane
+							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+							Vector3 posC = (posA + posB) / 2d;
+							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+							pair.error += Math.Min(error1, Math.Min(error2, error3));
+							if (error1 == pair.error) pair.result = posA;
+							else if (error2 == pair.error) pair.result = posB;
+							else pair.result = posC;
+							pair.error += _OFFSET_HARD; // Avoid this whenever it's possible
 						}
-						/*/
-						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-						Vector3 posC = (posA + posB) / 2d;
-						double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-						double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-						double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z) + 1000;
-						pair.error += Math.Min(error1, Math.Min(error2, error3));
-						if (error1 == pair.error) pair.result = posA;
-						else if (error2 == pair.error) pair.result = posB;
-						else pair.result = posC;
-						//*/
 					}
 					break;
 				case EdgeTopology.SurfacicHardAB:
@@ -563,7 +568,7 @@ namespace Nanomesh
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
 
-			return;
+			//return;
 
 			siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
@@ -727,7 +732,7 @@ namespace Nanomesh
 					int posC = _mesh.nodes[relative].position;
 					_edgeToRefresh.Add(new EdgeCollapse(posA, posC));
 
-					if (UpdateFarBeighbors)
+					if (UpdateFarNeighbors)
 					{
 						int sibling2 = relative;
 						while ((sibling2 = _mesh.nodes[sibling2].sibling) != relative)
