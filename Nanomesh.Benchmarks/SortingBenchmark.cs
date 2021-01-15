@@ -39,17 +39,6 @@ namespace Nanomesh.Benchmarks
         }
 
         [Benchmark]
-        public IReadOnlyCollection<EdgeCollapse> MinHeap()
-        {
-            MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(MinsCount);
-            foreach (var pair in _pairs)
-            {
-                queue.Add(pair);
-            }
-            return new LinkedHashSet<EdgeCollapse>(queue.Elements);
-        }
-
-        [Benchmark]
         public IReadOnlyCollection<EdgeCollapse> OrderByCustom()
         {
             return new LinkedHashSet<EdgeCollapse>(_pairs.OrderByCustom(x => x).Take(MinsCount));

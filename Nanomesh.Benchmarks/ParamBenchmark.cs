@@ -17,29 +17,6 @@ namespace Nanomesh.Benchmarks
     public class ParamBenchmark
     {
         [Benchmark]
-        public IEdgeType EdgeTypeReturn()
-        {
-            return GetEdgeTypeReturn();
-        }
-
-        public IEdgeType GetEdgeTypeReturn()
-        {
-            return new SURFACIC_BORDER_A_HARD_B();
-        }
-
-        [Benchmark]
-        public IEdgeType EdgeTypeOut()
-        {
-            GetEdgeTypeOut(out IEdgeType edgeType);
-            return edgeType;
-        }
-
-        public void GetEdgeTypeOut(out IEdgeType edgeType)
-        {
-            edgeType = new SURFACIC_BORDER_A_HARD_B();
-        }
-
-        [Benchmark]
         public Vector3 IntIn()
         {
             Vector3 A = vectors[0];

@@ -275,8 +275,7 @@ namespace Nanomesh
                 }
             }
 
-            if (edgeType == EdgeTopology.Unknown)
-				throw new Exception("Should not happen");
+			Debug.Assert(edgeType != EdgeTopology.Unknown, "Edge topology shall not be unknown");
 
 #if DEBUG
 			pair.topology = edgeType;
@@ -306,10 +305,7 @@ namespace Nanomesh
 							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							pair.error += Math.Min(error1, Math.Min(error2, error3));
-							if (error1 == pair.error) pair.result = posA;
-							else if (error2 == pair.error) pair.result = posB;
-							else pair.result = posC;
+							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
 						}
 						//if (edgeType is SURFACIC_HARD_EDGE)
 						//	pair.error += offset_hard;
@@ -347,16 +343,17 @@ namespace Nanomesh
 							// Todo : Better solution : find closest point between [Aa] and [Bb]
 							Vector3 borderA = _mesh.positions[posAnext];
 							Vector3 borderB = _mesh.positions[posBnext];
-							var errorIfRemoveA = ComputeLineicError(posB, borderA, posA);
-							var errorIfRemoveB = ComputeLineicError(posA, borderB, posB);
-							if (errorIfRemoveB < errorIfRemoveA)
+							Vector3 posC = (posB + posA) / 2;
+							var errorCollapseToA = ComputeLineicError(posA, borderB, posB);
+							var errorCollapseToB = ComputeLineicError(posB, borderA, posA);
+							if (errorCollapseToA < errorCollapseToB)
 							{
-								pair.error = errorIfRemoveB;
+								pair.error = errorCollapseToA;
 								pair.result = posA;
 							}
 							else
 							{
-								pair.error = errorIfRemoveA;
+								pair.error = errorCollapseToB;
 								pair.result = posB;
 							}
 						}
@@ -368,10 +365,7 @@ namespace Nanomesh
 							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							pair.error += Math.Min(error1, Math.Min(error2, error3));
-							if (error1 == pair.error) pair.result = posA;
-							else if (error2 == pair.error) pair.result = posB;
-							else pair.result = posC;
+							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
 							pair.error += _OFFSET_HARD; // Avoid this whenever it's possible
 						}
 					}
