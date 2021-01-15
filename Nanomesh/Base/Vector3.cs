@@ -125,7 +125,7 @@ namespace Nanomesh
 
         public static double DistancePointLine(in Vector3 point, in Vector3 lineStart, in Vector3 lineEnd)
         {
-            return Magnitude(ProjectPointOnLine(lineStart, lineEnd - lineStart, point) - point);
+            return Magnitude(ProjectPointOnLine(lineStart, (lineEnd - lineStart).Normalized, point) - point);
         }
 
         public double LengthSquared => x * x + y * y + z * z;

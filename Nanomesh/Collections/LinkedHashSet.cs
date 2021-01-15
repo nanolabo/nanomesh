@@ -435,14 +435,19 @@ namespace Nanomesh
 
 		public class LinkedHashNode<TElement>
 		{
+			public TElement Value;
+			public LinkedHashNode<TElement> Next;
+			public LinkedHashNode<TElement> Previous;
+
 			public LinkedHashNode(TElement value)
 			{
 				Value = value;
 			}
 
-			public TElement Value;
-			public LinkedHashNode<TElement> Next;
-			public LinkedHashNode<TElement> Previous;
+			public override string ToString()
+			{
+				return Value.ToString();
+			}
 		}
 
 		public struct Enumerator : IEnumerator<T>
@@ -515,5 +520,5 @@ namespace Nanomesh
 			else
 				PushAfter(item, current);
 		}
-	}
+    }
 }

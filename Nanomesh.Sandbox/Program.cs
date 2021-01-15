@@ -22,7 +22,6 @@ namespace Nanomesh.Sandbox
             ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\buggy.obj"));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 8));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
-            Debug.Assert(mesh.Check());
 
             mesh.MergePositions(0.001);
 
@@ -40,8 +39,6 @@ namespace Nanomesh.Sandbox
             Console.WriteLine(Profiling.End("Decimating"));
 
             //mesh.Compact();
-
-            Debug.Assert(mesh.Check());
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 

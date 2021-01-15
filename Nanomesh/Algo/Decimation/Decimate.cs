@@ -9,7 +9,7 @@ namespace Nanomesh
     public partial class DecimateModifier
     {
 		public bool UpdateFarNeighbors = true;
-		public bool UpdateMinsOnCollapse = false;
+		public bool UpdateMinsOnCollapse = true;
 
 		private ConnectedMesh _mesh;
 
@@ -41,8 +41,6 @@ namespace Nanomesh
 			{
 				Iterate();
 			}
-
-			// TODO : mesh.Compact();
 		}
 
 		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
@@ -65,8 +63,6 @@ namespace Nanomesh
 					_lastProgress = progress;
 				}
 			}
-
-			// TODO : mesh.Compact();
 		}
 
 		private void Initialize(ConnectedMesh mesh)
@@ -96,37 +92,13 @@ namespace Nanomesh
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
 
-			Debug.Assert(CheckPair(pair));
+			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
+			Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
 
 			_pairs.Remove(pair);
 			_mins.Remove(pair);
 
-#if DEBUG
-			if (pair.error >= _OFFSET_NOCOLLAPSE)
-				Console.WriteLine("Going too far ! Destroying borders");
-#endif
-			//Console.WriteLine(pair);
-
 			CollapseEdge(pair);
-		}
-
-		private bool CheckMins()
-		{
-			foreach (var min in _mins)
-			{
-				Debug.Assert(_pairs.Contains(min));
-			}
-
-			return true;
-		}
-
-		private bool CheckPair(EdgeCollapse pair)
-		{
-			Debug.Assert(pair.posA != pair.posB, "Positions must be different");
-			Debug.Assert(!_mesh.nodes[_mesh.PositionToNode[pair.posA]].IsRemoved, $"Position 1 is unreferenced {_mesh.PositionToNode[pair.posA]}");
-			Debug.Assert(!_mesh.nodes[_mesh.PositionToNode[pair.posB]].IsRemoved, $"Position 2 is unreferenced {_mesh.PositionToNode[pair.posB]}");
-
-			return true;
 		}
 
 		private EdgeCollapse GetPairWithMinimumError()
@@ -177,7 +149,7 @@ namespace Nanomesh
 
 					_pairs.Add(pair);
 
-					Debug.Assert(CheckPair(pair));
+					Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 
 				} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 			}
@@ -229,7 +201,7 @@ namespace Nanomesh
 
 		private void CalculateError(EdgeCollapse pair)
 		{
-            Debug.Assert(CheckPair(pair));
+			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 
 			Vector3 posA = _mesh.positions[pair.posA];
 			Vector3 posB = _mesh.positions[pair.posB];
@@ -243,7 +215,7 @@ namespace Nanomesh
 
             EdgeTopology edgeType;
 
-            if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
+			if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
             {
                 if (_mesh.IsEdgeInSurface(nodeA, nodeB))
                 {
@@ -306,6 +278,10 @@ namespace Nanomesh
             if (edgeType == EdgeTopology.Unknown)
 				throw new Exception("Should not happen");
 
+#if DEBUG
+			pair.topology = edgeType;
+#endif
+
 			switch (edgeType)
 			{
                 // Use quadric error to determine optimal vertex position only makes sense for manifold edges
@@ -365,22 +341,22 @@ namespace Nanomesh
 					{
 						int posAnext, posBnext;
 
-						if ((posAnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
-						 && (posBnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
+						if ((posBnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
+						 && (posAnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
                         {
 							// Todo : Better solution : find closest point between [Aa] and [Bb]
 							Vector3 borderA = _mesh.positions[posAnext];
 							Vector3 borderB = _mesh.positions[posBnext];
-							var error1 = ComputeLineicError(posA, borderB, posB);
-							var error2 = ComputeLineicError(posB, borderA, posA);
-							if (error1 < error2)
+							var errorIfRemoveA = ComputeLineicError(posB, borderA, posA);
+							var errorIfRemoveB = ComputeLineicError(posA, borderB, posB);
+							if (errorIfRemoveB < errorIfRemoveA)
 							{
-								pair.error = error1;
+								pair.error = errorIfRemoveB;
 								pair.result = posA;
 							}
 							else
 							{
-								pair.error = error2;
+								pair.error = errorIfRemoveA;
 								pair.result = posB;
 							}
 						}
