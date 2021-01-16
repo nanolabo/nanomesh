@@ -25,62 +25,22 @@ namespace Nanomesh.Collections
 
         public int Count { get; private set; }
 
-        //private void Add(float value, int i, int b, BitNode current)
-        //{
-        //    bool is1 = IsBitSet(i, 31 - b);
-        //    //if (is1)
-        //    //{
-        //    //    current = current.node1 ??= new BitNode();
-        //    //}
-        //    //else
-        //    //{
-        //    //    current = current.node0 ??= new BitNode();
-        //    //}
-
-        //    if (is1)
-        //    {
-        //        if (current.node1 == null)
-        //        {
-        //            current = current.node1 = new BitNode();
-        //        }
-        //        else
-        //        {
-        //            if (current.values > 0)
-        //            {
-        //                Add
-        //            }
-        //            current = current.node1;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        if (current.node0 == null)
-        //        {
-        //            current = current.node0 = new BitNode();
-        //        }
-        //        else
-        //        {
-        //            current = current.node0;
-        //        }
-        //    }
-        //}
-
         public void Add(float value)
         {
             Debug.Assert(value >= 0f, "Only works with positive numbers !");
 
-            int i = GetHash(value);
+            int hash = GetHash(value);
 
             Count++;
 
-            AddInternal(value, i, 0, _root);
+            AddInternal(value, hash, 31, _root);
         }
 
-        private void AddInternal(float value, int i, int bitStart, BitNode current)
+        private void AddInternal(float value, int hash, int bitStart, BitNode current)
         {
-            for (int b = bitStart; b < 32; b++)
+            for (int bit = bitStart; bit >= 0; bit--)
             {
-                bool is1 = IsBitSet(i, 31 - b);
+                bool is1 = IsBitSet(hash, bit);
 
                 if (is1)
                 {
@@ -94,7 +54,7 @@ namespace Nanomesh.Collections
                         current = current.node1;
                         if (current.value > 0 && current.value != value)
                         {
-                            AddInternal(value, i, b, current);
+                            AddInternal(value, hash, bit, current);
                             current.values = 0;
                             current.value = 0;
                         }
@@ -112,7 +72,7 @@ namespace Nanomesh.Collections
                         current = current.node0;
                         if (current.values > 0 && current.value != value)
                         {
-                            AddInternal(value, i, b, current);
+                            AddInternal(value, hash, bit, current);
                             current.values = 0;
                             current.value = 0;
                         }
@@ -126,14 +86,14 @@ namespace Nanomesh.Collections
 
         public IEnumerator<float> GetEnumerator()
         {
-            int c = 0;
+            int currentCount = 0;
             int depth = 0;
+            int depthLastSplit = -1;
             var history = new BitNode[33];
+
             history[0] = _root;
 
-            int depthLastSplit = -1;
-
-            while (c < Count)
+            while (currentCount < Count)
             {
                 while (depth < 32)
                 {
@@ -193,7 +153,7 @@ namespace Nanomesh.Collections
                 for (int k = 0; k < history[depth].values; k++)
                 {
                     yield return history[depth].value;
-                    c++;
+                    currentCount++;
                 }
 
                 depth = depthLastSplit;

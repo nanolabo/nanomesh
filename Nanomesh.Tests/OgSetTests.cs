@@ -89,12 +89,12 @@ namespace Nanomesh.Tests
             Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
             GC.Collect();
 
-            //var array = radixCustom.ToArray();
+            var array = radixCustom.ToArray();
 
-            //for (int i = 0; i < array.Length - 1; i++)
-            //{
-            //    Assert.LessOrEqual(array[i], array[i + 1]);
-            //}
+            for (int i = 0; i < array.Length - 1; i++)
+            {
+                Assert.LessOrEqual(array[i], array[i + 1]);
+            }
         }
     }
 }
