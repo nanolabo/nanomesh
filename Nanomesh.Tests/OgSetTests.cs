@@ -43,16 +43,58 @@ namespace Nanomesh.Tests
             //}
 
             RadixSortedSet radixCustom = new RadixSortedSet();
-            for (int i = 0; i < 100; i++)
+
+            Stopwatch sw = Stopwatch.StartNew();
+            for (int i = 0; i < 100000; i++)
             {
                 radixCustom.Add(RandomFloat(0f, 10000f));
             }
-            var array = radixCustom.ToArray();
+            sw.Stop();
+            Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
+            GC.Collect();
 
-            for (int i = 0; i < array.Length - 1; i++)
+            sw.Restart();
+            for (int i = 0; i < 100000; i++)
             {
-                Assert.LessOrEqual(array[i], array[i + 1]);
+                radixCustom.Add(RandomFloat(0f, 10000f));
             }
+            sw.Stop();
+            Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
+            GC.Collect();
+
+            sw.Restart();
+            for (int i = 0; i < 100000; i++)
+            {
+                radixCustom.Add(RandomFloat(0f, 10000f));
+            }
+            sw.Stop();
+            Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
+            GC.Collect();
+
+            sw.Restart();
+            for (int i = 0; i < 100000; i++)
+            {
+                radixCustom.Add(RandomFloat(0f, 10000f));
+            }
+            sw.Stop();
+            Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
+            GC.Collect();
+
+            sw.Restart();
+            for (int i = 0; i < 100000; i++)
+            {
+                radixCustom.Add(RandomFloat(0f, 10000f));
+            }
+            sw.Stop();
+            Console.WriteLine($"{sw.ElapsedMilliseconds}ms {GC.GetTotalMemory(false) * 0.001 * 0.001}");
+            GC.Collect();
+
+            //var array = radixCustom.ToArray();
+
+            //for (int i = 0; i < array.Length - 1; i++)
+            //{
+            //    Assert.LessOrEqual(array[i], array[i + 1]);
+            //}
         }
     }
 }
