@@ -489,36 +489,44 @@ namespace Nanomesh
 
 		public void AddMin(T item)
 		{
-			var current = Last;
-			while (current != null && item.CompareTo(current.Value) < 0)
+			if (Count == 0)
 			{
-				current = current.Previous;
+				Add(item);
 			}
-
-			if (current == Last)
-				return;
-
-			if (current == null)
-				AddBefore(item, First);
 			else
-				AddAfter(item, current);
+			{
+				var current = Last;
+				while (current != null && item.CompareTo(current.Value) < 0)
+				{
+					current = current.Previous;
+				}
+
+				if (current == null)
+					AddBefore(item, First);
+				else
+					AddAfter(item, current);
+			}
 		}
 
 		public void PushMin(T item)
 		{
-			var current = Last;
-			while (current != null && item.CompareTo(current.Value) < 0)
-			{
-				current = current.Previous;
-			}
-
-			if (current == Last)
-				return;
-
-			if (current == null)
-				PushBefore(item, First);
+			if (Count == 0)
+            {
+				Add(item);
+            }
 			else
-				PushAfter(item, current);
+            {
+				var current = Last;
+				while (current != null && item.CompareTo(current.Value) < 0)
+				{
+					current = current.Previous;
+				}
+
+				if (current == null)
+					PushBefore(item, First);
+				else
+					PushAfter(item, current);
+			}
 		}
     }
 }

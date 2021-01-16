@@ -11,9 +11,10 @@ namespace Nanomesh.Benchmarks
         [STAThread]
         public static void Main(string[] args)
         {
-            //Benchmark benchmark = new Benchmark();
-            //benchmark.IterationSetup();
-            //benchmark.DecimateSphere();
+            //var benchmark = new SortingBenchmark();
+            //benchmark.PairCount = 100000;
+            //benchmark.Setup();
+            //var b = benchmark.Bruteforce();
 
             ManualConfig conf = new ManualConfig();
             conf.AddExporter(DefaultConfig.Instance.GetExporters().ToArray());

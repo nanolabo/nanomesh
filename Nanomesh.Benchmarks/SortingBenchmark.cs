@@ -13,16 +13,16 @@ namespace Nanomesh.Benchmarks
     //[SimpleJob(RuntimeMoniker.Mono, launchCount: 1, warmupCount: 2, targetCount: 5)]
     //[SimpleJob(RuntimeMoniker.CoreRt31, launchCount: 1, warmupCount: 2, targetCount: 5)]
     //[SimpleJob(RuntimeMoniker.NetCoreApp50, launchCount: 1, warmupCount: 2, targetCount: 5)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp31, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    [SimpleJob(launchCount: 1, warmupCount: 2, targetCount: 5)]
     public class SortingBenchmark
     {
-        [Params(true, false)]
-        public bool Precise { get; set; }
+        //[Params(true, false)]
+        //public bool Precise { get; set; }
 
-        [Params(10, 100, 500, 1000, 2000, 5000, 10000)]
-        public int MinsCount { get; set; }
+        //[Params(10, 100, 500, 1000, 2000, 5000, 10000)]
+        //public int MinsCount { get; set; }
 
-        [Params(10000, 50000, 100000)]
+        [Params(10_000, 100_000, 1_000_000)]
         public int PairCount { get; set; }
 
         private HashSet<EdgeCollapse> _pairs;
@@ -39,34 +39,43 @@ namespace Nanomesh.Benchmarks
         }
 
         [Benchmark]
-        public IReadOnlyCollection<EdgeCollapse> OrderByCustom()
+        public IEnumerable<EdgeCollapse> MinHeap()
         {
-            return new LinkedHashSet<EdgeCollapse>(_pairs.OrderByCustom(x => x).Take(MinsCount));
-        }
-
-        [Benchmark]
-        public IReadOnlyCollection<EdgeCollapse> OrderBy()
-        {
-            return new LinkedHashSet<EdgeCollapse>(_pairs.OrderBy(x => x).Take(MinsCount));
-        }
-
-        [Benchmark]
-        public IReadOnlyCollection<EdgeCollapse> Bruteforce()
-        {
-            var mins = new LinkedHashSet<EdgeCollapse>();
-            mins.Add(_pairs.First());
+            MinHeap<EdgeCollapse> minHeap = new MinHeap<EdgeCollapse>();
             foreach (var pair in _pairs)
             {
-                if (mins.Count < MinsCount)
-                {
-                    mins.AddMin(pair);
-                }
-                else
-                {
-                    mins.PushMin(pair);
-                }
+                minHeap.Add(pair);
             }
-            return mins;
+            return minHeap;
+        }
+
+        [Benchmark]
+        public IEnumerable<float> RadixCustom()
+        {
+            RadixSortedSet radixCustom = new RadixSortedSet();
+            foreach (var pair in _pairs)
+            {
+                radixCustom.Add((float)pair.error);
+            }
+            return radixCustom.ToArray();
+        }
+
+        [Benchmark]
+        public IReadOnlyCollection<EdgeCollapse> Custom()
+        {
+            return _pairs.OrderByCustom(x => x).ToArray();
+        }
+
+        [Benchmark]
+        public IReadOnlyCollection<EdgeCollapse> Linq()
+        {
+            return _pairs.OrderBy(x => x).ToArray();
+        }
+
+        [Benchmark]
+        public IReadOnlyCollection<EdgeCollapse> LinqTakeHalf()
+        {
+            return _pairs.OrderBy(x => x).Take(PairCount / 2).ToArray();
         }
     }
 }
