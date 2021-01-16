@@ -42,7 +42,7 @@ namespace Nanomesh.Tests
             //    Assert.True((i1 > i2 && f1 > f2) || (i1 <= i2 && f1 <= f2));
             //}
 
-            RadixSortedSet radixCustom = new RadixSortedSet();
+            var radixCustom = new RadixSortedSet<float>(x => x);
 
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < 100000; i++)

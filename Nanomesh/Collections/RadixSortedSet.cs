@@ -1,16 +1,40 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace Nanomesh.Collections
 {
-    public class RadixSortedSet : IEnumerable<float>
+    public class RadixSortedSet<T> : IEnumerable<T>
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe int GetHash(float value)
+        private Func<T, float> _valueGetter;
+        private ConcurrentBag<HashSet<T>> _bag = new ConcurrentBag<HashSet<T>>();
+
+        public RadixSortedSet(Func<T, float> valueGetter)
         {
+            _valueGetter = valueGetter;
+        }
+
+        private HashSet<T> RentHashSet()
+        {
+            return _bag.TryTake(out HashSet<T> item) ? item : new HashSet<T>();
+        }
+
+        private void ReturnHashSet(HashSet<T> item)
+        {
+            item.Clear();
+            _bag.Add(item);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe int GetHash(T item)
+        {
+            float value = _valueGetter(item);
+
+            Debug.Assert(value >= 0f, "Only works with positive numbers !");
+
             float* fRef = &value;
             return *(int*)fRef;
         }
@@ -25,18 +49,16 @@ namespace Nanomesh.Collections
 
         public int Count { get; private set; }
 
-        public void Add(float value)
+        public void Add(T item)
         {
-            Debug.Assert(value >= 0f, "Only works with positive numbers !");
-
-            int hash = GetHash(value);
+            int hash = GetHash(item);
 
             Count++;
 
-            AddInternal(value, hash, 31, _root);
+            AddInternal(item, hash, 31, _root);
         }
 
-        private void AddInternal(float value, int hash, int bitStart, BitNode current)
+        private void AddInternal(T item, int hash, int bitStart, BitNode current)
         {
             for (int bit = bitStart; bit >= 0; bit--)
             {
@@ -52,11 +74,11 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node1;
-                        if (current.value > 0 && current.value != value)
+                        if (current.values?.Count > 0 && !current.values.Contains(item))
                         {
-                            AddInternal(value, hash, bit, current);
-                            current.values = 0;
-                            current.value = 0;
+                            AddInternal(item, hash, bit, current);
+                            ReturnHashSet(current.values);
+                            current.values = null;
                         }
                     }
                 }
@@ -70,21 +92,23 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node0;
-                        if (current.values > 0 && current.value != value)
+                        if (current.values?.Count > 0 && !current.values.Contains(item))
                         {
-                            AddInternal(value, hash, bit, current);
-                            current.values = 0;
-                            current.value = 0;
+                            AddInternal(item, hash, bit, current);
+                            ReturnHashSet(current.values);
+                            current.values = null;
                         }
                     }
                 }
             }
 
-            current.value = value;
-            current.values++;
+            if (current.values == null)
+                current.values = RentHashSet();
+
+            current.values.Add(item);
         }
 
-        public IEnumerator<float> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
             int currentCount = 0;
             int depth = 0;
@@ -141,7 +165,7 @@ namespace Nanomesh.Collections
                         }
                     }
 
-                    if (history[depth].value > 0)
+                    if (history[depth].values?.Count > 0)
                     {
                         depthLastSplit = depth;
                         break;
@@ -150,9 +174,9 @@ namespace Nanomesh.Collections
                     depth++;
                 }
 
-                for (int k = 0; k < history[depth].values; k++)
+                foreach (var item in history[depth].values)
                 {
-                    yield return history[depth].value;
+                    yield return item;
                     currentCount++;
                 }
 
@@ -169,13 +193,12 @@ namespace Nanomesh.Collections
         //{
 
         //}
-    }
 
-    public class BitNode
-    {
-        public BitNode node0;
-        public BitNode node1;
-        public int values;
-        public float value;
+        public class BitNode
+        {
+            public BitNode node0;
+            public BitNode node1;
+            public HashSet<T> values;
+        }
     }
 }
