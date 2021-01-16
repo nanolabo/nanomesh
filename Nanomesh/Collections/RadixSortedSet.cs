@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Nanomesh.Collections
@@ -40,7 +41,7 @@ namespace Nanomesh.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsBitSet(int num, int bit)
+        public bool IsBitSet(int num, int bit)
         {
             return 1 == ((num >> bit) & 1);
         }
@@ -51,15 +52,14 @@ namespace Nanomesh.Collections
 
         public void Add(T item)
         {
-            int hash = GetHash(item);
-
-            Count++;
-
-            AddInternal(item, hash, 31, _root);
+            if (AddInternal(item, 31, _root))
+                Count++;
         }
 
-        private void AddInternal(T item, int hash, int bitStart, BitNode current)
+        private bool AddInternal(T item, int bitStart, BitNode current)
         {
+            int hash = GetHash(item);
+
             for (int bit = bitStart; bit >= 0; bit--)
             {
                 bool is1 = IsBitSet(hash, bit);
@@ -74,11 +74,18 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node1;
-                        if (current.values?.Count > 0 && !current.values.Contains(item))
+                        if (current.values?.Count > 0 && GetHash(current.values.First()) != hash)
                         {
-                            AddInternal(item, hash, bit, current);
+                            foreach (var val in current.values)
+                            {
+                                AddInternal(val, bit - 1, current);
+                            }
                             ReturnHashSet(current.values);
                             current.values = null;
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
@@ -92,11 +99,18 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node0;
-                        if (current.values?.Count > 0 && !current.values.Contains(item))
+                        if (current.values?.Count > 0 && GetHash(current.values.First()) != hash)
                         {
-                            AddInternal(item, hash, bit, current);
+                            foreach (var val in current.values)
+                            {
+                                AddInternal(val, bit - 1, current);
+                            }
                             ReturnHashSet(current.values);
                             current.values = null;
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                 }
@@ -105,7 +119,7 @@ namespace Nanomesh.Collections
             if (current.values == null)
                 current.values = RentHashSet();
 
-            current.values.Add(item);
+            return current.values.Add(item);
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -189,10 +203,44 @@ namespace Nanomesh.Collections
             return GetEnumerator();
         }
 
-        //public bool Contains(float value)
-        //{
+        public bool Contains(T item)
+        {
+            int hash = GetHash(item);
+            BitNode current = _root;
 
-        //}
+            for (int bit = 31; bit >= 0; bit--)
+            {
+                bool is1 = IsBitSet(hash, bit);
+
+                if (is1)
+                {
+                    if (current.node1 == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current = current.node1;
+                    }
+                }
+                else
+                {
+                    if (current.node0 == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current = current.node0;
+                    }
+                }
+            }
+
+            if (current.values == null)
+                return false;
+
+            return current.values.Contains(item);
+        }
 
         public class BitNode
         {

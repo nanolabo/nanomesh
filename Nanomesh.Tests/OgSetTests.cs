@@ -27,6 +27,89 @@ namespace Nanomesh.Tests
         }
 
         [Test]
+        public void Contains()
+        {
+            var radixCustom = new RadixSortedSet<float>(x => x);
+
+            radixCustom.Add(12354f);
+            radixCustom.Add(1f);
+            radixCustom.Add(0.0016554f);
+            radixCustom.Add(9f);
+
+            var array = radixCustom.ToArray();
+            //radixCustom.Add(9f);
+
+            Assert.IsTrue(radixCustom.Contains(12354f));
+            Assert.IsTrue(radixCustom.Contains(9f));
+            Assert.IsFalse(radixCustom.Contains(5f));
+        }
+
+        public class TestObject
+        {
+            public float error;
+        }
+
+        [Test]
+        public void AddSameObject()
+        {
+            var radixCustom = new RadixSortedSet<float>(x => x);
+
+            radixCustom.Add(1f);
+            radixCustom.Add(1f);
+            radixCustom.Add(1f);
+
+            Assert.AreEqual(1, radixCustom.Count);
+            Assert.IsTrue(radixCustom.Contains(1f));
+        }
+
+        [Test]
+        public void AddSameValue()
+        {
+            var radixCustom = new RadixSortedSet<TestObject>(x => x.error);
+
+            radixCustom.Add(new TestObject { error = 1f });
+            radixCustom.Add(new TestObject { error = 1f });
+            radixCustom.Add(new TestObject { error = 1f });
+
+            Assert.AreEqual(3, radixCustom.Count);
+            var array = radixCustom.ToArray();
+        }
+
+        [Test]
+        public void TestBit()
+        {
+            var radixCustom = new RadixSortedSet<float>(x => x);
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 0));
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 1));
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 2));
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 3));
+            Assert.AreEqual(true, radixCustom.IsBitSet(1065353216, 28));
+            Assert.AreEqual(true, radixCustom.IsBitSet(1065353216, 29));
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 30));
+            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 31));
+        }
+        private unsafe int GetHash(float value)
+        {
+            float* fRef = &value;
+            return *(int*)fRef;
+        }
+
+        [Test]
+        public void TestHash()
+        {
+            for (int i = 0; i < 100000; i++)
+            {
+                float f1 = RandomFloat(0f, 2f);
+                float f2 = RandomFloat(0f, 2f);
+
+                int i1 = GetHash(f1);
+                int i2 = GetHash(f2);
+
+                Assert.True((i1 > i2 && f1 > f2) || (i1 <= i2 && f1 <= f2));
+            }
+        }
+
+        [Test]
         public void Test()
         {
             //RadixSortedSet set = new RadixSortedSet();
