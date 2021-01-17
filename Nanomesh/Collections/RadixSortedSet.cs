@@ -74,18 +74,25 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node1;
-                        if (current.values?.Count > 0 && GetHash(current.values.First()) != hash)
+                        if (current.values?.Count > 0)
                         {
-                            foreach (var val in current.values)
+                            if (current.values.Contains(item))
                             {
-                                AddInternal(val, bit - 1, current);
+                                return false;
                             }
-                            ReturnHashSet(current.values);
-                            current.values = null;
+                            else if (GetHash(current.values.First()) != hash)
+                            {
+                                foreach (var val in current.values)
+                                {
+                                    AddInternal(val, bit - 1, current);
+                                }
+                                ReturnHashSet(current.values);
+                                current.values = null;
+                            }
                         }
                         else
                         {
-                            break;
+                            continue;
                         }
                     }
                 }
@@ -99,18 +106,25 @@ namespace Nanomesh.Collections
                     else
                     {
                         current = current.node0;
-                        if (current.values?.Count > 0 && GetHash(current.values.First()) != hash)
+                        if (current.values?.Count > 0)
                         {
-                            foreach (var val in current.values)
+                            if (current.values.Contains(item))
                             {
-                                AddInternal(val, bit - 1, current);
+                                return false;
                             }
-                            ReturnHashSet(current.values);
-                            current.values = null;
+                            else if (GetHash(current.values.First()) != hash)
+                            {
+                                foreach (var val in current.values)
+                                {
+                                    AddInternal(val, bit - 1, current);
+                                }
+                                ReturnHashSet(current.values);
+                                current.values = null;
+                            }
                         }
                         else
                         {
-                            break;
+                            continue;
                         }
                     }
                 }
@@ -124,6 +138,87 @@ namespace Nanomesh.Collections
 
         public IEnumerator<T> GetEnumerator()
         {
+            //Stack<BitNode> stack = new Stack<BitNode>();
+            //stack.Push(_root);
+
+            //while (stack.Count > 0)
+            //{
+            //    BitNode current = stack.Peek();
+            //    if (current.node0 != null)
+            //    {
+            //        stack.Push(current.node0);
+            //    }
+            //    else
+            //    {
+            //        if (current.node1 != null)
+            //        {
+            //            stack.Push(current.node0);
+            //        }
+            //        else
+            //        {
+            //            if (current.values != null)
+            //            {
+            //                foreach (var value in current.values)
+            //                {
+            //                    yield return value;
+            //                }
+            //            }
+
+            //            do
+            //            {
+            //                stack.Pop();
+            //                current = stack.Peek();
+            //            } while ((current.node0 == null || current.node1 == null) && current.values == null);
+            //        }
+            //    }
+            //}
+
+            int currentCount = 0;
+            int depth = 0;
+            int depthLastSplit = -1;
+            var history = new BitNode[34];
+
+            history[0] = _root;
+
+            while (currentCount < Count)
+            {
+                int previous = history[depth + 1] != null ? (history[depth + 1] == history[depth].node1 ? 1 : (history[depth + 1] == history[depth].node0 ? 0 : -1)) : -1;
+
+                if (history[depth].node0 != null && previous == -1)
+                {
+                    history[depth + 1] = history[depth].node0;
+                    depth++;
+                }
+                else
+                {
+                    if (history[depth].node1 != null && previous != 1)
+                    {
+                        history[depth + 1] = history[depth].node1;
+                        depth++;
+                    }
+                    else
+                    {
+                        if (history[depth].values?.Count > 0)
+                        {
+                            foreach (var item in history[depth].values)
+                            {
+                                yield return item;
+                                currentCount++;
+                            }
+                        }
+
+                        do
+                        {
+                            depth--;
+                        }
+                        while (depth >= 0
+                           && (history[depth].node0 == null || history[depth].node1 == null)
+                           && history[depth].values == null);
+                    }
+                }
+            }
+
+            /*
             int currentCount = 0;
             int depth = 0;
             int depthLastSplit = -1;
@@ -157,6 +252,13 @@ namespace Nanomesh.Collections
                             {
                                 if (history[depth].node1 == history[depth + 1])
                                 {
+                                    if (history[depth].values?.Count > 0)
+                                    {
+                                        history[depth + 1] = null;
+                                        depthLastSplit = depth - 1;
+                                        break;
+                                    }
+
                                     do
                                     {
                                         history[depth + 1] = null;
@@ -182,6 +284,7 @@ namespace Nanomesh.Collections
                     if (history[depth].values?.Count > 0)
                     {
                         depthLastSplit = depth;
+                        depth++;
                         break;
                     }
 
@@ -196,6 +299,7 @@ namespace Nanomesh.Collections
 
                 depth = depthLastSplit;
             }
+            */
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -247,6 +351,19 @@ namespace Nanomesh.Collections
             public BitNode node0;
             public BitNode node1;
             public HashSet<T> values;
+
+            public override string ToString()
+            {
+                //return $"{(node0 != null ? "0" : null)}{node0?.ToString()} {(node1 != null ? "0" : null)}{node1?.ToString()}";
+                if (values?.Count > 0)
+                {
+                    return $"{values.Count} * {values.First()}";
+                }
+                else
+                {
+                    return "-";
+                }
+            }
         }
     }
 }

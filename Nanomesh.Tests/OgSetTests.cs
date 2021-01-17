@@ -37,7 +37,6 @@ namespace Nanomesh.Tests
             radixCustom.Add(9f);
 
             var array = radixCustom.ToArray();
-            //radixCustom.Add(9f);
 
             Assert.IsTrue(radixCustom.Contains(12354f));
             Assert.IsTrue(radixCustom.Contains(9f));
@@ -47,6 +46,7 @@ namespace Nanomesh.Tests
         public class TestObject
         {
             public float error;
+            public override string ToString() => $"{error}f";
         }
 
         [Test]
@@ -76,7 +76,30 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void TestBit()
+        public void ToArray()
+        {
+            var radixCustom = new RadixSortedSet<TestObject>(x => x.error);
+
+            radixCustom.Add(new TestObject { error = 1f });
+            radixCustom.Add(new TestObject { error = 2f });
+            radixCustom.Add(new TestObject { error = 3f });
+            radixCustom.Add(new TestObject { error = 956423323f });
+            radixCustom.Add(new TestObject { error = 0.12356f });
+
+            Assert.AreEqual(5, radixCustom.Count);
+            var array = radixCustom.Select(x => x.error).ToArray();
+            var set = new HashSet<float>(array);
+
+            Assert.IsTrue(set.Contains(1f));
+            Assert.IsTrue(set.Contains(2f));
+            Assert.IsTrue(set.Contains(3f));
+            Assert.IsTrue(set.Contains(956423323f));
+            Assert.IsTrue(set.Contains(0.12356f));
+            Assert.IsFalse(set.Contains(10f));
+        }
+
+        [Test]
+        public void Internal_IsBitSet()
         {
             var radixCustom = new RadixSortedSet<float>(x => x);
             Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 0));
@@ -95,7 +118,7 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void TestHash()
+        public void Hashing()
         {
             for (int i = 0; i < 100000; i++)
             {
@@ -110,21 +133,26 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void Test()
+        public void Sorting()
         {
-            //RadixSortedSet set = new RadixSortedSet();
+            var radixCustom = new RadixSortedSet<float>(x => x);
 
-            //for (int i = 0; i < 100000; i++)
-            //{
-            //    float f1 = RandomFloat(0f, 100000f);
-            //    float f2 = RandomFloat(0f, 100000f);
+            for (int i = 0; i < 100000; i++)
+            {
+                radixCustom.Add(RandomFloat(0f, 1000000f));
+            }
 
-            //    int i1 = set.Add(f1);
-            //    int i2 = set.Add(f2);
+            var array = radixCustom.ToArray();
 
-            //    Assert.True((i1 > i2 && f1 > f2) || (i1 <= i2 && f1 <= f2));
-            //}
+            for (int i = 0; i < array.Length - 1; i++)
+            {
+                Assert.LessOrEqual(array[i], array[i + 1]);
+            }
+        }
 
+        [Test]
+        public void Performance()
+        {
             var radixCustom = new RadixSortedSet<float>(x => x);
 
             Stopwatch sw = Stopwatch.StartNew();
