@@ -43,6 +43,40 @@ namespace Nanomesh.Tests
             Assert.IsFalse(radixCustom.Contains(5f));
         }
 
+        [Test]
+        public void GetFirst()
+        {
+            var radixCustom = new RadixSortedSet<float>(x => x);
+
+            radixCustom.Add(0.0651f);
+            radixCustom.Add(10f);
+            radixCustom.Add(1f);
+            radixCustom.Add(1f);
+            radixCustom.Add(0.0001f);
+            radixCustom.Add(999f);
+
+            var array = radixCustom.ToArray();
+
+            Assert.IsTrue(radixCustom.GetFirst() == 0.0001f);
+        }
+
+        [Test]
+        public void GetLast()
+        {
+            var radixCustom = new RadixSortedSet<float>(x => x);
+
+            radixCustom.Add(5f);
+            radixCustom.Add(6f);
+            radixCustom.Add(100000f);
+            radixCustom.Add(5f);
+            radixCustom.Add(0.0001f);
+            radixCustom.Add(999f);
+
+            var array = radixCustom.ToArray();
+
+            Assert.IsTrue(radixCustom.GetLast() == 100000f);
+        }
+
         public class TestObject
         {
             public float error;

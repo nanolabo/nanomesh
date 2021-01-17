@@ -217,6 +217,48 @@ namespace Nanomesh.Collections
             return current.values.Contains(item);
         }
 
+        public T GetFirst()
+        {
+            BitNode current = _root;
+            while (true)
+            {
+                if (current.node0 != null)
+                {
+                    current = current.node0;
+                }
+                else if (current.node1 != null)
+                {
+                    current = current.node1;
+                }
+                else
+                {
+                    Debug.Assert(current.values?.Count > 0, "It shouldn't be empty !");
+                    return current.values.First();
+                }
+            }
+        }
+
+        public T GetLast()
+        {
+            BitNode current = _root;
+            while (true)
+            {
+                if (current.node1 != null)
+                {
+                    current = current.node1;
+                }
+                else if (current.node0 != null)
+                {
+                    current = current.node0;
+                }
+                else
+                {
+                    Debug.Assert(current.values?.Count > 0, "It shouldn't be empty !");
+                    return current.values.First();
+                }
+            }
+        }
+
         public class BitNode
         {
             public BitNode node0;
