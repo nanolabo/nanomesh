@@ -56,7 +56,7 @@ namespace Nanomesh.Collections
                 Count++;
         }
 
-        private bool AddInternal(T item, int bitStart, BitNode current)
+        private bool AddInternal(T item, int bitStart, BitNode current, HashSet<T> move = null)
         {
             int hash = GetHash(item);
 
@@ -69,6 +69,8 @@ namespace Nanomesh.Collections
                     if (current.node1 == null)
                     {
                         current = current.node1 = new BitNode();
+                        if (move != null)
+                            current.values = move;
                         break;
                     }
                     else
@@ -76,23 +78,16 @@ namespace Nanomesh.Collections
                         current = current.node1;
                         if (current.values?.Count > 0)
                         {
-                            if (current.values.Contains(item))
+                            var val = current.values.First();
+                            if (GetHash(val) == hash)
                             {
-                                return false;
+                                break;
                             }
-                            else if (GetHash(current.values.First()) != hash)
+                            else
                             {
-                                foreach (var val in current.values)
-                                {
-                                    AddInternal(val, bit - 1, current);
-                                }
-                                ReturnHashSet(current.values);
+                                AddInternal(val, bit - 1, current, current.values);
                                 current.values = null;
                             }
-                        }
-                        else
-                        {
-                            continue;
                         }
                     }
                 }
@@ -101,6 +96,8 @@ namespace Nanomesh.Collections
                     if (current.node0 == null)
                     {
                         current = current.node0 = new BitNode();
+                        if (move != null)
+                            current.values = move;
                         break;
                     }
                     else
@@ -108,23 +105,16 @@ namespace Nanomesh.Collections
                         current = current.node0;
                         if (current.values?.Count > 0)
                         {
-                            if (current.values.Contains(item))
+                            var val = current.values.First();
+                            if (GetHash(val) == hash)
                             {
-                                return false;
+                                break;
                             }
-                            else if (GetHash(current.values.First()) != hash)
+                            else
                             {
-                                foreach (var val in current.values)
-                                {
-                                    AddInternal(val, bit - 1, current);
-                                }
-                                ReturnHashSet(current.values);
+                                AddInternal(val, bit - 1, current, current.values);
                                 current.values = null;
                             }
-                        }
-                        else
-                        {
-                            continue;
                         }
                     }
                 }
@@ -138,44 +128,8 @@ namespace Nanomesh.Collections
 
         public IEnumerator<T> GetEnumerator()
         {
-            //Stack<BitNode> stack = new Stack<BitNode>();
-            //stack.Push(_root);
-
-            //while (stack.Count > 0)
-            //{
-            //    BitNode current = stack.Peek();
-            //    if (current.node0 != null)
-            //    {
-            //        stack.Push(current.node0);
-            //    }
-            //    else
-            //    {
-            //        if (current.node1 != null)
-            //        {
-            //            stack.Push(current.node0);
-            //        }
-            //        else
-            //        {
-            //            if (current.values != null)
-            //            {
-            //                foreach (var value in current.values)
-            //                {
-            //                    yield return value;
-            //                }
-            //            }
-
-            //            do
-            //            {
-            //                stack.Pop();
-            //                current = stack.Peek();
-            //            } while ((current.node0 == null || current.node1 == null) && current.values == null);
-            //        }
-            //    }
-            //}
-
             int currentCount = 0;
             int depth = 0;
-            int depthLastSplit = -1;
             var history = new BitNode[34];
 
             history[0] = _root;
@@ -217,89 +171,6 @@ namespace Nanomesh.Collections
                     }
                 }
             }
-
-            /*
-            int currentCount = 0;
-            int depth = 0;
-            int depthLastSplit = -1;
-            var history = new BitNode[33];
-
-            history[0] = _root;
-
-            while (currentCount < Count)
-            {
-                while (depth < 32)
-                {
-                    if (history[depth].node0 == null)
-                    {
-                        history[depth + 1] = history[depth].node1;
-                    }
-                    else
-                    {
-                        if (history[depth].node1 == null)
-                        {
-                            history[depth + 1] = history[depth].node0;
-                        }
-                        else
-                        {
-                            // Tree splits here
-                            if (history[depth].node0 == history[depth + 1])
-                            {
-                                // node0 was just browsed, so now we can go to node1
-                                history[depth + 1] = history[depth].node1;
-                            }
-                            else
-                            {
-                                if (history[depth].node1 == history[depth + 1])
-                                {
-                                    if (history[depth].values?.Count > 0)
-                                    {
-                                        history[depth + 1] = null;
-                                        depthLastSplit = depth - 1;
-                                        break;
-                                    }
-
-                                    do
-                                    {
-                                        history[depth + 1] = null;
-                                        depth--;
-                                    }
-                                    while (depth >=0 && !(history[depth].node0 != null
-                                        && history[depth].node1 != null
-                                        && history[depth].node0 == history[depth + 1]));
-
-                                    depthLastSplit = depth;
-
-                                    continue;
-                                }
-                                else
-                                {
-                                    history[depth + 1] = history[depth].node0;
-                                    depthLastSplit = depth;
-                                }
-                            }
-                        }
-                    }
-
-                    if (history[depth].values?.Count > 0)
-                    {
-                        depthLastSplit = depth;
-                        depth++;
-                        break;
-                    }
-
-                    depth++;
-                }
-
-                foreach (var item in history[depth].values)
-                {
-                    yield return item;
-                    currentCount++;
-                }
-
-                depth = depthLastSplit;
-            }
-            */
         }
 
         IEnumerator IEnumerable.GetEnumerator()
