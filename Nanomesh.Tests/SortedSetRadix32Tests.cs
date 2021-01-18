@@ -1,16 +1,13 @@
 ﻿using Nanomesh.Collections;
 using NUnit.Framework;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nanomesh.Tests
 {
-    class OgSetTests
+    class SortedSetRadix32Tests
     {
         Random _random;
 

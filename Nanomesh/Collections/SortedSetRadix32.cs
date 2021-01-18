@@ -21,6 +21,7 @@ namespace Nanomesh.Collections
     {
         private Func<T, float> _valueGetter;
         private ConcurrentBag<HashSet<T>> _hashSetPool = new ConcurrentBag<HashSet<T>>();
+        private HashSet<T> _allItems = new HashSet<T>();
 
         public SortedSetRadix32(Func<T, float> valueGetter)
         {
@@ -57,10 +58,16 @@ namespace Nanomesh.Collections
 
         public int Count { get; private set; }
 
-        public void Add(T item)
+        public bool Add(T item)
         {
-            if (AddInternal(item, 31, _root))
+            if (_allItems.Add(item))
+            {
+                bool success = AddInternal(item, 31, _root);
+                Debug.Assert(success);
                 Count++;
+                return true;
+            }
+            return false;
         }
 
         private bool AddInternal(T item, int bitStart, BitNode current, HashSet<T> move = null)
@@ -139,6 +146,14 @@ namespace Nanomesh.Collections
             if (item == null)
                 return false;
 
+            if (!_allItems.TryGetValue(item, out item))
+                return false;
+
+            _allItems.Remove(item);
+
+            BitNode lastSplit = null;
+            int lastSplitIndex = -1;
+
             int hash = GetHash(_valueGetter(item));
             BitNode current = _root;
 
@@ -154,6 +169,12 @@ namespace Nanomesh.Collections
                     }
                     else
                     {
+                        if (current.node0 != null)
+                        {
+                            lastSplit = current;
+                            lastSplitIndex = 1;
+                        }
+                            
                         current = current.node1;
                     }
                 }
@@ -165,26 +186,42 @@ namespace Nanomesh.Collections
                     }
                     else
                     {
+                        if (current.node1 != null)
+                        {
+                            lastSplit = current;
+                            lastSplitIndex = 0;
+                        }
+
                         current = current.node0;
                     }
                 }
             }
 
-            if (current.values == null)
-                return false;
+            Debug.Assert(current.values != null);
 
             bool removed = current.values.Remove(item);
 
-            if (removed)
-                Count--;
+            Debug.Assert(removed);
+
+            Count--;
 
             if (current.values.Count == 0)
             {
                 ReturnHashSet(current.values);
                 current.values = null;
+
+                if (lastSplit != null)
+                {
+                    Debug.Assert(lastSplitIndex != -1);
+
+                    if (lastSplitIndex == 0)
+                        lastSplit.node0 = null;
+                    else
+                        lastSplit.node1 = null;
+                }
             }
 
-            return removed;
+            return true;
         }
 
         public IEnumerator<T> GetEnumerator()

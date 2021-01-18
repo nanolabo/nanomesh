@@ -48,7 +48,7 @@ namespace Nanomesh.Sandbox
 
         static void Benchmark()
         {
-            SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 7);
+            SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 6);
             ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
 
             NormalsModifier normals = new NormalsModifier();

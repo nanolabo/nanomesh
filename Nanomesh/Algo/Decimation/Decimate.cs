@@ -2,21 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-		public bool UpdateFarNeighbors = true;
+		public bool UpdateFarNeighbors = false;
 		public bool UpdateMinsOnCollapse = true;
 
 		private ConnectedMesh _mesh;
 
 		private SymmetricMatrix[] _matrices;
 		private NodeTopology[] _nodeTopologies;
-		private FastHashSet<EdgeCollapse> _pairs;
-		private LinkedHashSet<EdgeCollapse> _mins;
+		private SortedSetRadix32<EdgeCollapse> _pairs;
 
 		private int _lastProgress = int.MinValue;
 		private int _initialTriangleCount;
@@ -24,8 +22,8 @@ namespace Nanomesh
 		const double _ƐDET = 0.001f;
 		const double _ƐPRIO = 0.00001f;
 
-		const double _OFFSET_HARD = 1e6;
-		const double _OFFSET_NOCOLLAPSE = 1e300;
+		const float _OFFSET_HARD = 1e4f;
+		const float _OFFSET_NOCOLLAPSE = 1e10f;
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -37,7 +35,7 @@ namespace Nanomesh
 		{
 			Initialize(mesh);
 
-			while (GetPairWithMinimumError().error <= maximumError)
+			while (_pairs.GetFirst().error <= maximumError)
 			{
 				Iterate();
 			}
@@ -73,10 +71,7 @@ namespace Nanomesh
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
 			_nodeTopologies = new NodeTopology[mesh.positions.Length];
-			_pairs = new FastHashSet<EdgeCollapse>();
-			_mins = new LinkedHashSet<EdgeCollapse>();
-
-			InitializePairs();
+			_pairs = new SortedSetRadix32<EdgeCollapse>(x => (float)x.error);
 
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateQuadric(p);
@@ -84,54 +79,24 @@ namespace Nanomesh
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateTopology(p);
 
-			foreach (var pair in _pairs)
-				CalculateError(pair);
+			InitializePairs();
 		}
 
 		private void Iterate()
 		{
-			EdgeCollapse pair = GetPairWithMinimumError();
+			EdgeCollapse pair = _pairs.GetFirst();
 
 			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 			Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
 
 			_pairs.Remove(pair);
-			_mins.Remove(pair);
 
 			CollapseEdge(pair);
 		}
 
-		private EdgeCollapse GetPairWithMinimumError()
-		{
-			if (_mins.Count == 0)
-				ComputeMins();
-
-			var edge = _mins.First;
-
-			return edge.Value;
-		}
-
-		private int MinsCount => MathF.Clamp(500, 0, _pairs.Count);
-
-		private void ComputeMins()
-		{
-			Console.WriteLine("Compute Mins");
-
-            //MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(_pairs);
-            //foreach (var pair in _pairs)
-            //{
-            //    queue.Add(pair);
-            //}
-
-            //_mins = new LinkedHashSet<EdgeCollapse>(queue.Elements);
-
-            _mins = new LinkedHashSet<EdgeCollapse>(_pairs.OrderBy(x => x).Take(MinsCount));
-		}
-
 		private void InitializePairs()
 		{
-			_pairs.Clear();
-			_mins.Clear();
+			HashSet<EdgeCollapse> edgeCollapses = new HashSet<EdgeCollapse>();
 
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 			{
@@ -146,6 +111,8 @@ namespace Nanomesh
 					int secondRelative = _mesh.nodes[firstRelative].relative;
 
 					var pair = new EdgeCollapse(_mesh.nodes[firstRelative].position, _mesh.nodes[secondRelative].position);
+
+					CalculateError(pair);
 
 					_pairs.Add(pair);
 
@@ -647,10 +614,7 @@ namespace Nanomesh
 					int posC = _mesh.nodes[relative].position;
 					var pairAC = new EdgeCollapse(posA, posC);
 					// Todo : Optimization by only removing first pair (first edge)
-					if (_pairs.Remove(pairAC))
-                    {
-						_mins.Remove(pairAC);
-					}
+					_pairs.Remove(pairAC);
 				} 
 
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexA);
@@ -664,10 +628,7 @@ namespace Nanomesh
 				{
 					int posC = _mesh.nodes[relative].position;
 					var pairBC = new EdgeCollapse(posB, posC);
-					if (_pairs.Remove(pairBC))
-                    {
-						_mins.Remove(pairBC);
-					}
+					_pairs.Remove(pairBC);
 				}
 
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexB);
@@ -729,12 +690,9 @@ namespace Nanomesh
 
 			foreach (var edge in _edgeToRefresh)
 			{
-				CalculateError(edge);
 				_pairs.Remove(edge);
+				CalculateError(edge);
 				_pairs.Add(edge);
-				_mins.Remove(edge);
-				if (UpdateMinsOnCollapse)
-					_mins.AddMin(edge);
 			}
 		}
 	}
