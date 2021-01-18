@@ -29,7 +29,7 @@ namespace Nanomesh.Tests
         [Test]
         public void Contains()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             radixCustom.Add(12354f);
             radixCustom.Add(1f);
@@ -46,7 +46,7 @@ namespace Nanomesh.Tests
         [Test]
         public void GetFirst()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             radixCustom.Add(0.0651f);
             radixCustom.Add(10f);
@@ -63,7 +63,7 @@ namespace Nanomesh.Tests
         [Test]
         public void GetLast()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             radixCustom.Add(5f);
             radixCustom.Add(6f);
@@ -84,9 +84,9 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void AddSameObject()
+        public void Add_SameObject()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             radixCustom.Add(1f);
             radixCustom.Add(1f);
@@ -97,9 +97,9 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void AddSameValue()
+        public void Add_SameValue()
         {
-            var radixCustom = new RadixSortedSet<TestObject>(x => x.error);
+            var radixCustom = new SortedSetRadix32<TestObject>(x => x.error);
 
             radixCustom.Add(new TestObject { error = 1f });
             radixCustom.Add(new TestObject { error = 1f });
@@ -110,9 +110,35 @@ namespace Nanomesh.Tests
         }
 
         [Test]
+        public void Remove_SameValue()
+        {
+            var radixCustom = new SortedSetRadix32<TestObject>(x => x.error);
+
+            radixCustom.Add(new TestObject { error = 1f });
+            radixCustom.Add(new TestObject { error = 1f });
+            radixCustom.Add(new TestObject { error = 1f });
+
+            Assert.AreEqual(3, radixCustom.Count);
+
+            Assert.IsTrue(radixCustom.Remove(radixCustom.GetFirst()));
+
+            Assert.AreEqual(2, radixCustom.Count);
+
+            Assert.IsTrue(radixCustom.Remove(radixCustom.GetFirst()));
+
+            Assert.AreEqual(1, radixCustom.Count);
+
+            Assert.IsTrue(radixCustom.Remove(radixCustom.GetFirst()));
+
+            Assert.AreEqual(0, radixCustom.Count);
+
+            Assert.IsFalse(radixCustom.Remove(radixCustom.GetFirst()));
+        }
+
+        [Test]
         public void ToArray()
         {
-            var radixCustom = new RadixSortedSet<TestObject>(x => x.error);
+            var radixCustom = new SortedSetRadix32<TestObject>(x => x.error);
 
             radixCustom.Add(new TestObject { error = 1f });
             radixCustom.Add(new TestObject { error = 2f });
@@ -133,22 +159,17 @@ namespace Nanomesh.Tests
         }
 
         [Test]
-        public void Internal_IsBitSet()
+        public void IsBitSet()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 0));
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 1));
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 2));
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 3));
-            Assert.AreEqual(true, radixCustom.IsBitSet(1065353216, 28));
-            Assert.AreEqual(true, radixCustom.IsBitSet(1065353216, 29));
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 30));
-            Assert.AreEqual(false, radixCustom.IsBitSet(1065353216, 31));
-        }
-        private unsafe int GetHash(float value)
-        {
-            float* fRef = &value;
-            return *(int*)fRef;
+            var radixCustom = new SortedSetRadix32<float>(x => x);
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 0));
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 1));
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 2));
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 3));
+            Assert.AreEqual(true, SortedSetRadix32<float>.IsBitSet(1065353216, 28));
+            Assert.AreEqual(true, SortedSetRadix32<float>.IsBitSet(1065353216, 29));
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 30));
+            Assert.AreEqual(false, SortedSetRadix32<float>.IsBitSet(1065353216, 31));
         }
 
         [Test]
@@ -159,8 +180,8 @@ namespace Nanomesh.Tests
                 float f1 = RandomFloat(0f, 2f);
                 float f2 = RandomFloat(0f, 2f);
 
-                int i1 = GetHash(f1);
-                int i2 = GetHash(f2);
+                int i1 = SortedSetRadix32<float>.GetHash(f1);
+                int i2 = SortedSetRadix32<float>.GetHash(f2);
 
                 Assert.True((i1 > i2 && f1 > f2) || (i1 <= i2 && f1 <= f2));
             }
@@ -169,7 +190,7 @@ namespace Nanomesh.Tests
         [Test]
         public void Sorting()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             for (int i = 0; i < 100000; i++)
             {
@@ -187,7 +208,7 @@ namespace Nanomesh.Tests
         [Test]
         public void Performance()
         {
-            var radixCustom = new RadixSortedSet<float>(x => x);
+            var radixCustom = new SortedSetRadix32<float>(x => x);
 
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < 100000; i++)

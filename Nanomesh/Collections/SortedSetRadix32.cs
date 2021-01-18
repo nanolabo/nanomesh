@@ -8,32 +8,39 @@ using System.Runtime.CompilerServices;
 
 namespace Nanomesh.Collections
 {
-    public class RadixSortedSet<T> : IEnumerable<T>
+    /// <summary>
+    /// A very special collection featuring :
+    /// - Persistent Sorting (smallest to largest)
+    /// - Add(T) in constant time
+    /// - Remove(T) in constant time
+    /// - Contains(T) in constant time
+    /// - GetFirst() & GetLast() in constant time (thanks to ordering)
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class SortedSetRadix32<T> : IEnumerable<T>
     {
         private Func<T, float> _valueGetter;
-        private ConcurrentBag<HashSet<T>> _bag = new ConcurrentBag<HashSet<T>>();
+        private ConcurrentBag<HashSet<T>> _hashSetPool = new ConcurrentBag<HashSet<T>>();
 
-        public RadixSortedSet(Func<T, float> valueGetter)
+        public SortedSetRadix32(Func<T, float> valueGetter)
         {
             _valueGetter = valueGetter;
         }
 
         private HashSet<T> RentHashSet()
         {
-            return _bag.TryTake(out HashSet<T> item) ? item : new HashSet<T>();
+            return _hashSetPool.TryTake(out HashSet<T> item) ? item : new HashSet<T>();
         }
 
         private void ReturnHashSet(HashSet<T> item)
         {
             item.Clear();
-            _bag.Add(item);
+            _hashSetPool.Add(item);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe int GetHash(T item)
+        internal static unsafe int GetHash(float value)
         {
-            float value = _valueGetter(item);
-
             Debug.Assert(value >= 0f, "Only works with positive numbers !");
 
             float* fRef = &value;
@@ -41,7 +48,7 @@ namespace Nanomesh.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsBitSet(int num, int bit)
+        internal static bool IsBitSet(int num, int bit)
         {
             return 1 == ((num >> bit) & 1);
         }
@@ -58,7 +65,8 @@ namespace Nanomesh.Collections
 
         private bool AddInternal(T item, int bitStart, BitNode current, HashSet<T> move = null)
         {
-            int hash = GetHash(item);
+            float value = _valueGetter(item);
+            int hash = GetHash(value);
 
             for (int bit = bitStart; bit >= 0; bit--)
             {
@@ -78,14 +86,14 @@ namespace Nanomesh.Collections
                         current = current.node1;
                         if (current.values?.Count > 0)
                         {
-                            var val = current.values.First();
-                            if (GetHash(val) == hash)
+                            var inPlaceItem = current.values.First();
+                            if (_valueGetter(inPlaceItem) == value)
                             {
                                 break;
                             }
                             else
                             {
-                                AddInternal(val, bit - 1, current, current.values);
+                                AddInternal(inPlaceItem, bit - 1, current, current.values);
                                 current.values = null;
                             }
                         }
@@ -105,14 +113,14 @@ namespace Nanomesh.Collections
                         current = current.node0;
                         if (current.values?.Count > 0)
                         {
-                            var val = current.values.First();
-                            if (GetHash(val) == hash)
+                            var inPlaceItem = current.values.First();
+                            if (_valueGetter(inPlaceItem) == value)
                             {
                                 break;
                             }
                             else
                             {
-                                AddInternal(val, bit - 1, current, current.values);
+                                AddInternal(inPlaceItem, bit - 1, current, current.values);
                                 current.values = null;
                             }
                         }
@@ -124,6 +132,59 @@ namespace Nanomesh.Collections
                 current.values = RentHashSet();
 
             return current.values.Add(item);
+        }
+
+        public bool Remove(T item)
+        {
+            if (item == null)
+                return false;
+
+            int hash = GetHash(_valueGetter(item));
+            BitNode current = _root;
+
+            for (int bit = 31; bit >= 0; bit--)
+            {
+                bool is1 = IsBitSet(hash, bit);
+
+                if (is1)
+                {
+                    if (current.node1 == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current = current.node1;
+                    }
+                }
+                else
+                {
+                    if (current.node0 == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        current = current.node0;
+                    }
+                }
+            }
+
+            if (current.values == null)
+                return false;
+
+            bool removed = current.values.Remove(item);
+
+            if (removed)
+                Count--;
+
+            if (current.values.Count == 0)
+            {
+                ReturnHashSet(current.values);
+                current.values = null;
+            }
+
+            return removed;
         }
 
         public IEnumerator<T> GetEnumerator()
@@ -180,7 +241,10 @@ namespace Nanomesh.Collections
 
         public bool Contains(T item)
         {
-            int hash = GetHash(item);
+            if (item == null)
+                return false;
+
+            int hash = GetHash(_valueGetter(item));
             BitNode current = _root;
 
             for (int bit = 31; bit >= 0; bit--)
@@ -219,6 +283,9 @@ namespace Nanomesh.Collections
 
         public T GetFirst()
         {
+            if (Count <= 0)
+                return default(T);
+
             BitNode current = _root;
             while (true)
             {
@@ -240,6 +307,9 @@ namespace Nanomesh.Collections
 
         public T GetLast()
         {
+            if (Count <= 0)
+                return default(T);
+
             BitNode current = _root;
             while (true)
             {

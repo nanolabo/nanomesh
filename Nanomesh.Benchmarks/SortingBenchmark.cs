@@ -53,7 +53,7 @@ namespace Nanomesh.Benchmarks
         public IEnumerable<float> RadixCustom()
         {
             //GC.TryStartNoGCRegion(1000000000);
-            RadixSortedSet radixCustom = new RadixSortedSet();
+            SortedSetRadix32 radixCustom = new RadixSortedSet();
             foreach (var pair in _pairs)
             {
                 radixCustom.Add((float)pair.error);
