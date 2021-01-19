@@ -14,7 +14,7 @@ namespace Nanomesh
 
 		private SymmetricMatrix[] _matrices;
 		private NodeTopology[] _nodeTopologies;
-		private SortedSetRadix32<EdgeCollapse> _pairs;
+		private SortedSetBuckets16<EdgeCollapse> _pairs;
 
 		private int _lastProgress = int.MinValue;
 		private int _initialTriangleCount;
@@ -71,7 +71,7 @@ namespace Nanomesh
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
 			_nodeTopologies = new NodeTopology[mesh.positions.Length];
-			_pairs = new SortedSetRadix32<EdgeCollapse>(x => (Half)x.error);
+			_pairs = new SortedSetBuckets16<EdgeCollapse>(x => (Half)x.error);
 
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateQuadric(p);
