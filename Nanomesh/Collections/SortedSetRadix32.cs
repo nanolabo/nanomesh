@@ -19,11 +19,11 @@ namespace Nanomesh.Collections
     /// <typeparam name="T"></typeparam>
     public class SortedSetRadix32<T> : IEnumerable<T>
     {
-        private Func<T, float> _valueGetter;
+        private Func<T, Half> _valueGetter;
         private ConcurrentBag<HashSet<T>> _hashSetPool = new ConcurrentBag<HashSet<T>>();
         private HashSet<T> _allItems = new HashSet<T>();
 
-        public SortedSetRadix32(Func<T, float> valueGetter)
+        public SortedSetRadix32(Func<T, Half> valueGetter)
         {
             _valueGetter = valueGetter;
         }
@@ -40,16 +40,14 @@ namespace Nanomesh.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe int GetHash(float value)
+        internal static unsafe ushort GetHash(Half value)
         {
-            Debug.Assert(value >= 0f, "Only works with positive numbers !");
-
-            float* fRef = &value;
-            return *(int*)fRef;
+            Half* fRef = &value;
+            return *(ushort*)fRef;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsBitSet(int num, int bit)
+        internal static bool IsBitSet(ushort num, int bit)
         {
             return 1 == ((num >> bit) & 1);
         }
@@ -62,7 +60,7 @@ namespace Nanomesh.Collections
         {
             if (_allItems.Add(item))
             {
-                bool success = AddInternal(item, 31, _root);
+                bool success = AddInternal(item, 15, _root);
                 Debug.Assert(success);
                 Count++;
                 return true;
@@ -72,8 +70,8 @@ namespace Nanomesh.Collections
 
         private bool AddInternal(T item, int bitStart, BitNode current, HashSet<T> move = null)
         {
-            float value = _valueGetter(item);
-            int hash = GetHash(value);
+            Half value = _valueGetter(item);
+            ushort hash = GetHash(value);
 
             for (int bit = bitStart; bit >= 0; bit--)
             {
@@ -154,10 +152,10 @@ namespace Nanomesh.Collections
             BitNode lastSplit = null;
             int lastSplitIndex = -1;
 
-            int hash = GetHash(_valueGetter(item));
+            ushort hash = GetHash(_valueGetter(item));
             BitNode current = _root;
 
-            for (int bit = 31; bit >= 0; bit--)
+            for (int bit = 15; bit >= 0; bit--)
             {
                 bool is1 = IsBitSet(hash, bit);
 
@@ -228,7 +226,7 @@ namespace Nanomesh.Collections
         {
             int currentCount = 0;
             int depth = 0;
-            var history = new BitNode[34];
+            var history = new BitNode[18];
 
             history[0] = _root;
 
@@ -281,10 +279,10 @@ namespace Nanomesh.Collections
             if (item == null)
                 return false;
 
-            int hash = GetHash(_valueGetter(item));
+            ushort hash = GetHash(_valueGetter(item));
             BitNode current = _root;
 
-            for (int bit = 31; bit >= 0; bit--)
+            for (int bit = 15; bit >= 0; bit--)
             {
                 bool is1 = IsBitSet(hash, bit);
 

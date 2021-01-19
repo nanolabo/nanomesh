@@ -71,7 +71,7 @@ namespace Nanomesh
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
 			_nodeTopologies = new NodeTopology[mesh.positions.Length];
-			_pairs = new SortedSetRadix32<EdgeCollapse>(x => (float)x.error);
+			_pairs = new SortedSetRadix32<EdgeCollapse>(x => (Half)x.error);
 
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateQuadric(p);
