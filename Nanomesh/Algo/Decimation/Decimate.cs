@@ -1,14 +1,13 @@
-﻿using Nanomesh.Collections;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 namespace Nanomesh
 {
-    public partial class DecimateModifier
+	public partial class DecimateModifier
     {
-		public bool UpdateFarNeighbors = true;
+		public bool UpdateFarNeighbors = false;
 		public bool UpdateMinsOnCollapse = true;
 
 		private ConnectedMesh _mesh;
@@ -626,7 +625,7 @@ namespace Nanomesh
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
-		private HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>(6);
+		private HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>();
 
 		private void CollapseEdge(EdgeCollapse pair)
 		{

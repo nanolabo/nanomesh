@@ -22,5 +22,13 @@ namespace Nanomesh
             dictionary.Add(key, value);
             return true;
         }
+
+        public static V GetOrAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
+        {
+            if (dictionary.TryGetValue(key, out var existingValue))
+                return existingValue;
+            dictionary.Add(key, value);
+            return value;
+        }
     }
 }

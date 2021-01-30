@@ -6,6 +6,7 @@
         public Vector3F[] normals;
         public Vector2F[] uvs;
         public int[] triangles;
+        public Group[] groups;
 
         public void CheckValidity()
         {
@@ -26,5 +27,11 @@
 
             return true;
         }
+    }
+
+    public struct Group
+    {
+        public int firstIndex;
+        public int indexCount;
     }
 }

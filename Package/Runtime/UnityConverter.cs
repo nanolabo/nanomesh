@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 using UVector3 = UnityEngine.Vector3;
 using UVector2 = UnityEngine.Vector2;
-using NVector3 = Nanolabo.Vector3;
-using NVector2F = Nanolabo.Vector2F;
-using NVector3F = Nanolabo.Vector3F;
+using NVector3 = Nanomesh.Vector3;
+using NVector2F = Nanomesh.Vector2F;
+using NVector3F = Nanomesh.Vector3F;
 
-namespace Nanolabo.Unity
+namespace Nanomesh.Unity
 {
     public static class UnityConverter
     {
@@ -14,7 +14,6 @@ namespace Nanolabo.Unity
             UVector3[] vertices = mesh.vertices;
             UVector3[] normals = mesh.normals;
             UVector2[] uvs = mesh.uv;
-            int[] triangles = mesh.triangles;
 
             SharedMesh sharedMesh = new SharedMesh();
 
@@ -31,13 +30,27 @@ namespace Nanolabo.Unity
                 sharedMesh.uvs[i] = new NVector2F(uvs[i].x, uvs[i].y);
 
             sharedMesh.triangles = mesh.triangles;
+            sharedMesh.groups = new Group[mesh.subMeshCount];
+
+            for (int i = 0; i < mesh.subMeshCount; i++)
+            {
+                var submeshDesc = mesh.GetSubMesh(i);
+                sharedMesh.groups[i] = new Group { firstIndex = submeshDesc.indexStart, indexCount = submeshDesc.indexCount };
+                Debug.Log($"Submesh {i} from {submeshDesc.indexStart} to {submeshDesc.indexStart + submeshDesc.indexCount}");
+            }
 
             return sharedMesh;
         }
 
         public static Mesh ToUnityMesh(this SharedMesh sharedMesh)
         {
-            Mesh mesh = new Mesh();
+            Mesh newMesh = new Mesh();
+            sharedMesh.ToUnityMesh(newMesh);
+            return newMesh;
+        }
+
+        public static void ToUnityMesh(this SharedMesh sharedMesh, Mesh mesh)
+        {
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
             UVector3[] vertices = new UVector3[sharedMesh.vertices.Length];
@@ -56,8 +69,12 @@ namespace Nanolabo.Unity
             mesh.normals = normals;
             mesh.uv = uvs;
             mesh.triangles = sharedMesh.triangles;
+            mesh.subMeshCount = sharedMesh.groups.Length;
 
-            return mesh;
+            for (int i = 0; i < sharedMesh.groups.Length; i++)
+            {
+                mesh.SetSubMesh(i, new UnityEngine.Rendering.SubMeshDescriptor(sharedMesh.groups[i].firstIndex, sharedMesh.groups[i].indexCount));
+            }
         }
     }
 }

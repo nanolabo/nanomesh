@@ -14,6 +14,7 @@ namespace Nanomesh
         public Vector3[] positions;
         public Attribute[] attributes;
         public Node[] nodes;
+        public Group[] groups;
 
         public int[] PositionToNode => positionToNode ?? (positionToNode = GetPositionToNode());
         private int[] positionToNode;
@@ -29,6 +30,8 @@ namespace Nanomesh
             Debug.Assert(mesh.CheckLengths(), "Attributes size mismatch");
 
             ConnectedMesh connectedMesh = new ConnectedMesh();
+
+            connectedMesh.groups = mesh.groups;
 
             int[] triangles = mesh.triangles;
 
@@ -118,9 +121,34 @@ namespace Nanomesh
             var browsedNodes = new HashSet<int>();
             var vertexData = new Dictionary<VertexData, int>();
 
+            Group[] newGroups = new Group[groups.Length];
+            mesh.groups = newGroups;
+
+            int currentGroup = 0;
+            int indicesInGroup = 0;
+
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (browsedNodes.Contains(i) || nodes[i].IsRemoved)
+                if (groups[currentGroup].firstIndex == i)
+                {
+                    if (currentGroup > 0)
+                    {
+                        newGroups[currentGroup - 1].indexCount = indicesInGroup;
+                        newGroups[currentGroup].firstIndex = indicesInGroup + newGroups[currentGroup - 1].firstIndex;
+                    }
+                    indicesInGroup = 0;
+                    if (currentGroup < groups.Length - 1)
+                        currentGroup++;
+                }
+
+                if (nodes[i].IsRemoved)
+                {
+                    continue;
+                }
+
+                indicesInGroup++;
+
+                if (browsedNodes.Contains(i))
                     continue;
 
                 // Only works if all elements are triangles
@@ -138,6 +166,8 @@ namespace Nanomesh
                     }
                 } while ((relative = nodes[relative].relative) != i);
             }
+
+            newGroups[currentGroup].indexCount = indicesInGroup;
 
             mesh.vertices = new Vector3[vertexData.Count];
             mesh.uvs = new Vector2F[vertexData.Count];
