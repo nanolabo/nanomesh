@@ -16,14 +16,14 @@ namespace Nanomesh
         public Node[] nodes;
         public Group[] groups;
 
-        public int[] PositionToNode => positionToNode ?? (positionToNode = GetPositionToNode());
-        private int[] positionToNode;
+        public int[] PositionToNode => _positionToNode ?? (_positionToNode = GetPositionToNode());
+        private int[] _positionToNode;
 
-        public int[] AttributeToNode => attributeToNode ?? (attributeToNode = GetAttributeToNode());
-        private int[] attributeToNode;
+        public int[] AttributeToNode => _attributeToNode ?? (_attributeToNode = GetAttributeToNode());
+        private int[] _attributeToNode;
 
-        internal int faceCount;
-        public int FaceCount => faceCount;
+        internal int _faceCount;
+        public int FaceCount => _faceCount;
 
         public static ConnectedMesh Build(SharedMesh mesh)
         {
@@ -84,7 +84,7 @@ namespace Nanomesh
                 nodesList.Add(B);
                 nodesList.Add(C);
 
-                connectedMesh.faceCount++;
+                connectedMesh._faceCount++;
             }
 
             connectedMesh.nodes = nodesList.ToArray();
@@ -121,7 +121,7 @@ namespace Nanomesh
             var browsedNodes = new HashSet<int>();
             var vertexData = new Dictionary<VertexData, int>();
 
-            Group[] newGroups = new Group[groups.Length];
+            Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
 
             int currentGroup = 0;
@@ -129,7 +129,7 @@ namespace Nanomesh
 
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (groups[currentGroup].firstIndex == i)
+                if (newGroups.Length > 0 && groups[currentGroup].firstIndex == i)
                 {
                     if (currentGroup > 0)
                     {
@@ -167,7 +167,8 @@ namespace Nanomesh
                 } while ((relative = nodes[relative].relative) != i);
             }
 
-            newGroups[currentGroup].indexCount = indicesInGroup;
+            if (newGroups.Length > 0)
+                newGroups[currentGroup].indexCount = indicesInGroup;
 
             mesh.vertices = new Vector3[vertexData.Count];
             mesh.uvs = new Vector2F[vertexData.Count];
@@ -403,19 +404,19 @@ namespace Nanomesh
 
                     int validNodeAtC = ReconnectSiblings(nodeIndexC);
 
-                    if (positionToNode != null)
-                        positionToNode[posC] = validNodeAtC;
+                    if (_positionToNode != null)
+                        _positionToNode[posC] = validNodeAtC;
 
-                    faceCount--;
+                    _faceCount--;
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             int validNodeAtA = ReconnectSiblings(nodeIndexA, nodeIndexB, posA);
 
-            if (positionToNode != null)
+            if (_positionToNode != null)
             {
-                positionToNode[posA] = validNodeAtA;
-                positionToNode[posB] = -1;
+                _positionToNode[posA] = validNodeAtA;
+                _positionToNode[posB] = -1;
             }
 
             return validNodeAtA;
@@ -480,6 +481,74 @@ namespace Nanomesh
             return hardAtA && hardAtB;
         }
 
+        public void IsEdgeInUvsIsland(int nodeIndexA, int nodeIndexB, out bool opposedBreakAtA, out bool opposedBreakAtB)
+        {
+            int posA = nodes[nodeIndexA].position;
+            int posB = nodes[nodeIndexB].position;
+
+            opposedBreakAtA = false;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                if (nodes[siblingOfA].attribute != nodes[nodes[siblingOfA].sibling].attribute)
+                {
+                    if (!Vector2FComparer.Default.Equals(attributes[nodes[siblingOfA].attribute].uv, attributes[nodes[nodes[siblingOfA].sibling].attribute].uv))
+                    {
+                        // UV BREAK !
+                        bool connectedToB = false;
+                        int relativeOfA = siblingOfA;
+                        while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                        {
+                            int posC = nodes[relativeOfA].position;
+                            if (posC == posB)
+                            {
+                                // UV BREAK IS CONNECTED
+                                connectedToB = true;
+                            }
+                        }
+
+                        if (!connectedToB)
+                        {
+                            opposedBreakAtA = true;
+                            break;
+                        }
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            opposedBreakAtB = false;
+
+            int siblingOfB = nodeIndexB;
+            do // Iterator over faces around A
+            {
+                if (nodes[siblingOfB].attribute != nodes[nodes[siblingOfB].sibling].attribute)
+                {
+                    if (!Vector2FComparer.Default.Equals(attributes[nodes[siblingOfB].attribute].uv, attributes[nodes[nodes[siblingOfB].sibling].attribute].uv))
+                    {
+                        // UV BREAK !
+                        bool connectedToA = false;
+                        int relativeOfB = siblingOfB;
+                        while ((relativeOfB = nodes[relativeOfB].relative) != siblingOfB)
+                        {
+                            int posC = nodes[relativeOfB].position;
+                            if (posC == posA)
+                            {
+                                // UV BREAK IS CONNECTED
+                                connectedToA = true;
+                            }
+                        }
+
+                        if (!connectedToA)
+                        {
+                            opposedBreakAtB = true;
+                            break;
+                        }
+                    }
+                }
+            } while ((siblingOfB = nodes[siblingOfB].sibling) != nodeIndexB);
+        }
+
         // Only works with triangles !
         public Vector3 GetFaceNormal(int nodeIndex)
         {
@@ -526,10 +595,22 @@ namespace Nanomesh
                 }
                 if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
                 {
-                    nodeTopology = NodeTopology.Hard;
+                    if (Vector2FComparer.Default.Equals(attributes[nodes[sibling].attribute].uv, attributes[attrIndex].uv))
+                    {
+                        nodeTopology |= NodeTopology.Hard;
+                    }
+                    else
+                    {
+                        nodeTopology |= NodeTopology.UvBreak;
+                    }
                 }
                 attrIndex = nodes[sibling].attribute;
             } while ((sibling = nodes[sibling].sibling) != nodeIndex);
+
+            if (nodeTopology.HasFlag(NodeTopology.UvBreak))
+                nodeTopology = NodeTopology.UvBreak;
+            //else if (nodeTopology.HasFlag(NodeTopology.Border))
+            //    nodeTopology = NodeTopology.Border;
 
             return nodeTopology;
         }
@@ -630,8 +711,8 @@ namespace Nanomesh
             positions = newPositions;
 
             // Invalidate mapping
-            positionToNode = null;
-            attributeToNode = null;
+            _positionToNode = null;
+            _attributeToNode = null;
         }
 
         public void MergePositions(double tolerance = 0.01)
@@ -682,7 +763,7 @@ namespace Nanomesh
                 }
             }
 
-            positionToNode = null;
+            _positionToNode = null;
 
             // Dereference faces that no longer exist
             for (int i = 0; i < nodes.Length; i++)

@@ -79,11 +79,18 @@ namespace Nanomesh.Unity
             //normalsModifier.Run(cmesh, 45);
             DecimateModifier decimateModifier = new DecimateModifier();
             Profiling.Start("decimate");
-            decimateModifier.DecimateToRatio(cmesh, 0.25f);
+            decimateModifier.Verbosed += DecimateModifier_Verbosed;
+            //decimateModifier.DecimateToRatio(cmesh, 0.25f);
+            decimateModifier.DecimateToError(cmesh, 0.05f);
             //cmesh.Compact();
             Debug.Log(Profiling.End("decimate"));
             smesh = cmesh.ToSharedMesh();
             UnityConverter.ToUnityMesh(smesh, outputMesh);
+        }
+
+        private static void DecimateModifier_Verbosed(string obj)
+        {
+            Debug.Log(">" + obj);
         }
 
         private static Mesh Decimate(Mesh mesh)

@@ -26,6 +26,8 @@ namespace Nanomesh
 		const double _OFFSET_HARD = 1e6;
 		const double _OFFSET_NOCOLLAPSE = 1e300;
 
+		public event Action<string> Verbosed;
+
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
 			targetTriangleRatio = MathF.Clamp(targetTriangleRatio, 0f, 1f);
@@ -90,6 +92,8 @@ namespace Nanomesh
 		private void Iterate()
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
+
+			Verbosed?.Invoke($"Collapsing <A:{_nodeTopologies[pair.posA]} B:{_nodeTopologies[pair.posB]} ERROR:{pair.error}>");
 
 			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 			Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
@@ -198,6 +202,8 @@ namespace Nanomesh
 			_nodeTopologies[position] = _mesh.GetNodeTopology(nodeIndex);
 		}
 
+		private const double _NORMAL_PENALTY = 2;
+
 		private void CalculateError(EdgeCollapse pair)
 		{
 			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
@@ -212,80 +218,16 @@ namespace Nanomesh
 			NodeTopology topoB = _nodeTopologies[pair.posB];
             pair.error = 0;
 
-            EdgeTopology edgeType;
-
-			if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
+			switch (topoA, topoB)
             {
-                if (_mesh.IsEdgeInSurface(nodeA, nodeB))
-                {
-                    edgeType = EdgeTopology.SurfacicBorderAB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.BorderAB;
-                }
-            }
-            else if (topoA == NodeTopology.Border)
-            {
-                if (topoB == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicBorderAHardB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicBorderA;
-                }
-            }
-            else if (topoB == NodeTopology.Border)
-            {
-                if (topoA == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicBorderBHardA;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicBorderB;
-                }
-            }
-            else
-            {
-                if (topoA == NodeTopology.Hard && topoB == NodeTopology.Hard)
-                {
-                    if (_mesh.IsEdgeHard(nodeA, nodeB))
+				case (NodeTopology.Hard, NodeTopology.Hard):
+				case (NodeTopology.Surface, NodeTopology.Surface):
                     {
-                        edgeType = EdgeTopology.SurfacicHardEdge;
-                    }
-                    else
-                    {
-                        edgeType = EdgeTopology.SurfacicHardAB;
-                    }
-                }
-                else if (topoA == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicHardA;
-                }
-                else if (topoB == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicHardB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicSmooth;
-                }
-            }
+						//if (!_mesh.IsEdgeHard(nodeA, nodeB))
+						//{
+						//	pair.error = 10000;
+						//}
 
-			Debug.Assert(edgeType != EdgeTopology.Unknown, "Edge topology shall not be unknown");
-
-#if DEBUG
-			pair.topology = edgeType;
-#endif
-
-			switch (edgeType)
-			{
-                // Use quadric error to determine optimal vertex position only makes sense for manifold edges
-                case EdgeTopology.SurfacicHardEdge: // + offset
-				case EdgeTopology.SurfacicSmooth:
-					{
 						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
 						double det = quadric.DeterminantXYZ();
 
@@ -306,82 +248,170 @@ namespace Nanomesh
 							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
 							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
 						}
-						//if (edgeType is SURFACIC_HARD_EDGE)
-						//	pair.error += offset_hard;
 					}
 					break;
-				case EdgeTopology.SurfacicBorderAHardB: // + offset
-				case EdgeTopology.SurfacicHardA:
-				case EdgeTopology.SurfacicBorderA:
-					{
-						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
-						pair.result = posA;
-						//if (edgeType is SURFACIC_BORDER_A_HARD_B)
-						//	pair.error += offset_hard;
-					}
-					break;
-				case EdgeTopology.SurfacicBorderBHardA: // + offset
-				case EdgeTopology.SurfacicHardB:
-				case EdgeTopology.SurfacicBorderB:
-					{
+				case (NodeTopology.Surface, NodeTopology.Hard):
+				case (NodeTopology.Surface, NodeTopology.UvBreak):
+				case (NodeTopology.Surface, NodeTopology.Border):
+				case (NodeTopology.Hard, NodeTopology.UvBreak):
+				case (NodeTopology.Hard, NodeTopology.Border):
+                    {
+						// to B
 						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
 						pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
 						pair.result = posB;
-						//if (edgeType is SURFACIC_BORDER_B_HARD_A)
-						//	pair.error += offset_hard;
+						if (topoA == NodeTopology.Hard)
+                        {
+							pair.error *= _NORMAL_PENALTY;
+                        }
+						if (topoB == NodeTopology.UvBreak)
+						{
+							pair.error = _OFFSET_NOCOLLAPSE;
+						}
 					}
 					break;
-				case EdgeTopology.BorderAB:
+				case (NodeTopology.Hard, NodeTopology.Surface):
+				case (NodeTopology.UvBreak, NodeTopology.Surface):
+				case (NodeTopology.Border, NodeTopology.Surface):
+				case (NodeTopology.UvBreak, NodeTopology.Hard):
+				case (NodeTopology.Border, NodeTopology.Hard):
 					{
-						int posAnext, posBnext;
+						// to A
+						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+						pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
+						pair.result = posA;
+						if (topoB == NodeTopology.Hard)
+						{
+							pair.error *= _NORMAL_PENALTY;
+						}
+						if (topoA == NodeTopology.UvBreak)
+						{
+							pair.error = _OFFSET_NOCOLLAPSE;
+						}
+					}
+					break;
+				case (NodeTopology.Border, NodeTopology.Border):
+					{
+						if (_mesh.IsEdgeInSurface(nodeA, nodeB))
+						{
+							pair.error = _OFFSET_NOCOLLAPSE;
+						}
+						else
+						{
+							int posAnext, posBnext;
 
-						if ((posBnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
-						 && (posAnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
-                        {
-							// Todo : Better solution : find closest point between [Aa] and [Bb]
-							Vector3 borderA = _mesh.positions[posAnext];
-							Vector3 borderB = _mesh.positions[posBnext];
-							Vector3 posC = (posB + posA) / 2;
-							var errorCollapseToA = ComputeLineicError(posA, borderB, posB);
-							var errorCollapseToB = ComputeLineicError(posB, borderA, posA);
-							if (errorCollapseToA < errorCollapseToB)
+							if ((posBnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
+							 && (posAnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
 							{
-								pair.error = errorCollapseToA;
-								pair.result = posA;
+								// Todo : Better solution : find closest point between [Aa] and [Bb]
+								Vector3 borderA = _mesh.positions[posAnext];
+								Vector3 borderB = _mesh.positions[posBnext];
+								Vector3 posC = (posB + posA) / 2; // Todo, use this ?
+								var errorCollapseToA = ComputeLineicError(posA, borderB, posB);
+								var errorCollapseToB = ComputeLineicError(posB, borderA, posA);
+								if (errorCollapseToA < errorCollapseToB)
+								{
+									pair.error = errorCollapseToA;
+									pair.result = posA;
+								}
+								else
+								{
+									pair.error = errorCollapseToB;
+									pair.result = posB;
+								}
 							}
 							else
 							{
-								pair.error = errorCollapseToB;
-								pair.result = posB;
+								// Spacer4t solution. Does not work well on plane
+								SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+								Vector3 posC = (posA + posB) / 2d;
+								double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+								double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+								double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
+								pair.error *= _NORMAL_PENALTY; // Penalty
 							}
 						}
+					}
+					break;
+				case (NodeTopology.UvBreak, NodeTopology.Border):
+				case (NodeTopology.Border, NodeTopology.UvBreak):
+					{
+						pair.error = _OFFSET_NOCOLLAPSE;
+					}
+					break;
+				case (NodeTopology.UvBreak, NodeTopology.UvBreak):
+					{
+						// TODO : The algo sucks at this stage
+						// We need to qualify the UvBreak.
+						_mesh.IsEdgeInUvsIsland(nodeA, nodeB, out bool opposedBreakAtA, out bool opposedBreakAtB);
+                        //if (opposedBreakAtA && opposedBreakAtB)
+                        //{
+                        //    pair.error = _OFFSET_NOCOLLAPSE;
+                        //}
+                        //else
+                        //{
+                        //    SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+                        //    Vector3 posC = (posA + posB) / 2d;
+                        //    double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+                        //    double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+                        //    double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+                        //    MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
+                        //    pair.error *= _NORMAL_PENALTY; // Penalty
+                        //}
+
+                        if (!opposedBreakAtA || !opposedBreakAtB)
+                        {
+                            if (opposedBreakAtA)
+                            {
+                                SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+                                pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
+                                pair.result = posA;
+                            }
+                            else if (opposedBreakAtB)
+                            {
+                                SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+                                pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
+                                pair.result = posB;
+                            }
+                            else
+                            {
+                                SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+                                double det = quadric.DeterminantXYZ();
+                                if (det > _ƐDET || det < -_ƐDET)
+                                {
+                                    pair.result = new Vector3(
+                                        -1d / det * quadric.DeterminantX(),
+                                        +1d / det * quadric.DeterminantY(),
+                                        -1d / det * quadric.DeterminantZ());
+                                    pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
+                                }
+                                else
+                                {
+                                    // Not cool when it goes there...
+                                    Vector3 posC = (posA + posB) / 2d;
+                                    double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+                                    double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+                                    double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+                                    MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
+                                }
+                            }
+                        }
                         else
                         {
-							// Spacer4t solution. Does not work well on plane
 							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
 							Vector3 posC = (posA + posB) / 2d;
 							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
 							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-							pair.error += _OFFSET_HARD; // Avoid this whenever it's possible
+							pair.error = (posB - posA).Length; // Penalty
+							//pair.error = _OFFSET_NOCOLLAPSE;
 						}
-					}
-					break;
-				case EdgeTopology.SurfacicHardAB:
-					{
-						pair.result = (posA + posB) / 2;
-						pair.error += _OFFSET_NOCOLLAPSE - 1; // Never collapse, but still do it before A-Shapes
-					}
-					break;
-				case EdgeTopology.SurfacicBorderAB:
-					{
-						// Todo : Put a warning when trying to collapse A-Shapes
-						pair.result = (posA + posB) / 2;
-						pair.error += _OFFSET_NOCOLLAPSE; // Never collapse A-Shapes
-					}
-					break;
+                    }
+                    break;
+				default:
+					throw new NotImplementedException($"A:{topoA} B:{topoB}");
 			}
 
 			// Ponderate error with edge length to collapse first shortest edges
@@ -525,8 +555,9 @@ namespace Nanomesh
 						uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
 						//uvAtA = (uvAtA + uvAtB) / 2;
 
-						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
-						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
+						// Problem when interpolating uvs of different islands ?
+						//_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
+						//_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
 
 						procNormals.Add(_mesh.nodes[siblingOfA].attribute);
 						procNormals.Add(_mesh.nodes[relativeOfA].attribute);

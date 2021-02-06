@@ -2,6 +2,19 @@
 
 namespace Nanomesh
 {
+    public static class AlgoExtensions
+    {
+        public static T Run<T>(this ConnectedMesh mesh) where T : IAlgo, new()
+        {
+            return new T();
+        }
+
+        public static T Run<T>(this IAlgo mesh) where T : IAlgo, new()
+        {
+            return new T();
+        }
+    }
+
 	public interface IAlgo
 	{
 		void Start(ConnectedMesh mesh);

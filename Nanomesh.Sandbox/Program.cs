@@ -19,12 +19,12 @@ namespace Nanomesh.Sandbox
         static void DecimateFile()
         {
             SharedMesh sharedMesh = ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\buggy.obj");
-            sharedMesh.groups = new Group[3]
-            {
-                new Group { firstIndex = 0, indexCount = 9000 },
-                new Group { firstIndex = 9000, indexCount = 1000 },
-                new Group { firstIndex = 10000, indexCount = sharedMesh.triangles.Length - 10000 }
-            };
+            //sharedMesh.groups = new Group[3]
+            //{
+            //    new Group { firstIndex = 0, indexCount = 9000 },
+            //    new Group { firstIndex = 9000, indexCount = 1000 },
+            //    new Group { firstIndex = 10000, indexCount = sharedMesh.triangles.Length - 10000 }
+            //};
             ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 8));
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
@@ -39,7 +39,7 @@ namespace Nanomesh.Sandbox
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
-            decimateModifier.DecimateToRatio(mesh, 0.5f);
+            decimateModifier.DecimateToRatio(mesh, 0.2f);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));

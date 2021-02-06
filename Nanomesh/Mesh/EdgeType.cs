@@ -4,7 +4,8 @@
     {
         Surface = 0,
         Hard = 1,
-        Border = 2
+        Border = 2,
+        UvBreak = 4,
     }
 
     public enum EdgeTopology
