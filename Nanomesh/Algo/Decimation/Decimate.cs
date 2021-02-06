@@ -637,22 +637,22 @@ namespace Nanomesh
 			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}
 
-		private Dictionary<Vector3F, int> _normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
+		private Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.001f));
 
 		private void MergeAttributes(int nodeIndex)
 		{
-			_normalToAttr.Clear();
+			_uniqueAttributes.Clear();
 
 			int sibling = nodeIndex;
 			do
 			{
-				_normalToAttr.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute].normal, _mesh.nodes[sibling].attribute);
+				_uniqueAttributes.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			sibling = nodeIndex;
 			do
 			{
-				_mesh.nodes[sibling].attribute = _normalToAttr[_mesh.attributes[_mesh.nodes[sibling].attribute].normal];
+				_mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.attributes[_mesh.nodes[sibling].attribute]];
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
