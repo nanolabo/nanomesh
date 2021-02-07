@@ -483,6 +483,8 @@ namespace Nanomesh
 
         public void IsEdgeInUvsIsland(int nodeIndexA, int nodeIndexB, out bool opposedBreakAtA, out bool opposedBreakAtB)
         {
+            // OK C'EST DE LA MERDE CA NEED UN REWORK
+
             int posA = nodes[nodeIndexA].position;
             int posB = nodes[nodeIndexB].position;
 
@@ -520,7 +522,7 @@ namespace Nanomesh
             opposedBreakAtB = false;
 
             int siblingOfB = nodeIndexB;
-            do // Iterator over faces around A
+            do // Iterator over faces around B
             {
                 if (nodes[siblingOfB].attribute != nodes[nodes[siblingOfB].sibling].attribute)
                 {
@@ -632,6 +634,7 @@ namespace Nanomesh
                         return posC;
                     }
                 }
+
             } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
 
             return -1;
