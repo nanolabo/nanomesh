@@ -468,17 +468,52 @@ namespace Nanomesh
                     if (posC == posB)
                     {
                         if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
-                            hardAtB = true;
-                        attrAtB = nodes[relativeOfA].attribute;
+                            hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
 
                         if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            hardAtA = true;
+                            hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
+                       
+                        attrAtB = nodes[relativeOfA].attribute;
                         attrAtA = nodes[siblingOfA].attribute;
                     }
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             return hardAtA && hardAtB;
+        }
+
+        public bool IsEdgeUvBreak(int nodeIndexA, int nodeIndexB)
+        {
+            int posB = nodes[nodeIndexB].position;
+
+            int attrAtA = -1;
+            int attrAtB = -1;
+
+            bool uvBreakAtA = false;
+            bool uvBreakAtB = false;
+
+            int siblingOfA = nodeIndexA;
+            do // Iterator over faces around A
+            {
+                int relativeOfA = siblingOfA;
+                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                            uvBreakAtB = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
+
+                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                            uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtA].uv, attributes[nodes[siblingOfA].attribute].uv);
+
+                        attrAtB = nodes[relativeOfA].attribute;
+                        attrAtA = nodes[siblingOfA].attribute;
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            return uvBreakAtA && uvBreakAtB;
         }
 
         public void IsEdgeInUvsIsland(int nodeIndexA, int nodeIndexB, out bool opposedBreakAtA, out bool opposedBreakAtB)
@@ -804,6 +839,83 @@ namespace Nanomesh
             {
                 positions[i] = positions[i] * factor;
             }
+        }
+
+        public HashSet<Edge> GetAllEdges()
+        {
+            HashSet<Edge> edges = new HashSet<Edge>();
+            for (int p = 0; p < PositionToNode.Length; p++)
+            {
+                int nodeIndex = PositionToNode[p];
+                if (nodeIndex < 0)
+                    continue;
+
+                int sibling = nodeIndex;
+                do
+                {
+                    int firstRelative = nodes[sibling].relative;
+                    int secondRelative = nodes[firstRelative].relative;
+
+                    var pair = new Edge(nodes[firstRelative].position, nodes[secondRelative].position);
+
+                    edges.Add(pair);
+
+                } while ((sibling = nodes[sibling].sibling) != nodeIndex);
+            }
+
+            return edges;
+        }
+    }
+
+    public struct Edge : IEquatable<Edge>
+    {
+        public int posA;
+        public int posB;
+
+        public Edge(int posA, int posB)
+        {
+            this.posA = posA;
+            this.posB = posB;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return posA + posB;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals((Edge)obj);
+        }
+
+        public bool Equals(Edge pc)
+        {
+            if (ReferenceEquals(this, pc))
+            {
+                return true;
+            }
+            else
+            {
+                return (posA == pc.posA && posB == pc.posB) || (posA == pc.posB && posB == pc.posA);
+            }
+        }
+
+        public static bool operator ==(Edge x, Edge y)
+        {
+            return x.Equals(y);
+        }
+
+        public static bool operator !=(Edge x, Edge y)
+        {
+            return !x.Equals(y);
+        }
+
+        public override string ToString()
+        {
+		    return $"<A:{posA} B:{posB}>";
         }
     }
 }

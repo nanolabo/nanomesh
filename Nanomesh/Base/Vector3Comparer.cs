@@ -4,23 +4,23 @@ namespace Nanomesh
 {
     public class Vector3Comparer : IEqualityComparer<Vector3>
     {
-        private double tolerance;
+        private double _tolerance;
 
         public Vector3Comparer(double tolerance)
         {
-            this.tolerance = tolerance;
+            this._tolerance = tolerance;
         }
 
         public bool Equals(Vector3 x, Vector3 y)
         {
-            return (int)(x.x / tolerance) == (int)(y.x / tolerance)
-                && (int)(x.y / tolerance) == (int)(y.y / tolerance)
-                && (int)(x.z / tolerance) == (int)(y.z / tolerance);
+            return (int)(x.x / _tolerance) == (int)(y.x / _tolerance)
+                && (int)(x.y / _tolerance) == (int)(y.y / _tolerance)
+                && (int)(x.z / _tolerance) == (int)(y.z / _tolerance);
         }
 
         public int GetHashCode(Vector3 obj)
         {
-            return (int)(obj.x / tolerance) ^ ((int)(obj.y / tolerance) << 2) ^ ((int)(obj.z / tolerance) >> 2);
+            return (int)(obj.x / _tolerance) ^ ((int)(obj.y / _tolerance) << 2) ^ ((int)(obj.z / _tolerance) >> 2);
         }
     }
 }

@@ -324,8 +324,7 @@ namespace Nanomesh
 								double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 								double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
 								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-								//pair.error *= _NORMAL_PENALTY; // Penalty
-								pair.error = _OFFSET_NOCOLLAPSE; // Penalty
+								pair.error *= _NORMAL_PENALTY; // Penalty
 							}
 						}
 					}
@@ -338,70 +337,78 @@ namespace Nanomesh
 					break;
 				case (NodeTopology.UvBreak, NodeTopology.UvBreak):
 					{
-						// TODO : The algo sucks at this stage
-						// We need to qualify the UvBreak.
-						_mesh.IsEdgeInUvsIsland(nodeA, nodeB, out bool opposedBreakAtA, out bool opposedBreakAtB);
-                        //if (opposedBreakAtA && opposedBreakAtB)
-                        //{
-                        //    pair.error = _OFFSET_NOCOLLAPSE;
-                        //}
-                        //else
-                        //{
-                        //    SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-                        //    Vector3 posC = (posA + posB) / 2d;
-                        //    double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-                        //    double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-                        //    double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-                        //    MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-                        //    pair.error *= _NORMAL_PENALTY; // Penalty
-                        //}
+						bool breakA = false;
+						bool breakB = false;
+						double errorCollapseToA = 0;
+						double errorCollapseToB = 0;
+						double errorCollapseToC = 0;
+						Vector3 posC = (posB + posA) / 2; // Todo, use this ?
 
-                        if (opposedBreakAtA && opposedBreakAtB)
+						int siblingA = nodeA;
+						do
+						{
+							for (int relative = siblingA; (relative = _mesh.nodes[relative].relative) != siblingA;)
+							{
+								if (_mesh.nodes[relative].position != _mesh.nodes[nodeB].position)
+                                {
+									if (_mesh.IsEdgeUvBreak(siblingA, relative))
+                                    {
+										breakA = true;
+										errorCollapseToB += ComputeLineicError(posB, _mesh.positions[_mesh.nodes[relative].position], posA);
+										errorCollapseToC += ComputeLineicError(posC, _mesh.positions[_mesh.nodes[relative].position], posA);
+									}
+                                }
+							}
+						} while ((siblingA = _mesh.nodes[siblingA].sibling) != nodeA);
+
+						int siblingB = nodeB;
+						do
+						{
+							for (int relative = siblingB; (relative = _mesh.nodes[relative].relative) != siblingB;)
+							{
+								if (_mesh.nodes[relative].position != _mesh.nodes[nodeB].position)
+								{
+									if (_mesh.IsEdgeUvBreak(siblingB, relative))
+									{
+										breakB = true;
+										errorCollapseToA += ComputeLineicError(posA, _mesh.positions[_mesh.nodes[relative].position], posB);
+										errorCollapseToC += ComputeLineicError(posC, _mesh.positions[_mesh.nodes[relative].position], posB);
+									}
+								}
+							}
+						} while ((siblingB = _mesh.nodes[siblingB].sibling) != nodeB);
+
+						if (breakA && breakB)
+                        {
+							MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+							pair.error *= 0.8;
+						}
+						else
                         {
 							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-							Vector3 posC = (posA + posB) / 2d;
-							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-							pair.error = (posB - posA).Length;
-						}
-                        else
-                        {
-							if (opposedBreakAtA)
+							double det = quadric.DeterminantXYZ();
+							if (det > _ƐDET || det < -_ƐDET)
 							{
-								SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-								pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
-								pair.result = posA;
-							}
-							else if (opposedBreakAtB)
-							{
-								SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-								pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
-								pair.result = posB;
+								pair.result = new Vector3(
+									-1d / det * quadric.DeterminantX(),
+									+1d / det * quadric.DeterminantY(),
+									-1d / det * quadric.DeterminantZ());
+								pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 							}
 							else
 							{
-								SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-								double det = quadric.DeterminantXYZ();
-								if (det > _ƐDET || det < -_ƐDET)
-								{
-									pair.result = new Vector3(
-										-1d / det * quadric.DeterminantX(),
-										+1d / det * quadric.DeterminantY(),
-										-1d / det * quadric.DeterminantZ());
-									pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
-								}
-								else
-								{
-									// Not cool when it goes there...
-									Vector3 posC = (posA + posB) / 2d;
-									double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-									double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-									double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-									MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-								}
+								// Not cool when it goes there...
+								double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+								double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+								double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
 							}
+						}
+
+						if ((posB - posC).Length < pair.error)
+                        {
+							pair.error = (posB - posC).Length;
+							pair.result = posC;
 						}
 					}
                     break;
@@ -415,6 +422,23 @@ namespace Nanomesh
 
 			//if (pair.error >= _OFFSET_NOCOLLAPSE && CollapseWillInvert(pair))
 			//	pair.error = _OFFSET_NOCOLLAPSE;
+		}
+
+		private HashSet<int> GetPositionsAround(int node)
+        {
+			HashSet<int> positions = new HashSet<int>();
+			int sibling = node;
+			do
+			{
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
+				{
+					if (_nodeTopologies[_mesh.nodes[relative].position] == NodeTopology.UvBreak)
+                    {
+						positions.Add(_mesh.nodes[relative].position);
+					}
+				}
+			} while ((sibling = _mesh.nodes[sibling].sibling) != node);
+			return positions;
 		}
 
 		// Todo : Fix this (doesn't seems to work properly
@@ -688,7 +712,6 @@ namespace Nanomesh
 						_mins.Remove(pairBC);
 					}
 				}
-
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexB);
 
 			// Interpolates attributes

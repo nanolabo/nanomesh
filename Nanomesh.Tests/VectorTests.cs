@@ -36,5 +36,16 @@ namespace Nanomesh.Tests
             Assert.IsFalse(Vector2FComparer.Default.Equals(new Vector2(0.001f, 0f), new Vector2(0f, 0f)));
             Assert.IsFalse(Vector2FComparer.Default.Equals(new Vector2(0.0001f, 0f), new Vector2(0f, 0f)));
         }
+
+        [Test]
+        public void Vector3_DistancePointLine()
+        {
+            Assert.AreEqual(1, Vector3.DistancePointLine(new Vector3(0, 1, 0), new Vector3(0, 0, 0), new Vector3(1, 0, 0)));
+            Assert.AreEqual(1, Vector3.DistancePointLine(new Vector3(0, 1, 0), new Vector3(0, 0, 0), new Vector3(2, 0, 0)));
+            Assert.AreEqual(2, Vector3.DistancePointLine(new Vector3(0, 2, 0), new Vector3(0, 0, 0), new Vector3(2, 0, 0)));
+            Assert.AreEqual(0, Vector3.DistancePointLine(new Vector3(0, 0, 0), new Vector3(0, 0, 0), new Vector3(1, 0, 0)));
+            Assert.AreEqual(1, Vector3.DistancePointLine(new Vector3(10, 1, 0), new Vector3(0, 0, 0), new Vector3(1, 0, 0)));
+            Assert.AreEqual(1, Vector3.DistancePointLine(new Vector3(-10, -1, 0), new Vector3(0, 0, 0), new Vector3(1, 0, 0)));
+        }
     }
 }

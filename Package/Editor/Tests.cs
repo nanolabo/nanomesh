@@ -79,7 +79,7 @@ namespace Nanomesh.Unity
             //normalsModifier.Run(cmesh, 45);
             DecimateModifier decimateModifier = new DecimateModifier();
             Profiling.Start("decimate");
-            decimateModifier.Verbosed += DecimateModifier_Verbosed;
+            //decimateModifier.Verbosed += DecimateModifier_Verbosed;
             //decimateModifier.DecimateToRatio(cmesh, 0.25f);
             decimateModifier.DecimateToError(cmesh, 0.05f);
             //cmesh.Compact();

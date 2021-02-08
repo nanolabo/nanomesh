@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System.Linq;
 
 namespace Nanomesh.Tests
 {
@@ -52,6 +53,33 @@ namespace Nanomesh.Tests
 
             Assert.IsFalse(mesh.AreNodesSiblings(0, 1));
             Assert.IsFalse(mesh.AreNodesSiblings(1, 2));
+        }
+
+        [Test]
+        [Category("ConnectedMesh")]
+        public void IsEdgeHard()
+        {
+            ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateBox());
+            mesh.MergePositions();
+            NormalsModifier nm = new NormalsModifier();
+            nm.Run(mesh, 20);
+
+            var edges = mesh.GetAllEdges();
+
+            foreach (Edge edge in edges)
+            {
+                Vector3 A = mesh.positions[edge.posA];
+                Vector3 B = mesh.positions[edge.posB];
+
+                if ((B - A).Length == 1)
+                {
+                    Assert.IsTrue(mesh.IsEdgeHard(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                }
+                else
+                {
+                    Assert.IsFalse(mesh.IsEdgeHard(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                }
+            }
         }
     }
 }
