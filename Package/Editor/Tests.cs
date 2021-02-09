@@ -81,7 +81,8 @@ namespace Nanomesh.Unity
             Profiling.Start("decimate");
             //decimateModifier.Verbosed += DecimateModifier_Verbosed;
             //decimateModifier.DecimateToRatio(cmesh, 0.25f);
-            decimateModifier.DecimateToError(cmesh, 0.05f);
+            decimateModifier.DecimateToPolycount(cmesh, 15000);
+            //decimateModifier.DecimateToError(cmesh, 0.05f);
             //cmesh.Compact();
             Debug.Log(Profiling.End("decimate"));
             smesh = cmesh.ToSharedMesh();

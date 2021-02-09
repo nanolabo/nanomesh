@@ -422,6 +422,61 @@ namespace Nanomesh
             return validNodeAtA;
         }
 
+        public EdgeTopo GetEdgeTopo(int nodeIndexA, int nodeIndexB)
+        {
+            int posB = nodes[nodeIndexB].position;
+
+            int facesAttached = 0;
+
+            int attrAtA = -1;
+            int attrAtB = -1;
+
+            bool hardAtA = false;
+            bool hardAtB = false;
+            bool uvBreakAtA = false;
+            bool uvBreakAtB = false;
+
+            int siblingOfA = nodeIndexA;
+            do
+            {
+                int relativeOfA = siblingOfA;
+                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
+                {
+                    int posC = nodes[relativeOfA].position;
+                    if (posC == posB)
+                    {
+                        facesAttached++;
+
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                        {
+                            hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
+                            uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
+                        }
+                            
+                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                        {
+                            hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
+                            uvBreakAtB = !Vector2FComparer.Default.Equals(attributes[attrAtA].uv, attributes[nodes[siblingOfA].attribute].uv);
+                        }
+
+                        attrAtB = nodes[relativeOfA].attribute;
+                        attrAtA = nodes[siblingOfA].attribute;
+                    }
+                }
+            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            if (facesAttached < 2)
+                return EdgeTopo.Border;
+
+            if (uvBreakAtA || uvBreakAtB)
+                return EdgeTopo.UvBreak;
+
+            if (hardAtA || hardAtB)
+                return EdgeTopo.HardEdge;
+
+            return EdgeTopo.Surface;
+        }
+
         public bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;

@@ -8,6 +8,14 @@
         UvBreak = 4,
     }
 
+    public enum EdgeTopo
+    {
+        Surface,
+        Border,
+        HardEdge,
+        UvBreak,
+    }
+
     public enum EdgeTopology
     {
         Unknown,

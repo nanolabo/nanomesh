@@ -204,6 +204,24 @@ namespace Nanomesh
 
 		private const double _NORMAL_PENALTY = 2;
 
+		private IEnumerable<int> GetTruc(int nodeIndex, int nodeAvoid) {
+			HashSet<int> res = new HashSet<int>();
+
+			int sibling = nodeIndex;
+			do
+			{
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
+				{
+					if (_mesh.nodes[relative].position != _mesh.nodes[nodeAvoid].position)
+					{
+						res.Add(relative);
+					}
+				}
+			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+
+			return res;
+		}
+
 		private void CalculateError(EdgeCollapse pair)
 		{
 			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
@@ -214,179 +232,164 @@ namespace Nanomesh
 			int nodeA = _mesh.PositionToNode[pair.posA];
 			int nodeB = _mesh.PositionToNode[pair.posB];
 
-			NodeTopology topoA = _nodeTopologies[pair.posA];
-			NodeTopology topoB = _nodeTopologies[pair.posB];
-            pair.error = 0;
+			EdgeTopo edgeTopo = _mesh.GetEdgeTopo(nodeA, nodeB);
 
-			switch (topoA, topoB)
+			double errorCollapseToA = 0;
+			double errorCollapseToB = 0;
+			double errorCollapseToC = 0;
+			Vector3 posC = (posB + posA) / 2; // Todo, use this ?
+
+			double coeff_hard = 0.5 * (posB - posA).Length;
+			double coeff_uvs = 1.0 * (posB - posA).Length;
+			double coeff_border = 2.0 * (posB - posA).Length;
+
+			switch (edgeTopo)
             {
-				case (NodeTopology.Hard, NodeTopology.Hard):
-				case (NodeTopology.Surface, NodeTopology.Surface):
+				case EdgeTopo.Surface:
                     {
-						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-						double det = quadric.DeterminantXYZ();
-
-						if (det > _ƐDET || det < -_ƐDET)
-						{
-							pair.result = new Vector3(
-								-1d / det * quadric.DeterminantX(),
-								+1d / det * quadric.DeterminantY(),
-								-1d / det * quadric.DeterminantZ());
-							pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
-						}
-						else
-						{
-							// Not cool when it goes there...
-							Vector3 posC = (posA + posB) / 2d;
-							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-						}
-					}
-					break;
-				case (NodeTopology.Surface, NodeTopology.Hard):
-				case (NodeTopology.Surface, NodeTopology.UvBreak):
-				case (NodeTopology.Surface, NodeTopology.Border):
-				case (NodeTopology.Hard, NodeTopology.UvBreak):
-				case (NodeTopology.Hard, NodeTopology.Border):
-                    {
-						// to B
-						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
-						pair.result = posB;
-						if (topoA == NodeTopology.Hard)
+						bool smoothAtA = true;
+						bool smoothAtB = true;
+						foreach (var n in GetTruc(nodeA, nodeB))
                         {
-							pair.error *= _NORMAL_PENALTY;
-                        }
-						//if (topoB == NodeTopology.UvBreak)
-						//{
-						//	pair.error = _OFFSET_NOCOLLAPSE;
-						//}
-					}
-					break;
-				case (NodeTopology.Hard, NodeTopology.Surface):
-				case (NodeTopology.UvBreak, NodeTopology.Surface):
-				case (NodeTopology.Border, NodeTopology.Surface):
-				case (NodeTopology.UvBreak, NodeTopology.Hard):
-				case (NodeTopology.Border, NodeTopology.Hard):
-					{
-						// to A
-						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
-						pair.result = posA;
-						if (topoB == NodeTopology.Hard)
-						{
-							pair.error *= _NORMAL_PENALTY;
+							switch (_mesh.GetEdgeTopo(nodeA, n))
+                            {
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtA = false;
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtA = false;
+									errorCollapseToB += coeff_uvs * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.Border:
+									smoothAtA = false;
+									errorCollapseToB += coeff_border * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+							}
 						}
-						//if (topoA == NodeTopology.UvBreak)
-						//{
-						//	pair.error = _OFFSET_NOCOLLAPSE;
-						//}
-					}
-					break;
-				case (NodeTopology.Border, NodeTopology.Border):
-					{
-						if (_mesh.IsEdgeInSurface(nodeA, nodeB))
+						foreach (var n in GetTruc(nodeB, nodeA))
 						{
-							pair.error = _OFFSET_NOCOLLAPSE;
-						}
-						else
-						{
-							int posAnext, posBnext;
-
-							if ((posBnext = _mesh.GetEdgeNextBorder(nodeA, nodeB)) != -1
-							 && (posAnext = _mesh.GetEdgeNextBorder(nodeB, nodeA)) != -1)
+							switch (_mesh.GetEdgeTopo(nodeB, n))
 							{
-								// Todo : Better solution : find closest point between [Aa] and [Bb]
-								Vector3 borderA = _mesh.positions[posAnext];
-								Vector3 borderB = _mesh.positions[posBnext];
-								Vector3 posC = (posB + posA) / 2; // Todo, use this ?
-								var errorCollapseToA = ComputeLineicError(posA, borderB, posB);
-								var errorCollapseToB = ComputeLineicError(posB, borderA, posA);
-								if (errorCollapseToA < errorCollapseToB)
-								{
-									pair.error = errorCollapseToA;
-									pair.result = posA;
-								}
-								else
-								{
-									pair.error = errorCollapseToB;
-									pair.result = posB;
-								}
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtB = false;
+									errorCollapseToA += coeff_hard * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtB = false;
+									errorCollapseToA += coeff_uvs * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.Border:
+									smoothAtB = false;
+									errorCollapseToA += coeff_border * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+							}
+						}
+						if (smoothAtA && smoothAtB)
+                        {
+							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+							double det = quadric.DeterminantXYZ();
+
+							if (det > _ƐDET || det < -_ƐDET)
+							{
+								pair.result = new Vector3(
+									-1d / det * quadric.DeterminantX(),
+									+1d / det * quadric.DeterminantY(),
+									-1d / det * quadric.DeterminantZ());
+								pair.error = ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
 							}
 							else
 							{
-								// Spacer4t solution. Does not work well on plane
-								SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-								Vector3 posC = (posA + posB) / 2d;
+								// Not cool when it goes there...
 								double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
 								double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
 								double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
 								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
-								pair.error *= _NORMAL_PENALTY; // Penalty
 							}
 						}
-					}
-					break;
-				case (NodeTopology.UvBreak, NodeTopology.Border):
-				case (NodeTopology.Border, NodeTopology.UvBreak):
-					{
-						pair.error = _OFFSET_NOCOLLAPSE;
-					}
-					break;
-				case (NodeTopology.UvBreak, NodeTopology.UvBreak):
-					{
-						bool breakA = false;
-						bool breakB = false;
-						double errorCollapseToA = 0;
-						double errorCollapseToB = 0;
-						double errorCollapseToC = 0;
-						Vector3 posC = (posB + posA) / 2; // Todo, use this ?
-
-						int siblingA = nodeA;
-						do
-						{
-							for (int relative = siblingA; (relative = _mesh.nodes[relative].relative) != siblingA;)
-							{
-								if (_mesh.nodes[relative].position != _mesh.nodes[nodeB].position)
-                                {
-									if (_mesh.IsEdgeUvBreak(siblingA, relative))
-                                    {
-										breakA = true;
-										errorCollapseToB += ComputeLineicError(posB, _mesh.positions[_mesh.nodes[relative].position], posA);
-										errorCollapseToC += ComputeLineicError(posC, _mesh.positions[_mesh.nodes[relative].position], posA);
-									}
-                                }
-							}
-						} while ((siblingA = _mesh.nodes[siblingA].sibling) != nodeA);
-
-						int siblingB = nodeB;
-						do
-						{
-							for (int relative = siblingB; (relative = _mesh.nodes[relative].relative) != siblingB;)
-							{
-								if (_mesh.nodes[relative].position != _mesh.nodes[nodeB].position)
-								{
-									if (_mesh.IsEdgeUvBreak(siblingB, relative))
-									{
-										breakB = true;
-										errorCollapseToA += ComputeLineicError(posA, _mesh.positions[_mesh.nodes[relative].position], posB);
-										errorCollapseToC += ComputeLineicError(posC, _mesh.positions[_mesh.nodes[relative].position], posB);
-									}
-								}
-							}
-						} while ((siblingB = _mesh.nodes[siblingB].sibling) != nodeB);
-
-						if (breakA && breakB)
+						else if (smoothAtA)
                         {
-							MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
-							pair.error *= 0.8;
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posB.x, posB.y, posB.z);
+							pair.result = posB;
+						}
+						else if (smoothAtB)
+                        {
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posA.x, posA.y, posA.z);
+							pair.result = posA;
 						}
 						else
                         {
+							MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+						}
+					}
+					break;
+				case EdgeTopo.HardEdge:
+					{
+						bool smoothAtA = true;
+						bool smoothAtB = true;
+						foreach (var n in GetTruc(nodeA, nodeB))
+						{
+							switch (_mesh.GetEdgeTopo(nodeA, n))
+							{
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtA = false;
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtA = false;
+									errorCollapseToB += coeff_uvs * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.Border:
+									smoothAtA = false;
+									errorCollapseToB += coeff_border * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+							}
+						}
+						foreach (var n in GetTruc(nodeB, nodeA))
+						{
+							switch (_mesh.GetEdgeTopo(nodeB, n))
+							{
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtB = false;
+									errorCollapseToA += coeff_hard * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtB = false;
+									errorCollapseToA += coeff_uvs * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.Border:
+									smoothAtB = false;
+									errorCollapseToA += coeff_border * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+							}
+						}
+						if (smoothAtA && smoothAtB)
+						{
 							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
 							double det = quadric.DeterminantXYZ();
+
 							if (det > _ƐDET || det < -_ƐDET)
 							{
 								pair.result = new Vector3(
@@ -404,16 +407,164 @@ namespace Nanomesh
 								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
 							}
 						}
-
-						if ((posB - posC).Length < pair.error)
-                        {
-							pair.error = (posB - posC).Length;
-							pair.result = posC;
+						else if (smoothAtA)
+						{
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posB.x, posB.y, posB.z);
+							pair.result = posB;
+						}
+						else if (smoothAtB)
+						{
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posA.x, posA.y, posA.z);
+							pair.result = posA;
+						}
+						else
+						{
+							MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
 						}
 					}
-                    break;
-				default:
-					throw new NotImplementedException($"A:{topoA} B:{topoB}");
+					break;
+				case EdgeTopo.UvBreak:
+					{
+						bool smoothAtA = true;
+						bool smoothAtB = true;
+						foreach (var n in GetTruc(nodeA, nodeB))
+						{
+							switch (_mesh.GetEdgeTopo(nodeA, n))
+							{
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtA = false;
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtA = false;
+									errorCollapseToB += coeff_uvs * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.Border:
+									smoothAtA = false;
+									errorCollapseToB += coeff_border * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+							}
+						}
+						foreach (var n in GetTruc(nodeB, nodeA))
+						{
+							switch (_mesh.GetEdgeTopo(nodeB, n))
+							{
+								case EdgeTopo.Surface:
+									break;
+								case EdgeTopo.HardEdge:
+									smoothAtB = false;
+									errorCollapseToA += coeff_hard * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.UvBreak:
+									smoothAtB = false;
+									errorCollapseToA += coeff_uvs * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.Border:
+									smoothAtB = false;
+									errorCollapseToA += coeff_border * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+							}
+						}
+						if (smoothAtA && smoothAtB)
+						{
+							SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
+							double det = quadric.DeterminantXYZ();
+
+							if (det > _ƐDET || det < -_ƐDET)
+							{
+								pair.result = new Vector3(
+									-1d / det * quadric.DeterminantX(),
+									+1d / det * quadric.DeterminantY(),
+									-1d / det * quadric.DeterminantZ());
+								pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
+							}
+							else
+							{
+								// Not cool when it goes there...
+								double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
+								double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
+								double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
+								MathUtils.SelectMin(error1, error2, error3, posA, posB, posC, out pair.error, out pair.result);
+							}
+						}
+						else if (smoothAtA)
+						{
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posB.x, posB.y, posB.z);
+							pair.result = posB;
+						}
+						else if (smoothAtB)
+						{
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							pair.error = ComputeVertexError(q, posA.x, posA.y, posA.z);
+							pair.result = posA;
+						}
+						else
+						{
+							MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+						}
+					}
+					break;
+				case EdgeTopo.Border:
+					{
+						foreach (var n in GetTruc(nodeA, nodeB))
+						{
+							switch (_mesh.GetEdgeTopo(nodeA, n))
+							{
+								case EdgeTopo.Surface:
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.HardEdge:
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.UvBreak:
+									errorCollapseToB += coeff_uvs * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.Border:
+									errorCollapseToB += coeff_border * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+							}
+						}
+						foreach (var n in GetTruc(nodeB, nodeA))
+						{
+							switch (_mesh.GetEdgeTopo(nodeB, n))
+							{
+								case EdgeTopo.Surface:
+									errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
+									break;
+								case EdgeTopo.HardEdge:
+									errorCollapseToA += coeff_hard * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.UvBreak:
+									errorCollapseToA += coeff_uvs * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+								case EdgeTopo.Border:
+									errorCollapseToA += coeff_border * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
+									errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
+									break;
+							}
+						}
+
+						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+					}
+					break;
 			}
 
 			// Ponderate error with edge length to collapse first shortest edges
