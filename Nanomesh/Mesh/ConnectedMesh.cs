@@ -49,6 +49,10 @@ namespace Nanomesh
                 for (int i = 0; i < mesh.normals.Length; i++)
                     connectedMesh.attributes[i].normal = mesh.normals[i];
 
+            if (mesh.boneWeights != null)
+                for (int i = 0; i < mesh.boneWeights.Length; i++)
+                    connectedMesh.attributes[i].boneWeight = mesh.boneWeights[i];
+
             List<Node> nodesList = new List<Node>();
             Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
             for (int i = 0; i < triangles.Length; i += 3)
@@ -159,7 +163,9 @@ namespace Nanomesh
                     {
                         VertexData data = new VertexData();
                         data.position = nodes[relative].position;
-                        data.uv = nodes[relative].attribute;
+                        data.attribute = attributes[nodes[relative].attribute];
+
+                        // TODO : Merge attributes in a separate method ?
                         vertexData.TryAdd(data, vertexData.Count);
 
                         triangles.Add(vertexData[data]);
@@ -171,14 +177,18 @@ namespace Nanomesh
                 newGroups[currentGroup].indexCount = indicesInGroup;
 
             mesh.vertices = new Vector3[vertexData.Count];
+
+            // TODO : Only assign existing attributes ?
             mesh.uvs = new Vector2F[vertexData.Count];
             mesh.normals = new Vector3F[vertexData.Count];
+            mesh.boneWeights = new BoneWeight[vertexData.Count];
 
             foreach (var pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
-                mesh.uvs[pair.Value] = attributes[pair.Key.uv].uv;
-                mesh.normals[pair.Value] = attributes[pair.Key.uv].normal;
+                mesh.normals[pair.Value] = pair.Key.attribute.normal;
+                mesh.uvs[pair.Value] = pair.Key.attribute.uv;
+                mesh.boneWeights[pair.Value] = pair.Key.attribute.boneWeight;
             }
 
             mesh.triangles = triangles.ToArray();
@@ -186,7 +196,6 @@ namespace Nanomesh
             return mesh;
         }
 
-        // inline ?
         public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
         {
             return nodes[nodeIndexA].position == nodes[nodeIndexB].position;
@@ -206,6 +215,7 @@ namespace Nanomesh
                 if (!nodes[i].IsRemoved)
                     positionToNode[nodes[i].position] = i;
             }
+
             return positionToNode;
         }
 

@@ -73,11 +73,11 @@ namespace Nanomesh.Tests
 
                 if ((B - A).Length == 1)
                 {
-                    Assert.IsTrue(mesh.IsEdgeHard(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                    Assert.AreEqual(EdgeTopology.HardEdge, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
                 }
                 else
                 {
-                    Assert.IsFalse(mesh.IsEdgeHard(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                    Assert.AreEqual(EdgeTopology.HardEdge, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
                 }
             }
         }

@@ -1,9 +1,11 @@
 ﻿using UnityEngine;
 using UVector3 = UnityEngine.Vector3;
 using UVector2 = UnityEngine.Vector2;
+using UBoneWeight = UnityEngine.BoneWeight;
 using NVector3 = Nanomesh.Vector3;
 using NVector2F = Nanomesh.Vector2F;
 using NVector3F = Nanomesh.Vector3F;
+using NBoneWeight = Nanomesh.BoneWeight;
 
 namespace Nanomesh.Unity
 {
@@ -14,6 +16,7 @@ namespace Nanomesh.Unity
             UVector3[] vertices = mesh.vertices;
             UVector3[] normals = mesh.normals;
             UVector2[] uvs = mesh.uv;
+            UBoneWeight[] boneWeights = mesh.boneWeights;
 
             SharedMesh sharedMesh = new SharedMesh();
 
@@ -28,6 +31,18 @@ namespace Nanomesh.Unity
             sharedMesh.uvs = new NVector2F[uvs.Length];
             for (int i = 0; i < uvs.Length; i++)
                 sharedMesh.uvs[i] = new NVector2F(uvs[i].x, uvs[i].y);
+
+            sharedMesh.boneWeights = new NBoneWeight[boneWeights.Length];
+            for (int i = 0; i < boneWeights.Length; i++)
+                sharedMesh.boneWeights[i] = new NBoneWeight(
+                    boneWeights[i].boneIndex0,
+                    boneWeights[i].boneIndex1,
+                    boneWeights[i].boneIndex2,
+                    boneWeights[i].boneIndex3,
+                    boneWeights[i].weight0,
+                    boneWeights[i].weight1,
+                    boneWeights[i].weight2,
+                    boneWeights[i].weight3);
 
             sharedMesh.triangles = mesh.triangles;
             sharedMesh.groups = new Group[mesh.subMeshCount];
@@ -65,9 +80,23 @@ namespace Nanomesh.Unity
             for (int i = 0; i < uvs.Length; i++)
                 uvs[i] = new UVector2(sharedMesh.uvs[i].x, sharedMesh.uvs[i].y);
 
+            UBoneWeight[] boneWeights = new UBoneWeight[sharedMesh.boneWeights.Length];
+            for (int i = 0; i < boneWeights.Length; i++)
+                boneWeights[i] = new UBoneWeight {
+                    boneIndex0 = sharedMesh.boneWeights[i].index0,
+                    boneIndex1 = sharedMesh.boneWeights[i].index1,
+                    boneIndex2 = sharedMesh.boneWeights[i].index2,
+                    boneIndex3 = sharedMesh.boneWeights[i].index3,
+                    weight0 = sharedMesh.boneWeights[i].weight0,
+                    weight1 = sharedMesh.boneWeights[i].weight1,
+                    weight2 = sharedMesh.boneWeights[i].weight2,
+                    weight3 = sharedMesh.boneWeights[i].weight3,
+                };
+
             mesh.vertices = vertices;
             mesh.normals = normals;
             mesh.uv = uvs;
+            mesh.boneWeights = boneWeights;
             mesh.triangles = sharedMesh.triangles;
             mesh.subMeshCount = sharedMesh.groups.Length;
 

@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Nanomesh
 {
     public class ImporterOBJ
     {
-
-        const char CHAR_SLASH = '/';
-        const int SIZE_INIT = 1024;
+        const char _CHAR_SLASH = '/';
+        const int _SIZE_INIT = 1024;
 
         public static SharedMesh Read(string file)
         {
@@ -31,12 +29,12 @@ namespace Nanomesh
             string[] brokenString;
             int offset = -1;
 
-            List<Vector3> positions = new List<Vector3>(SIZE_INIT);
-            List<Vector3F> normals = new List<Vector3F>(SIZE_INIT);
-            List<Vector2F> uvs = new List<Vector2F>(SIZE_INIT);
-            List<int> triangles = new List<int>(SIZE_INIT * 3);
+            List<Vector3> positions = new List<Vector3>(_SIZE_INIT);
+            List<Vector3F> normals = new List<Vector3F>(_SIZE_INIT);
+            List<Vector2F> uvs = new List<Vector2F>(_SIZE_INIT);
+            List<int> triangles = new List<int>(_SIZE_INIT * 3);
 
-            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
+            Dictionary<ObjVertexData, int> vertexData = new Dictionary<ObjVertexData, int>();
 
             string line;
 
@@ -50,14 +48,18 @@ namespace Nanomesh
                 switch (brokenString[0])
                 {
                     case "f":
-                        VertexData[] datas = new VertexData[brokenString.Length - 1];
+                        ObjVertexData[] datas = new ObjVertexData[brokenString.Length - 1];
                         for (int x = 1; x < brokenString.Length; x++)
                         {
-                            var split = brokenString[x].Split(CHAR_SLASH);
+                            var split = brokenString[x].Split(_CHAR_SLASH);
 
                             datas[x - 1].position = split[0].ToInt() + offset;
-                            if (split.Length > 1 && !string.IsNullOrEmpty(split[1])) datas[x - 1].uv = split[1].ToInt() + offset;
-                            if (split.Length > 2) datas[x - 1].normal = split[2].ToInt() + offset;
+
+                            if (split.Length > 1 && !string.IsNullOrEmpty(split[1]))
+                                datas[x - 1].uv = split[1].ToInt() + offset;
+
+                            if (split.Length > 2)
+                                datas[x - 1].normal = split[2].ToInt() + offset;
 
                             if (!vertexData.ContainsKey(datas[x - 1]))
                                 vertexData.Add(datas[x - 1], vertexData.Count);
@@ -104,6 +106,28 @@ namespace Nanomesh
             mesh.triangles = triangles.ToArray();
 
             return mesh;
+        }
+
+        private struct ObjVertexData : IEquatable<ObjVertexData>
+        {
+            public int position;
+            public int normal;
+            public int uv;
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return position ^ (normal << 2) ^ (uv >> 2);
+                }
+            }
+
+            public bool Equals(ObjVertexData other)
+            {
+                return position == other.position
+                    && normal == other.normal
+                    && uv == other.uv;
+            }
         }
     }
 }

@@ -439,7 +439,7 @@ namespace Nanomesh
 			Vector3 positionA = _mesh.positions[posA];
 			Vector3 positionB = _mesh.positions[posB];
 
-			HashSet<int> procNormals = new HashSet<int>();
+			HashSet<int> procAttributes = new HashSet<int>();
 
             Vector3 positionN = pair.result;
             double AN = Vector3.Magnitude(positionA - positionN);
@@ -462,35 +462,56 @@ namespace Nanomesh
 				{
 					if (_mesh.nodes[relativeOfA].position == posB)
 					{
-						if (procNormals.Contains(_mesh.nodes[relativeOfA].attribute))
+						if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
 							continue;
 
-						if (procNormals.Contains(_mesh.nodes[siblingOfA].attribute))
+						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
 							continue;
 
-						// Normals
-						Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
-						Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
+                        // Normals
+                        {
+							Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
+							Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
 
-						// TODO : Interpolate differently depending on pair type
-						normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
-						normalAtA = normalAtA.Normalized;
+							// TODO : Interpolate differently depending on pair type
+							normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
+							normalAtA = normalAtA.Normalized;
 
-						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+						}
 
-						// UVs
-						Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
-						Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
+                        // UVs
+                        {
+							Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
+							Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
 
-						uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
+							uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
 
-						// TODO : Don't iterpolate UVs of different islands
-						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
-						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
+							// TODO : Don't interpolate UVs of different islands
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
+						}
 
-						procNormals.Add(_mesh.nodes[siblingOfA].attribute);
-						procNormals.Add(_mesh.nodes[relativeOfA].attribute);
+                        // Boneweights
+                        {
+							BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight;
+							BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
+
+							boneWeightA = new BoneWeight(
+								boneWeightA.index0, boneWeightA.index1, boneWeightA.index2, boneWeightA.index3,
+								(float)(ratio * boneWeightB.weight0 + (1 - ratio) * boneWeightA.weight0),
+								(float)(ratio * boneWeightB.weight1 + (1 - ratio) * boneWeightA.weight1),
+								(float)(ratio * boneWeightB.weight2 + (1 - ratio) * boneWeightA.weight2),
+								(float)(ratio * boneWeightB.weight3 + (1 - ratio) * boneWeightA.weight3));
+
+							// TODO : Don't interpolate UVs of different islands
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
+						}
+
+						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
+						procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
 
 						break;
 					}
@@ -503,7 +524,7 @@ namespace Nanomesh
 			siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
 			{
-				if (procNormals.Contains(_mesh.nodes[siblingOfA].attribute))
+				if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
 					continue;
 
 				int posC = _mesh.nodes[_mesh.nodes[siblingOfA].relative].position;
@@ -529,14 +550,14 @@ namespace Nanomesh
 
 				_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = rotation * normal;
 
-				procNormals.Add(_mesh.nodes[siblingOfA].attribute);
+				procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
 
 			int siblingOfB = nodeIndexB;
 			do // Iterator over faces around B
 			{
-				if (procNormals.Contains(_mesh.nodes[siblingOfB].attribute))
+				if (procAttributes.Contains(_mesh.nodes[siblingOfB].attribute))
 					continue;
 
 				int posC = _mesh.nodes[_mesh.nodes[siblingOfB].relative].position;
@@ -562,7 +583,7 @@ namespace Nanomesh
 
 				_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal = rotation * normal;
 
-				procNormals.Add(_mesh.nodes[siblingOfB].attribute);
+				procAttributes.Add(_mesh.nodes[siblingOfB].attribute);
 
 			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}

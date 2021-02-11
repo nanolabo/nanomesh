@@ -81,8 +81,8 @@ namespace Nanomesh.Unity
             DecimateModifier decimateModifier = new DecimateModifier();
             Profiling.Start("decimate");
             //decimateModifier.Verbosed += DecimateModifier_Verbosed;
-            //decimateModifier.DecimateToRatio(cmesh, 0.50f);
-            decimateModifier.DecimateToPolycount(cmesh, 15000);
+            decimateModifier.DecimateToRatio(cmesh, 0.50f);
+            //decimateModifier.DecimateToPolycount(cmesh, 15000);
             //decimateModifier.DecimateToError(cmesh, 0.05f);
             //cmesh.Compact();
             Debug.Log(Profiling.End("decimate"));
@@ -101,6 +101,7 @@ namespace Nanomesh.Unity
         {
             Mesh outputMesh = new Mesh();
             outputMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            outputMesh.bindposes = mesh.bindposes;
             Decimate(in mesh, outputMesh);
             return outputMesh;
         }
