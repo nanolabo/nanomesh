@@ -75,18 +75,21 @@ namespace Nanomesh.Unity
             SharedMesh smesh = UnityConverter.ToSharedMesh(inputMesh);
             ConnectedMesh cmesh = ConnectedMesh.Build(smesh);
             cmesh.MergePositions(0.001);
+            //cmesh.Scale(1000);
             //NormalsModifier normalsModifier = new NormalsModifier();
             //normalsModifier.Run(cmesh, 45);
             DecimateModifier decimateModifier = new DecimateModifier();
             Profiling.Start("decimate");
             //decimateModifier.Verbosed += DecimateModifier_Verbosed;
-            //decimateModifier.DecimateToRatio(cmesh, 0.25f);
+            //decimateModifier.DecimateToRatio(cmesh, 0.50f);
             decimateModifier.DecimateToPolycount(cmesh, 15000);
             //decimateModifier.DecimateToError(cmesh, 0.05f);
             //cmesh.Compact();
             Debug.Log(Profiling.End("decimate"));
+            //cmesh.Scale(0.001);
             smesh = cmesh.ToSharedMesh();
             UnityConverter.ToUnityMesh(smesh, outputMesh);
+            outputMesh.RecalculateTangents();
         }
 
         private static void DecimateModifier_Verbosed(string obj)

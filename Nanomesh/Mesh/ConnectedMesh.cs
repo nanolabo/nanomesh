@@ -422,7 +422,7 @@ namespace Nanomesh
             return validNodeAtA;
         }
 
-        public EdgeTopo GetEdgeTopo(int nodeIndexA, int nodeIndexB)
+        public EdgeTopology GetEdgeTopo(int nodeIndexA, int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
@@ -466,179 +466,15 @@ namespace Nanomesh
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             if (facesAttached < 2)
-                return EdgeTopo.Border;
+                return EdgeTopology.Border;
 
             if (uvBreakAtA || uvBreakAtB)
-                return EdgeTopo.UvBreak;
+                return EdgeTopology.UvBreak;
 
             if (hardAtA || hardAtB)
-                return EdgeTopo.HardEdge;
+                return EdgeTopology.HardEdge;
 
-            return EdgeTopo.Surface;
-        }
-
-        public bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
-        {
-            int posB = nodes[nodeIndexB].position;
-
-            int facesAttached = 0;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                int relativeOfA = siblingOfA;
-
-                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
-                {
-                    int posC = nodes[relativeOfA].position;
-                    if (posC == posB)
-                    {
-                        facesAttached++;
-                        if (facesAttached == 2)
-                            return true;
-                    }
-                }
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            return false;
-        }
-
-        public bool IsEdgeHard(int nodeIndexA, int nodeIndexB)
-        {
-            int posB = nodes[nodeIndexB].position;
-
-            int attrAtA = -1;
-            int attrAtB = -1;
-
-            bool hardAtA = false;
-            bool hardAtB = false;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                int relativeOfA = siblingOfA;
-                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
-                {
-                    int posC = nodes[relativeOfA].position;
-                    if (posC == posB)
-                    {
-                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
-                            hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
-
-                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
-                       
-                        attrAtB = nodes[relativeOfA].attribute;
-                        attrAtA = nodes[siblingOfA].attribute;
-                    }
-                }
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            return hardAtA && hardAtB;
-        }
-
-        public bool IsEdgeUvBreak(int nodeIndexA, int nodeIndexB)
-        {
-            int posB = nodes[nodeIndexB].position;
-
-            int attrAtA = -1;
-            int attrAtB = -1;
-
-            bool uvBreakAtA = false;
-            bool uvBreakAtB = false;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                int relativeOfA = siblingOfA;
-                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
-                {
-                    int posC = nodes[relativeOfA].position;
-                    if (posC == posB)
-                    {
-                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
-                            uvBreakAtB = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
-
-                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtA].uv, attributes[nodes[siblingOfA].attribute].uv);
-
-                        attrAtB = nodes[relativeOfA].attribute;
-                        attrAtA = nodes[siblingOfA].attribute;
-                    }
-                }
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            return uvBreakAtA && uvBreakAtB;
-        }
-
-        public void IsEdgeInUvsIsland(int nodeIndexA, int nodeIndexB, out bool opposedBreakAtA, out bool opposedBreakAtB)
-        {
-            // OK C'EST DE LA MERDE CA NEED UN REWORK
-
-            int posA = nodes[nodeIndexA].position;
-            int posB = nodes[nodeIndexB].position;
-
-            opposedBreakAtA = false;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                if (nodes[siblingOfA].attribute != nodes[nodes[siblingOfA].sibling].attribute)
-                {
-                    if (!Vector2FComparer.Default.Equals(attributes[nodes[siblingOfA].attribute].uv, attributes[nodes[nodes[siblingOfA].sibling].attribute].uv))
-                    {
-                        // UV BREAK !
-                        bool connectedToB = false;
-                        int relativeOfA = siblingOfA;
-                        while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
-                        {
-                            int posC = nodes[relativeOfA].position;
-                            if (posC == posB)
-                            {
-                                // UV BREAK IS CONNECTED
-                                connectedToB = true;
-                            }
-                        }
-
-                        if (!connectedToB)
-                        {
-                            opposedBreakAtA = true;
-                            break;
-                        }
-                    }
-                }
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            opposedBreakAtB = false;
-
-            int siblingOfB = nodeIndexB;
-            do // Iterator over faces around B
-            {
-                if (nodes[siblingOfB].attribute != nodes[nodes[siblingOfB].sibling].attribute)
-                {
-                    if (!Vector2FComparer.Default.Equals(attributes[nodes[siblingOfB].attribute].uv, attributes[nodes[nodes[siblingOfB].sibling].attribute].uv))
-                    {
-                        // UV BREAK !
-                        bool connectedToA = false;
-                        int relativeOfB = siblingOfB;
-                        while ((relativeOfB = nodes[relativeOfB].relative) != siblingOfB)
-                        {
-                            int posC = nodes[relativeOfB].position;
-                            if (posC == posA)
-                            {
-                                // UV BREAK IS CONNECTED
-                                connectedToA = true;
-                            }
-                        }
-
-                        if (!connectedToA)
-                        {
-                            opposedBreakAtB = true;
-                            break;
-                        }
-                    }
-                }
-            } while ((siblingOfB = nodes[siblingOfB].sibling) != nodeIndexB);
+            return EdgeTopology.Surface;
         }
 
         // Only works with triangles !
@@ -667,67 +503,6 @@ namespace Nanomesh
                 positions[posC] - positions[posA]);
 
             return 0.5 * normal.Length;
-        }
-
-        public NodeTopology GetNodeTopology(int nodeIndex)
-        {
-            NodeTopology nodeTopology = NodeTopology.Surface;
-
-            int attrIndex = -1;
-            int sibling = nodeIndex;
-            do
-            {
-                int relative = sibling;
-                while ((relative = nodes[relative].relative) != sibling)
-                {
-                    if (!IsEdgeInSurface(sibling, relative)) // There might be a faster solution to check if this node has a border or not
-                    {
-                        return NodeTopology.Border;
-                    }
-                }
-                if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
-                {
-                    if (Vector2FComparer.Default.Equals(attributes[nodes[sibling].attribute].uv, attributes[attrIndex].uv))
-                    {
-                        nodeTopology |= NodeTopology.Hard;
-                    }
-                    else
-                    {
-                        nodeTopology |= NodeTopology.UvBreak;
-                    }
-                }
-                attrIndex = nodes[sibling].attribute;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
-
-            if (nodeTopology.HasFlag(NodeTopology.UvBreak))
-                nodeTopology = NodeTopology.UvBreak;
-            //else if (nodeTopology.HasFlag(NodeTopology.Border))
-            //    nodeTopology = NodeTopology.Border;
-
-            return nodeTopology;
-        }
-
-        // bad api
-        public int GetEdgeNextBorder(int nodeIndexA, int nodeIndexB)
-        {
-            int posA = nodes[nodeIndexA].position;
-
-            int sibling = nodeIndexB;
-            do
-            {
-                int relative = sibling;
-                while ((relative = nodes[relative].relative) != sibling)
-                {
-                    int posC = nodes[relative].position;
-                    if ((posC != posA) && !IsEdgeInSurface(sibling, relative))
-                    {
-                        return posC;
-                    }
-                }
-
-            } while ((sibling = nodes[sibling].sibling) != nodeIndexB);
-
-            return -1;
         }
 
         public void Compact()

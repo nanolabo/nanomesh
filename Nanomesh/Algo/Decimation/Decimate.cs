@@ -13,7 +13,6 @@ namespace Nanomesh
 		private ConnectedMesh _mesh;
 
 		private SymmetricMatrix[] _matrices;
-		private NodeTopology[] _nodeTopologies;
 		private FastHashSet<EdgeCollapse> _pairs;
 		private LinkedHashSet<EdgeCollapse> _mins;
 
@@ -73,7 +72,6 @@ namespace Nanomesh
 			_initialTriangleCount = mesh.FaceCount;
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
-			_nodeTopologies = new NodeTopology[mesh.positions.Length];
 			_pairs = new FastHashSet<EdgeCollapse>();
 			_mins = new LinkedHashSet<EdgeCollapse>();
 
@@ -82,9 +80,6 @@ namespace Nanomesh
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateQuadric(p);
 
-			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
-				CalculateTopology(p);
-
 			foreach (var pair in _pairs)
 				CalculateError(pair);
 		}
@@ -92,8 +87,6 @@ namespace Nanomesh
 		private void Iterate()
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
-
-			Verbosed?.Invoke($"Collapsing <A:{_nodeTopologies[pair.posA]} B:{_nodeTopologies[pair.posB]} ERROR:{pair.error}>");
 
 			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 			Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
@@ -173,106 +166,113 @@ namespace Nanomesh
 			{
 				Debug.Assert(_mesh.CheckRelatives(sibling));
 
-				// TODO : Look for unsassigned attribute instead, to handle cases where we have normals but not everywhere
-				if (true /*_mesh.attributes.Length == 0 || _nodeTopologies[position] != NodeTopology.Surface*/)
-				{
-					// Use triangle normal if there are no normals
-					Vector3 faceNormal = _mesh.GetFaceNormal(sibling);
-					double dot = Vector3.Dot(-faceNormal, _mesh.positions[_mesh.nodes[sibling].position]);
-					symmetricMatrix += new SymmetricMatrix(faceNormal.x, faceNormal.y, faceNormal.z, dot);
-				}
-				else
-				{
-					int relative = sibling;
-					do
-					{
-						Vector3 localNormal = (Vector3)_mesh.attributes[_mesh.nodes[relative].attribute].normal.Normalized;
-						double dot = Vector3.Dot(-localNormal, _mesh.positions[_mesh.nodes[relative].position]);
-						symmetricMatrix += new SymmetricMatrix(localNormal.x, localNormal.y, localNormal.z, dot);
-					} while ((relative = _mesh.nodes[relative].relative) != sibling);
-				}
+				Vector3 faceNormal = _mesh.GetFaceNormal(sibling);
+				double dot = Vector3.Dot(-faceNormal, _mesh.positions[_mesh.nodes[sibling].position]);
+				symmetricMatrix += new SymmetricMatrix(faceNormal.x, faceNormal.y, faceNormal.z, dot);
+
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			_matrices[position] = symmetricMatrix;
 		}
 
-		private void CalculateTopology(int position)
+		private HashSet<int> _adjacentEdges = new HashSet<int>(3);
+
+		private IEnumerable<int> GetAdjacentPositions(int nodeIndex, int nodeAvoid)
 		{
-			int nodeIndex = _mesh.PositionToNode[position];
-			_nodeTopologies[position] = _mesh.GetNodeTopology(nodeIndex);
-		}
+			_adjacentEdges.Clear();
 
-		private const double _NORMAL_PENALTY = 2;
-
-		private IEnumerable<int> GetTruc(int nodeIndex, int nodeAvoid) {
-			HashSet<int> res = new HashSet<int>();
+			int posToAvoid = _mesh.nodes[nodeAvoid].position;
 
 			int sibling = nodeIndex;
 			do
 			{
 				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
 				{
-					if (_mesh.nodes[relative].position != _mesh.nodes[nodeAvoid].position)
+					if (_mesh.nodes[relative].position != posToAvoid)
 					{
-						res.Add(relative);
+						_adjacentEdges.Add(_mesh.nodes[relative].position);
 					}
 				}
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
-			return res;
+			return _adjacentEdges;
 		}
 
 		private void CalculateErrors(in int nodeA, in int nodeB, ref double errorCollapseToA, ref double errorCollapseToB, ref double errorCollapseToC)
         {
-			Vector3 posA = _mesh.positions[_mesh.nodes[nodeA].position];
-			Vector3 posB = _mesh.positions[_mesh.nodes[nodeB].position];
+			int pA = _mesh.nodes[nodeA].position;
+			int pB = _mesh.nodes[nodeB].position;
+			Vector3 posA = _mesh.positions[pA];
+			Vector3 posB = _mesh.positions[pB];
 			Vector3 posC = (posB + posA) / 2;
 
-			double coeff_hard = 0.5 * (posB - posA).Length;
-			double coeff_uvs = 1.0 * (posB - posA).Length;
-			double coeff_border = 2.0 * (posB - posA).Length;
+			// We multiply by edge length to be agnotics with quadrics error.
+			// Otherwise it becomes too scale dependent
+			double length = (posB - posA).Length;
+			double coeff_hard = 1.0 * length;
+			double coeff_uvs = 2.0 * length;
+			double coeff_border = 3.0 * length;
 
-			foreach (var n in GetTruc(nodeA, nodeB))
+			foreach (var pD in GetAdjacentPositions(nodeA, nodeB))
 			{
-				switch (_mesh.GetEdgeTopo(nodeA, n))
+				Vector3 posD = _mesh.positions[pD];
+				EdgeCollapse edge = new EdgeCollapse(pA, pD);
+				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
 				{
-					case EdgeTopo.Surface:
-						break;
-					case EdgeTopo.HardEdge:
-						errorCollapseToB += coeff_hard * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
-						errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
-						break;
-					case EdgeTopo.UvBreak:
-						errorCollapseToB += coeff_uvs * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
-						errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
-						break;
-					case EdgeTopo.Border:
-						errorCollapseToB += coeff_border * ComputeLineicError(posB, _mesh.positions[_mesh.nodes[n].position], posA);
-						errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posA);
-						break;
+					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeA, _mesh.PositionToNode[pD])*/)
+					{
+						case EdgeTopology.Surface:
+							break;
+						case EdgeTopology.HardEdge:
+							errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posA);
+							break;
+						case EdgeTopology.UvBreak:
+							errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posA);
+							break;
+						case EdgeTopology.Border:
+							errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posA);
+							break;
+					}
 				}
 			}
-			foreach (var n in GetTruc(nodeB, nodeA))
+			foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
 			{
-				switch (_mesh.GetEdgeTopo(nodeB, n))
+				Vector3 posD = _mesh.positions[pD];
+				EdgeCollapse edge = new EdgeCollapse(pB, pD);
+				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
 				{
-					case EdgeTopo.Surface:
-						break;
-					case EdgeTopo.HardEdge:
-						errorCollapseToA += coeff_hard * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
-						errorCollapseToC += coeff_hard * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
-						break;
-					case EdgeTopo.UvBreak:
-						errorCollapseToA += coeff_uvs * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
-						errorCollapseToC += coeff_uvs * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
-						break;
-					case EdgeTopo.Border:
-						errorCollapseToA += coeff_border * ComputeLineicError(posA, _mesh.positions[_mesh.nodes[n].position], posB);
-						errorCollapseToC += coeff_border * ComputeLineicError(posC, _mesh.positions[_mesh.nodes[n].position], posB);
-						break;
+					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeB, _mesh.PositionToNode[pD])*/)
+					{
+						case EdgeTopology.Surface:
+							break;
+						case EdgeTopology.HardEdge:
+							errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posB);
+							break;
+						case EdgeTopology.UvBreak:
+							errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posB);
+							break;
+						case EdgeTopology.Border:
+							errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posB);
+							break;
+					}
 				}
 			}
 		}
+
+		private EdgeTopology GetEdgeTopo(EdgeCollapse edge)
+        {
+			if (edge.Topology == EdgeTopology.Undefined)
+			{
+				edge.SetTopology(_mesh.GetEdgeTopo(_mesh.PositionToNode[edge.posA], _mesh.PositionToNode[edge.posB]));
+			}
+			return edge.Topology;
+        }
 
 		private void CalculateError(EdgeCollapse pair)
 		{
@@ -284,7 +284,7 @@ namespace Nanomesh
 			int nodeA = _mesh.PositionToNode[pair.posA];
 			int nodeB = _mesh.PositionToNode[pair.posB];
 
-			EdgeTopo edgeTopo = _mesh.GetEdgeTopo(nodeA, nodeB);
+			EdgeTopology edgeTopo = GetEdgeTopo(pair);
 
 			double errorCollapseToA = 0;
 			double errorCollapseToB = 0;
@@ -293,10 +293,10 @@ namespace Nanomesh
 
 			switch (edgeTopo)
             {
-				case EdgeTopo.Border:
-				case EdgeTopo.UvBreak:
-				case EdgeTopo.HardEdge:
-				case EdgeTopo.Surface:
+				case EdgeTopology.Border:
+				case EdgeTopology.UvBreak:
+				case EdgeTopology.HardEdge:
+				case EdgeTopology.Surface:
                     {
 						// If a node is smooth (no hard edge connected, no uv break or no border), we can compute a quadric error
 						// Otherwise, we add up linear errors for every non smooth source.
@@ -342,7 +342,7 @@ namespace Nanomesh
 						// Contrary to smooth edge, we know right away here that there will both nodes are not smooth
 						// We will still rely on quadrics if the only hard edge is the edge to collapse, but we add
 						// a penalty
-						if (edgeTopo == EdgeTopo.HardEdge)
+						if (edgeTopo == EdgeTopology.HardEdge)
                         {
 							pair.error *= 1;
                         }
@@ -354,23 +354,6 @@ namespace Nanomesh
 
 			// TODO : Make it insensitive to model scale
 			// TODO : Prevent flipping triangles
-		}
-
-		private HashSet<int> GetPositionsAround(int node)
-        {
-			HashSet<int> positions = new HashSet<int>();
-			int sibling = node;
-			do
-			{
-				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
-				{
-					if (_nodeTopologies[_mesh.nodes[relative].position] == NodeTopology.UvBreak)
-                    {
-						positions.Add(_mesh.nodes[relative].position);
-					}
-				}
-			} while ((sibling = _mesh.nodes[sibling].sibling) != node);
-			return positions;
 		}
 
 		// Todo : Fix this (doesn't seems to work properly
@@ -663,7 +646,6 @@ namespace Nanomesh
 			MergeAttributes(validNode);
 
 			CalculateQuadric(posA);
-			CalculateTopology(posA);
 
 			_edgeToRefresh.Clear();
 
@@ -697,14 +679,14 @@ namespace Nanomesh
 			foreach (var edge in _edgeToRefresh)
 			{
 				CalculateQuadric(edge.posB);
-				CalculateTopology(edge.posB);
+				edge.SetTopology(EdgeTopology.Undefined);
+				_pairs.Remove(edge);
+				_pairs.Add(edge);
 			}
 
 			foreach (var edge in _edgeToRefresh)
 			{
 				CalculateError(edge);
-				_pairs.Remove(edge);
-				_pairs.Add(edge);
 				_mins.Remove(edge);
 				if (UpdateMinsOnCollapse)
 					_mins.AddMin(edge);

@@ -11,9 +11,14 @@ namespace Nanomesh
 			public Vector3 result;
 			public double error;
 
-#if DEBUG
-			public EdgeTopology topology;
-#endif
+			private EdgeTopology _topology;
+
+			public ref EdgeTopology Topology => ref _topology;
+
+			public void SetTopology(EdgeTopology topology)
+            {
+				_topology = topology;
+            }
 
 			public EdgeCollapse(int posA, int posB)
 			{
@@ -83,11 +88,7 @@ namespace Nanomesh
 
 			public override string ToString()
 			{
-#if DEBUG
-				return $"<A:{posA} B:{posB} error:{error} topology:{topology}>";
-#else
-				return $"<A:{posA} B:{posB} error:{error}>";
-#endif
+				return $"<A:{posA} B:{posB} error:{error} topology:{_topology}>";
 			}
 		}
 	}
