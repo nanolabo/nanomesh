@@ -198,73 +198,6 @@ namespace Nanomesh
 			return _adjacentEdges;
 		}
 
-		private void CalculateErrors(in int nodeA, in int nodeB, ref double errorCollapseToA, ref double errorCollapseToB, ref double errorCollapseToC)
-        {
-			int pA = _mesh.nodes[nodeA].position;
-			int pB = _mesh.nodes[nodeB].position;
-			Vector3 posA = _mesh.positions[pA];
-			Vector3 posB = _mesh.positions[pB];
-			Vector3 posC = (posB + posA) / 2;
-
-			// We multiply by edge length to be agnotics with quadrics error.
-			// Otherwise it becomes too scale dependent
-			double length = (posB - posA).Length;
-			double coeff_hard = 1.0 * length;
-			double coeff_uvs = 2.0 * length;
-			double coeff_border = 3.0 * length;
-
-			foreach (var pD in GetAdjacentPositions(nodeA, nodeB))
-			{
-				Vector3 posD = _mesh.positions[pD];
-				EdgeCollapse edge = new EdgeCollapse(pA, pD);
-				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
-				{
-					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeA, _mesh.PositionToNode[pD])*/)
-					{
-						case EdgeTopology.Surface:
-							break;
-						case EdgeTopology.HardEdge:
-							errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posA);
-							break;
-						case EdgeTopology.UvBreak:
-							errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posA);
-							break;
-						case EdgeTopology.Border:
-							errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posA);
-							break;
-					}
-				}
-			}
-			foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
-			{
-				Vector3 posD = _mesh.positions[pD];
-				EdgeCollapse edge = new EdgeCollapse(pB, pD);
-				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
-				{
-					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeB, _mesh.PositionToNode[pD])*/)
-					{
-						case EdgeTopology.Surface:
-							break;
-						case EdgeTopology.HardEdge:
-							errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posB);
-							break;
-						case EdgeTopology.UvBreak:
-							errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posB);
-							break;
-						case EdgeTopology.Border:
-							errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posB);
-							break;
-					}
-				}
-			}
-		}
-
 		private EdgeTopology GetEdgeTopo(EdgeCollapse edge)
         {
 			if (edge.Topology == EdgeTopology.Undefined)
@@ -290,6 +223,9 @@ namespace Nanomesh
 			double errorCollapseToA = 0;
 			double errorCollapseToB = 0;
 			double errorCollapseToC = 0;
+			double errorCollapseToO = 0;
+			Vector3 posC = (posB + posA) / 2;
+			Vector3 posO = Vector3.PositiveInfinity;
 
 			switch (edgeTopo)
             {
@@ -303,51 +239,107 @@ namespace Nanomesh
 						// If both nodes of the edge are smooth, we can find the optimal position to collapse to by inverting the
 						// quadric matrix, otherwise, we pick the best between A, B, and the position in the middle, C.
 
-						CalculateErrors(nodeA, nodeB, ref errorCollapseToA, ref errorCollapseToB, ref errorCollapseToC);
+						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+						double det = q.DeterminantXYZ();
 
-						if (errorCollapseToA == 0 && errorCollapseToB == 0)
-                        {
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							double det = q.DeterminantXYZ();
-
-							if (det > _ƐDET || det < -_ƐDET)
-							{
-								pair.result = new Vector3(
-									-1d / det * q.DeterminantX(),
-									+1d / det * q.DeterminantY(),
-									-1d / det * q.DeterminantZ());
-								pair.error = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
-								return;
-							}
-							else
-							{
-								errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
-								errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
-								errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
-							}
-						}
-						else if (errorCollapseToB == 0)
+						if (det > _ƐDET || det < -_ƐDET)
 						{
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+							posO = new Vector3(
+								-1d / det * q.DeterminantX(),
+								+1d / det * q.DeterminantY(),
+								-1d / det * q.DeterminantZ());
+							errorCollapseToO = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
 						}
-						else if (errorCollapseToA == 0)
+						else
 						{
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+							errorCollapseToO = _OFFSET_NOCOLLAPSE;
 						}
 
-						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+						errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+						errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+						errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
 
-						//BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[nodeA].attribute].boneWeight;
-						//BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[nodeB].attribute].boneWeight;
+						int pA = _mesh.nodes[nodeA].position;
+						int pB = _mesh.nodes[nodeB].position;
 
-						//if (boneWeightA.index0 != boneWeightB.index0
-					    // || boneWeightA.index1 != boneWeightB.index1
-					    // || boneWeightA.index2 != boneWeightB.index2
-					    // || boneWeightA.index3 != boneWeightB.index3)
+						// We multiply by edge length to be agnotics with quadrics error.
+						// Otherwise it becomes too scale dependent
+						double length = (posB - posA).Length;
+						double coeff_hard = 1.0 * length;
+						double coeff_uvs = 2.0 * length;
+						double coeff_border = 3.0 * length;
+
+						foreach (var pD in GetAdjacentPositions(nodeA, nodeB))
+						{
+							Vector3 posD = _mesh.positions[pD];
+							EdgeCollapse edge = new EdgeCollapse(pA, pD);
+							if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
+							{
+								switch (GetEdgeTopo(realEdge))
+								{
+									case EdgeTopology.Surface:
+										break;
+									case EdgeTopology.HardEdge:
+										errorCollapseToO += coeff_hard * ComputeLineicError(posO, posD, posA);
+										errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
+										errorCollapseToC += coeff_hard * ComputeLineicError(posC, posD, posA);
+										break;
+									case EdgeTopology.UvBreak:
+										errorCollapseToO += coeff_uvs * ComputeLineicError(posO, posD, posA);
+										errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
+										errorCollapseToC += coeff_uvs * ComputeLineicError(posC, posD, posA);
+										break;
+									case EdgeTopology.Border:
+										errorCollapseToO = _OFFSET_NOCOLLAPSE;
+										errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
+										errorCollapseToC += coeff_border * ComputeLineicError(posC, posD, posA);
+										break;
+								}
+							}
+						}
+
+						foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
+						{
+							Vector3 posD = _mesh.positions[pD];
+							EdgeCollapse edge = new EdgeCollapse(pB, pD);
+							if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
+							{
+								switch (GetEdgeTopo(realEdge))
+								{
+									case EdgeTopology.Surface:
+										break;
+									case EdgeTopology.HardEdge:
+										errorCollapseToO += coeff_hard * ComputeLineicError(posO, posD, posB);
+										errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
+										errorCollapseToC += coeff_hard * ComputeLineicError(posC, posD, posB);
+										break;
+									case EdgeTopology.UvBreak:
+										errorCollapseToO += coeff_uvs * ComputeLineicError(posO, posD, posB);
+										errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
+										errorCollapseToC += coeff_uvs * ComputeLineicError(posC, posD, posB);
+										break;
+									case EdgeTopology.Border:
+										errorCollapseToO = _OFFSET_NOCOLLAPSE;
+										errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
+										errorCollapseToC += coeff_border * ComputeLineicError(posC, posD, posB);
+										break;
+								}
+							}
+						}
+
+						errorCollapseToC *= 0.5;
+
+						MathUtils.SelectMin(
+							errorCollapseToO, errorCollapseToA, errorCollapseToB, errorCollapseToC,
+							posO, posA, posB, posC,
+							out pair.error, out pair.result);
+
+						// Contrary to smooth edge, we know right away here that there will both nodes are not smooth
+						// We will still rely on quadrics if the only hard edge is the edge to collapse, but we add
+						// a penalty
+						//if (edgeTopo == EdgeTopology.HardEdge)
 						//{
-						//	pair.error += 10000;
+						//	pair.error *= 1;
 						//}
 					}
 					break;

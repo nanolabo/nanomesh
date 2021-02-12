@@ -48,5 +48,67 @@ namespace Nanomesh
                 }
             }
         }
+
+        public static void SelectMin<T>(double e1, double e2, double e3, double e4, in T v1, in T v2, in T v3, in T v4, out double e, out T v)
+        {
+            if (e1 < e2)
+            {
+                if (e1 < e3)
+                {
+                    if (e1 < e4)
+                    {
+                        e = e1;
+                        v = v1;
+                    }
+                    else
+                    {
+                        e = e4;
+                        v = v4;
+                    }
+                }
+                else
+                {
+                    if (e3 < e4)
+                    {
+                        e = e3;
+                        v = v3;
+                    }
+                    else
+                    {
+                        e = e4;
+                        v = v4;
+                    }
+                }
+            }
+            else
+            {
+                if (e2 < e3)
+                {
+                    if (e2 < e4)
+                    {
+                        e = e2;
+                        v = v2;
+                    }
+                    else
+                    {
+                        e = e4;
+                        v = v4;
+                    }
+                }
+                else
+                {
+                    if (e3 < e4)
+                    {
+                        e = e3;
+                        v = v3;
+                    }
+                    else
+                    {
+                        e = e4;
+                        v = v4;
+                    }
+                }
+            }
+        }
     }
 }
