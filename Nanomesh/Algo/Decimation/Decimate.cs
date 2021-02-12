@@ -280,6 +280,7 @@ namespace Nanomesh
 
 			Vector3 posA = _mesh.positions[pair.posA];
 			Vector3 posB = _mesh.positions[pair.posB];
+			Vector3 posC = (posB + posA) / 2;
 
 			int nodeA = _mesh.PositionToNode[pair.posA];
 			int nodeB = _mesh.PositionToNode[pair.posB];
@@ -289,7 +290,6 @@ namespace Nanomesh
 			double errorCollapseToA = 0;
 			double errorCollapseToB = 0;
 			double errorCollapseToC = 0;
-			Vector3 posC = (posB + posA) / 2;
 
 			switch (edgeTopo)
             {
@@ -339,13 +339,16 @@ namespace Nanomesh
 
 						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
 
-						// Contrary to smooth edge, we know right away here that there will both nodes are not smooth
-						// We will still rely on quadrics if the only hard edge is the edge to collapse, but we add
-						// a penalty
-						if (edgeTopo == EdgeTopology.HardEdge)
-                        {
-							pair.error *= 1;
-                        }
+						//BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[nodeA].attribute].boneWeight;
+						//BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[nodeB].attribute].boneWeight;
+
+						//if (boneWeightA.index0 != boneWeightB.index0
+					    // || boneWeightA.index1 != boneWeightB.index1
+					    // || boneWeightA.index2 != boneWeightB.index2
+					    // || boneWeightA.index3 != boneWeightB.index3)
+						//{
+						//	pair.error += 10000;
+						//}
 					}
 					break;
 			}
@@ -356,7 +359,7 @@ namespace Nanomesh
 			// TODO : Prevent flipping triangles
 		}
 
-		// Todo : Fix this (doesn't seems to work properly
+		// TODO : Fix this (doesn't seems to work properly
 		public bool CollapseWillInvert(EdgeCollapse edge)
 		{
 			int nodeIndexA = _mesh.PositionToNode[edge.posA];
@@ -499,7 +502,10 @@ namespace Nanomesh
 							BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
 
 							boneWeightA = new BoneWeight(
-								boneWeightA.index0, boneWeightA.index1, boneWeightA.index2, boneWeightA.index3,
+								ratio < 0.5f ? boneWeightA.index0 : boneWeightB.index0,
+								ratio < 0.5f ? boneWeightA.index1 : boneWeightB.index1,
+								ratio < 0.5f ? boneWeightA.index2 : boneWeightB.index2,
+								ratio < 0.5f ? boneWeightA.index3 : boneWeightB.index3,
 								(float)(ratio * boneWeightB.weight0 + (1 - ratio) * boneWeightA.weight0),
 								(float)(ratio * boneWeightB.weight1 + (1 - ratio) * boneWeightA.weight1),
 								(float)(ratio * boneWeightB.weight2 + (1 - ratio) * boneWeightA.weight2),
