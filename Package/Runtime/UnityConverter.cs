@@ -51,7 +51,6 @@ namespace Nanomesh.Unity
             {
                 var submeshDesc = mesh.GetSubMesh(i);
                 sharedMesh.groups[i] = new Group { firstIndex = submeshDesc.indexStart, indexCount = submeshDesc.indexCount };
-                Debug.Log($"Submesh {i} from {submeshDesc.indexStart} to {submeshDesc.indexStart + submeshDesc.indexCount}");
             }
 
             return sharedMesh;

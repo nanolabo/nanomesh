@@ -2,7 +2,8 @@
     "name": "Nanolabo.Unity.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:e1b8abb68b8b9734f9718f0c8efc160e"
+        "GUID:e1b8abb68b8b9734f9718f0c8efc160e",
+        "GUID:c9efdd7ee48b92344bd7925fd075c308"
     ],
     "includePlatforms": [
         "Editor"
