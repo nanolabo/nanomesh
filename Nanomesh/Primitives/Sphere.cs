@@ -29,7 +29,7 @@ namespace Nanomesh
 					vertices[lon + lat * (nbLong + 1) + 1] = new Vector3(sin1 * cos2, cos1, sin1 * sin2) * radius;
 				}
 			}
-			vertices[^1] = new Vector3(0, 1, 0) * -radius;
+			vertices[vertices.Length - 1] = new Vector3(0, 1, 0) * -radius;
 			#endregion
 
 			#region Triangles

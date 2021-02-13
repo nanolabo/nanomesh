@@ -10,12 +10,16 @@ namespace Nanomesh
         // Access the /x/ or /y/ component using [0] or [1] respectively.
         public double this[int index]
         {
-            get => index switch
+            get 
             {
-                0 => x,
-                1 => y,
-                _ => throw new IndexOutOfRangeException("Invalid Vector2 index!")
-            };
+                switch (index)
+                {
+                    case 0: return x;
+                    case 1: return y;
+                    default:
+                        throw new IndexOutOfRangeException("Invalid Vector2 index!");
+                }
+            }
             set
             {
                 switch (index)

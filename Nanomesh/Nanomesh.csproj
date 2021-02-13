@@ -11,9 +11,9 @@
     <Optimize>false</Optimize>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == Obfuscated (&#xD;&#xA;    &quot;..\Tools\Confuser\Confuser.CLI.exe&quot; Obfuscation.crproj&#xD;&#xA;)" />
+  
+  <Target Name="CopyToUnityPackage" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(TargetDir)Nanomesh.dll" DestinationFolder="$(SolutionDir)Package" />
   </Target>
 
 </Project>

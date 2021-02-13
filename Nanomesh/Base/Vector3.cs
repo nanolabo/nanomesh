@@ -76,11 +76,11 @@ namespace Nanomesh
             return sqrmag < MathUtils.εd;
         }
 
-        public static bool operator !=(Vector3 lhs, Vector3 rhs)
+        public static bool operator !=(in Vector3 lhs, in Vector3 rhs)
         {
             return !(lhs == rhs);
         }
-        public static Vector3 Cross(Vector3 lhs, Vector3 rhs)
+        public static Vector3 Cross(in Vector3 lhs, in Vector3 rhs)
         {
             return new Vector3(
                 lhs.y * rhs.z - lhs.z * rhs.y,
@@ -91,12 +91,12 @@ namespace Nanomesh
         public static implicit operator Vector3F(Vector3 vec) => new Vector3F((float)vec.x, (float)vec.y, (float)vec.z);
         public static explicit operator Vector3(Vector3F vec) => new Vector3(vec.x, vec.y, vec.z);
 
-        public static double Dot(Vector3 lhs, Vector3 rhs)
+        public static double Dot(in Vector3 lhs, in Vector3 rhs)
         {
             return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
         }
 
-        public static Vector3 Normalize(Vector3 value)
+        public static Vector3 Normalize(in Vector3 value)
         {
             double mag = Magnitude(value);
             return value / mag;
@@ -104,7 +104,7 @@ namespace Nanomesh
 
         public Vector3 Normalized => Vector3.Normalize(this);
 
-        public static double Distance(Vector3 a, Vector3 b)
+        public static double Distance(in Vector3 a, in Vector3 b)
         {
             double diff_x = a.x - b.x;
             double diff_y = a.y - b.y;
@@ -112,32 +112,32 @@ namespace Nanomesh
             return Math.Sqrt(diff_x * diff_x + diff_y * diff_y + diff_z * diff_z);
         }
 
-        public static double Magnitude(Vector3 vector)
+        public static double Magnitude(in Vector3 vector)
         {
             return Math.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
         }
 
-        public static Vector3 ProjectPointOnLine(Vector3 linePoint, Vector3 lineVec, Vector3 point)
+        public static Vector3 ProjectPointOnLine(in Vector3 linePoint, in Vector3 lineVec, in Vector3 point)
         {
             Vector3 linePointToPoint = point - linePoint;
             return linePoint + lineVec * Dot(linePointToPoint, lineVec);
         }
 
-        public static double DistancePointLine(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+        public static double DistancePointLine(in Vector3 point, in Vector3 lineStart, in Vector3 lineEnd)
         {
-            return Magnitude(ProjectPointOnLine(lineStart, lineEnd - lineStart, point) - point);
+            return Magnitude(ProjectPointOnLine(lineStart, (lineEnd - lineStart).Normalized, point) - point);
         }
 
         public double LengthSquared => x * x + y * y + z * z;
 
         public double Length => Math.Sqrt(x * x + y * y + z * z);
 
-        public static Vector3 Min(Vector3 lhs, Vector3 rhs)
+        public static Vector3 Min(in Vector3 lhs, in Vector3 rhs)
         {
             return new Vector3(Math.Min(lhs.x, rhs.x), Math.Min(lhs.y, rhs.y), Math.Min(lhs.z, rhs.z));
         }
 
-        public static Vector3 Max(Vector3 lhs, Vector3 rhs)
+        public static Vector3 Max(in Vector3 lhs, in Vector3 rhs)
         {
             return new Vector3(Math.Max(lhs.x, rhs.x), Math.Max(lhs.y, rhs.y), Math.Max(lhs.z, rhs.z));
         }
@@ -155,7 +155,7 @@ namespace Nanomesh
 
         public static Vector3 NegativeInfinity => negativeInfinityVector;
 
-        public static double AngleRadians(Vector3 from, Vector3 to)
+        public static double AngleRadians(in Vector3 from, in Vector3 to)
         {
             double denominator = Math.Sqrt(from.LengthSquared * to.LengthSquared);
             if (denominator < 1e-15F)
@@ -165,7 +165,7 @@ namespace Nanomesh
             return Math.Acos(dot);
         }
 
-        public static double AngleDegrees(Vector3 from, Vector3 to)
+        public static double AngleDegrees(in Vector3 from, in Vector3 to)
         {
             return AngleRadians(from, to) / Math.PI * 180d;
         }

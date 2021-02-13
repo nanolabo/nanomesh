@@ -5,7 +5,7 @@ namespace Nanomesh
 {
     public partial class ConnectedMesh
     {
-        public string PrintSiblings(int nodeIndex)
+        internal string PrintSiblings(int nodeIndex)
         {
             int sibling = nodeIndex;
             string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
@@ -16,7 +16,7 @@ namespace Nanomesh
             return text + "...";
         }
 
-        public string PrintRelatives(int nodeIndex)
+        internal string PrintRelatives(int nodeIndex)
         {
             int relative = nodeIndex;
             string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
@@ -27,7 +27,21 @@ namespace Nanomesh
             return text + "...";
         }
 
-        public bool CheckRelatives(int nodeIndex)
+        internal bool CheckEdge(int nodeIndexA, int nodeIndexB)
+        {
+            if (nodes[nodeIndexA].position == nodes[nodeIndexB].position)
+                throw new Exception("Positions must be different");
+
+            if (nodes[nodeIndexA].IsRemoved)
+                throw new Exception($"Node A is unreferenced {nodeIndexA}");
+
+            if (nodes[nodeIndexB].IsRemoved)
+                throw new Exception($"Node B is unreferenced {nodeIndexB}");
+
+            return true;
+        }
+
+        internal bool CheckRelatives(int nodeIndex)
         {
             if (nodes[nodeIndex].IsRemoved)
                 throw new Exception($"Node {nodeIndex} is removed");
@@ -60,7 +74,7 @@ namespace Nanomesh
             return true;
         }
 
-        public bool CheckSiblings(int nodeIndex)
+        internal bool CheckSiblings(int nodeIndex)
         {
             if (nodes[nodeIndex].IsRemoved)
                 throw new Exception($"Node {nodeIndex} is removed");
@@ -87,7 +101,7 @@ namespace Nanomesh
             return true;
         }
 
-        public bool Check()
+        internal bool Check()
         {
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {

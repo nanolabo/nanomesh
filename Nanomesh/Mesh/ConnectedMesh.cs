@@ -14,21 +14,24 @@ namespace Nanomesh
         public Vector3[] positions;
         public Attribute[] attributes;
         public Node[] nodes;
+        public Group[] groups;
 
-        public int[] PositionToNode => positionToNode ?? (positionToNode = GetPositionToNode());
-        private int[] positionToNode;
+        public int[] PositionToNode => _positionToNode ?? (_positionToNode = GetPositionToNode());
+        private int[] _positionToNode;
 
-        public int[] AttributeToNode => attributeToNode ?? (attributeToNode = GetAttributeToNode());
-        private int[] attributeToNode;
+        public int[] AttributeToNode => _attributeToNode ?? (_attributeToNode = GetAttributeToNode());
+        private int[] _attributeToNode;
 
-        internal int faceCount;
-        public int FaceCount => faceCount;
+        internal int _faceCount;
+        public int FaceCount => _faceCount;
 
         public static ConnectedMesh Build(SharedMesh mesh)
         {
             Debug.Assert(mesh.CheckLengths(), "Attributes size mismatch");
 
             ConnectedMesh connectedMesh = new ConnectedMesh();
+
+            connectedMesh.groups = mesh.groups;
 
             int[] triangles = mesh.triangles;
 
@@ -45,6 +48,10 @@ namespace Nanomesh
             if (mesh.normals != null)
                 for (int i = 0; i < mesh.normals.Length; i++)
                     connectedMesh.attributes[i].normal = mesh.normals[i];
+
+            if (mesh.boneWeights != null)
+                for (int i = 0; i < mesh.boneWeights.Length; i++)
+                    connectedMesh.attributes[i].boneWeight = mesh.boneWeights[i];
 
             List<Node> nodesList = new List<Node>();
             Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
@@ -81,7 +88,7 @@ namespace Nanomesh
                 nodesList.Add(B);
                 nodesList.Add(C);
 
-                connectedMesh.faceCount++;
+                connectedMesh._faceCount++;
             }
 
             connectedMesh.nodes = nodesList.ToArray();
@@ -118,9 +125,34 @@ namespace Nanomesh
             var browsedNodes = new HashSet<int>();
             var vertexData = new Dictionary<VertexData, int>();
 
+            Group[] newGroups = new Group[groups?.Length ?? 0];
+            mesh.groups = newGroups;
+
+            int currentGroup = 0;
+            int indicesInGroup = 0;
+
             for (int i = 0; i < nodes.Length; i++)
             {
-                if (browsedNodes.Contains(i) || nodes[i].IsRemoved)
+                if (newGroups.Length > 0 && groups[currentGroup].firstIndex == i)
+                {
+                    if (currentGroup > 0)
+                    {
+                        newGroups[currentGroup - 1].indexCount = indicesInGroup;
+                        newGroups[currentGroup].firstIndex = indicesInGroup + newGroups[currentGroup - 1].firstIndex;
+                    }
+                    indicesInGroup = 0;
+                    if (currentGroup < groups.Length - 1)
+                        currentGroup++;
+                }
+
+                if (nodes[i].IsRemoved)
+                {
+                    continue;
+                }
+
+                indicesInGroup++;
+
+                if (browsedNodes.Contains(i))
                     continue;
 
                 // Only works if all elements are triangles
@@ -131,7 +163,9 @@ namespace Nanomesh
                     {
                         VertexData data = new VertexData();
                         data.position = nodes[relative].position;
-                        data.uv = nodes[relative].attribute;
+                        data.attribute = attributes[nodes[relative].attribute];
+
+                        // TODO : Merge attributes in a separate method ?
                         vertexData.TryAdd(data, vertexData.Count);
 
                         triangles.Add(vertexData[data]);
@@ -139,15 +173,22 @@ namespace Nanomesh
                 } while ((relative = nodes[relative].relative) != i);
             }
 
+            if (newGroups.Length > 0)
+                newGroups[currentGroup].indexCount = indicesInGroup;
+
             mesh.vertices = new Vector3[vertexData.Count];
+
+            // TODO : Only assign existing attributes ?
             mesh.uvs = new Vector2F[vertexData.Count];
             mesh.normals = new Vector3F[vertexData.Count];
+            mesh.boneWeights = new BoneWeight[vertexData.Count];
 
             foreach (var pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
-                mesh.uvs[pair.Value] = attributes[pair.Key.uv].uv;
-                mesh.normals[pair.Value] = attributes[pair.Key.uv].normal;
+                mesh.normals[pair.Value] = pair.Key.attribute.normal;
+                mesh.uvs[pair.Value] = pair.Key.attribute.uv;
+                mesh.boneWeights[pair.Value] = pair.Key.attribute.boneWeight;
             }
 
             mesh.triangles = triangles.ToArray();
@@ -155,7 +196,6 @@ namespace Nanomesh
             return mesh;
         }
 
-        // inline ?
         public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
         {
             return nodes[nodeIndexA].position == nodes[nodeIndexB].position;
@@ -175,6 +215,7 @@ namespace Nanomesh
                 if (!nodes[i].IsRemoved)
                     positionToNode[nodes[i].position] = i;
             }
+
             return positionToNode;
         }
 
@@ -373,62 +414,40 @@ namespace Nanomesh
 
                     int validNodeAtC = ReconnectSiblings(nodeIndexC);
 
-                    if (positionToNode != null)
-                        positionToNode[posC] = validNodeAtC;
+                    if (_positionToNode != null)
+                        _positionToNode[posC] = validNodeAtC;
 
-                    faceCount--;
+                    _faceCount--;
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             int validNodeAtA = ReconnectSiblings(nodeIndexA, nodeIndexB, posA);
 
-            if (positionToNode != null)
+            if (_positionToNode != null)
             {
-                positionToNode[posA] = validNodeAtA;
-                positionToNode[posB] = -1;
+                _positionToNode[posA] = validNodeAtA;
+                _positionToNode[posB] = -1;
             }
 
             return validNodeAtA;
         }
 
-        public bool IsEdgeInSurface(int nodeIndexA, int nodeIndexB)
+        public EdgeTopology GetEdgeTopo(int nodeIndexA, int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
             int facesAttached = 0;
-
-            int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
-            {
-                int relativeOfA = siblingOfA;
-
-                while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
-                {
-                    int posC = nodes[relativeOfA].position;
-                    if (posC == posB)
-                    {
-                        facesAttached++;
-                        if (facesAttached == 2)
-                            return true;
-                    }
-                }
-            } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
-
-            return false;
-        }
-
-        public bool IsEdgeHard(int nodeIndexA, int nodeIndexB)
-        {
-            int posB = nodes[nodeIndexB].position;
 
             int attrAtA = -1;
             int attrAtB = -1;
 
             bool hardAtA = false;
             bool hardAtB = false;
+            bool uvBreakAtA = false;
+            bool uvBreakAtB = false;
 
             int siblingOfA = nodeIndexA;
-            do // Iterator over faces around A
+            do
             {
                 int relativeOfA = siblingOfA;
                 while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA)
@@ -436,32 +455,50 @@ namespace Nanomesh
                     int posC = nodes[relativeOfA].position;
                     if (posC == posB)
                     {
-                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
-                            hardAtB = true;
-                        attrAtB = nodes[relativeOfA].attribute;
+                        facesAttached++;
 
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                        {
+                            hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
+                            uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
+                        }
+                            
                         if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            hardAtA = true;
+                        {
+                            hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
+                            uvBreakAtB = !Vector2FComparer.Default.Equals(attributes[attrAtA].uv, attributes[nodes[siblingOfA].attribute].uv);
+                        }
+
+                        attrAtB = nodes[relativeOfA].attribute;
                         attrAtA = nodes[siblingOfA].attribute;
                     }
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            return hardAtA && hardAtB;
+            if (facesAttached < 2)
+                return EdgeTopology.Border;
+
+            if (uvBreakAtA || uvBreakAtB)
+                return EdgeTopology.UvBreak;
+
+            if (hardAtA || hardAtB)
+                return EdgeTopology.HardEdge;
+
+            return EdgeTopology.Surface;
         }
 
         // Only works with triangles !
-        public Vector3F GetFaceNormal(int nodeIndex)
+        public Vector3 GetFaceNormal(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
             int posB = nodes[nodes[nodeIndex].relative].position;
             int posC = nodes[nodes[nodes[nodeIndex].relative].relative].position;
 
-            var normal = Vector3F.Cross(
+            var normal = Vector3.Cross(
                 positions[posB] - positions[posA],
                 positions[posC] - positions[posA]);
 
-            return normal;
+            return normal.Normalized;
         }
 
         // Only works with triangles !
@@ -476,33 +513,6 @@ namespace Nanomesh
                 positions[posC] - positions[posA]);
 
             return 0.5 * normal.Length;
-        }
-
-        public NodeTopology GetNodeTopology(int nodeIndex)
-        {
-            NodeTopology nodeTopology = NodeTopology.Surface;
-
-            int attrIndex = -1;
-            int sibling = nodeIndex;
-            do
-            {
-                int relative = sibling;
-                while ((relative = nodes[relative].relative) != sibling)
-                {
-                    int posC = nodes[relative].position;
-                    if (!IsEdgeInSurface(sibling, relative)) // There might be a faster solution to check if this node has a border or not
-                    {
-                        return NodeTopology.Border;
-                    }
-                }
-                if (nodes[sibling].attribute != attrIndex && attrIndex != -1)
-                {
-                    nodeTopology = NodeTopology.Hard;
-                }
-                attrIndex = nodes[sibling].attribute;
-            } while ((sibling = nodes[sibling].sibling) != nodeIndex);
-
-            return nodeTopology;
         }
 
         public void Compact()
@@ -579,8 +589,8 @@ namespace Nanomesh
             positions = newPositions;
 
             // Invalidate mapping
-            positionToNode = null;
-            attributeToNode = null;
+            _positionToNode = null;
+            _attributeToNode = null;
         }
 
         public void MergePositions(double tolerance = 0.01)
@@ -631,7 +641,7 @@ namespace Nanomesh
                 }
             }
 
-            positionToNode = null;
+            _positionToNode = null;
 
             // Dereference faces that no longer exist
             for (int i = 0; i < nodes.Length; i++)
@@ -669,6 +679,83 @@ namespace Nanomesh
             {
                 positions[i] = positions[i] * factor;
             }
+        }
+
+        public HashSet<Edge> GetAllEdges()
+        {
+            HashSet<Edge> edges = new HashSet<Edge>();
+            for (int p = 0; p < PositionToNode.Length; p++)
+            {
+                int nodeIndex = PositionToNode[p];
+                if (nodeIndex < 0)
+                    continue;
+
+                int sibling = nodeIndex;
+                do
+                {
+                    int firstRelative = nodes[sibling].relative;
+                    int secondRelative = nodes[firstRelative].relative;
+
+                    var pair = new Edge(nodes[firstRelative].position, nodes[secondRelative].position);
+
+                    edges.Add(pair);
+
+                } while ((sibling = nodes[sibling].sibling) != nodeIndex);
+            }
+
+            return edges;
+        }
+    }
+
+    public struct Edge : IEquatable<Edge>
+    {
+        public int posA;
+        public int posB;
+
+        public Edge(int posA, int posB)
+        {
+            this.posA = posA;
+            this.posB = posB;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return posA + posB;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals((Edge)obj);
+        }
+
+        public bool Equals(Edge pc)
+        {
+            if (ReferenceEquals(this, pc))
+            {
+                return true;
+            }
+            else
+            {
+                return (posA == pc.posA && posB == pc.posB) || (posA == pc.posB && posB == pc.posA);
+            }
+        }
+
+        public static bool operator ==(Edge x, Edge y)
+        {
+            return x.Equals(y);
+        }
+
+        public static bool operator !=(Edge x, Edge y)
+        {
+            return !x.Equals(y);
+        }
+
+        public override string ToString()
+        {
+		    return $"<A:{posA} B:{posB}>";
         }
     }
 }

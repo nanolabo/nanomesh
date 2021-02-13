@@ -18,5 +18,35 @@ namespace Nanomesh
         {
             return (denominator > -εd && denominator < εd) ? 0d : numerator / denominator;
         }
+
+        public static void SelectMin<T>(double e1, double e2, double e3, in T v1, in T v2, in T v3, out double e, out T v)
+        {
+            if (e1 < e2)
+            {
+                if (e1 < e3)
+                {
+                    e = e1;
+                    v = v1;
+                }
+                else
+                {
+                    e = e3;
+                    v = v3;
+                }
+            }
+            else
+            {
+                if (e2 < e3)
+                {
+                    e = e2;
+                    v = v2;
+                }
+                else
+                {
+                    e = e3;
+                    v = v3;
+                }
+            }
+        }
     }
 }

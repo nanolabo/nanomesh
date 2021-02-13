@@ -5,16 +5,9 @@
         public Vector3[] vertices;
         public Vector3F[] normals;
         public Vector2F[] uvs;
+        public BoneWeight[] boneWeights;
         public int[] triangles;
-
-        public void CheckValidity()
-        {
-            // Throw exceptions 
-            for (int i = 0; i < triangles.Length; i+=3)
-            {
-                
-            }
-        }
+        public Group[] groups;
 
         public bool CheckLengths()
         {
@@ -24,7 +17,16 @@
             if (normals != null && normals.Length > 0 && vertices.Length != normals.Length)
                 return false;
 
+            if (boneWeights != null && boneWeights.Length > 0 && vertices.Length != boneWeights.Length)
+                return false;
+
             return true;
         }
+    }
+
+    public struct Group
+    {
+        public int firstIndex;
+        public int indexCount;
     }
 }

@@ -1,19 +1,18 @@
-﻿using Nanomesh.Collections;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 namespace Nanomesh
 {
-    public partial class DecimateModifier
+	public partial class DecimateModifier
     {
-		public bool preciseMode = true;
+		public bool UpdateFarNeighbors = false;
+		public bool UpdateMinsOnCollapse = true;
 
 		private ConnectedMesh _mesh;
 
 		private SymmetricMatrix[] _matrices;
-		private NodeTopology[] _nodeTopologies;
 		private FastHashSet<EdgeCollapse> _pairs;
 		private LinkedHashSet<EdgeCollapse> _mins;
 
@@ -25,6 +24,8 @@ namespace Nanomesh
 
 		const double _OFFSET_HARD = 1e6;
 		const double _OFFSET_NOCOLLAPSE = 1e300;
+
+		public event Action<string> Verbosed;
 
 		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
 		{
@@ -40,8 +41,6 @@ namespace Nanomesh
 			{
 				Iterate();
 			}
-
-			// TODO : mesh.Compact();
 		}
 
 		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
@@ -64,8 +63,6 @@ namespace Nanomesh
 					_lastProgress = progress;
 				}
 			}
-
-			// TODO : mesh.Compact();
 		}
 
 		private void Initialize(ConnectedMesh mesh)
@@ -75,7 +72,6 @@ namespace Nanomesh
 			_initialTriangleCount = mesh.FaceCount;
 
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
-			_nodeTopologies = new NodeTopology[mesh.positions.Length];
 			_pairs = new FastHashSet<EdgeCollapse>();
 			_mins = new LinkedHashSet<EdgeCollapse>();
 
@@ -83,9 +79,6 @@ namespace Nanomesh
 
 			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
 				CalculateQuadric(p);
-
-			for (int p = 0; p < _mesh.PositionToNode.Length; p++)
-				CalculateTopology(p);
 
 			foreach (var pair in _pairs)
 				CalculateError(pair);
@@ -95,38 +88,13 @@ namespace Nanomesh
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
 
-			Debug.Assert(CheckMins());
-			Debug.Assert(CheckPair(pair));
+			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
+			Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
 
 			_pairs.Remove(pair);
 			_mins.Remove(pair);
 
-#if DEBUG
-			if (pair.error >= _OFFSET_NOCOLLAPSE)
-				Console.WriteLine("Going too far ! Destroying borders");
-#endif
-			//Console.WriteLine(pair);
-
 			CollapseEdge(pair);
-		}
-
-		private bool CheckMins()
-		{
-			foreach (var min in _mins)
-			{
-				Debug.Assert(_pairs.Contains(min));
-			}
-
-			return true;
-		}
-
-		private bool CheckPair(EdgeCollapse pair)
-		{
-			Debug.Assert(pair.posA != pair.posB, "Positions must be different");
-			Debug.Assert(!_mesh.nodes[_mesh.PositionToNode[pair.posA]].IsRemoved, $"Position 1 is unreferenced {_mesh.PositionToNode[pair.posA]}");
-			Debug.Assert(!_mesh.nodes[_mesh.PositionToNode[pair.posB]].IsRemoved, $"Position 2 is unreferenced {_mesh.PositionToNode[pair.posB]}");
-
-			return true;
 		}
 
 		private EdgeCollapse GetPairWithMinimumError()
@@ -139,7 +107,7 @@ namespace Nanomesh
 			return edge.Value;
 		}
 
-		private int MinsCount => (int)MathF.Clamp(500, 0, _pairs.Count);
+		private int MinsCount => MathF.Clamp(500, 0, _pairs.Count);
 
 		private void ComputeMins()
 		{
@@ -177,7 +145,7 @@ namespace Nanomesh
 
 					_pairs.Add(pair);
 
-					Debug.Assert(CheckPair(pair));
+					Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 
 				} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 			}
@@ -198,248 +166,200 @@ namespace Nanomesh
 			{
 				Debug.Assert(_mesh.CheckRelatives(sibling));
 
-				Vector3 normal;
-
-				// Todo : Look for unsassigned attribute instead, to handle cases where we have normals but not everywhere
-				if (/*mesh.attributes.Length > 0*/ false)
-				{
-					normal = (Vector3)_mesh.attributes[_mesh.nodes[sibling].attribute].normal;
-
-					int posA = _mesh.nodes[sibling].position;
-					int posB = _mesh.nodes[_mesh.nodes[sibling].relative].position;
-					int posC = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
-
-					double area = 0.5 * Vector3.Cross(
-						_mesh.positions[posB] - _mesh.positions[posA],
-						_mesh.positions[posC] - _mesh.positions[posA]).Length;
-
-					normal = normal.Normalized;
-
-					normal = area * normal;
-				}
-				else
-				{
-					// Use triangle normal if there are no normals
-					int posA = _mesh.nodes[sibling].position;
-					int posB = _mesh.nodes[_mesh.nodes[sibling].relative].position;
-					int posC = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
-
-					normal = Vector3.Cross(
-						_mesh.positions[posB] - _mesh.positions[posA],
-						_mesh.positions[posC] - _mesh.positions[posA]);
-
-					//double angle = Vector3.AngleRadians(mesh.positions[posB] - mesh.positions[posA], mesh.positions[posC] - mesh.positions[posA]);
-					//double length = ((mesh.positions[posB] - mesh.positions[posA]).Length + (mesh.positions[posC] - mesh.positions[posA]).Length) / 2;
-
-					//normal = normal.Normalized;
-					normal = 0.5 * normal;
-				}
-
-				double dot = Vector3.Dot(-normal, _mesh.positions[_mesh.nodes[sibling].position]);
-
-				symmetricMatrix += new SymmetricMatrix(normal.x, normal.y, normal.z, dot);
+				Vector3 faceNormal = _mesh.GetFaceNormal(sibling);
+				double dot = Vector3.Dot(-faceNormal, _mesh.positions[_mesh.nodes[sibling].position]);
+				symmetricMatrix += new SymmetricMatrix(faceNormal.x, faceNormal.y, faceNormal.z, dot);
 
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			_matrices[position] = symmetricMatrix;
 		}
 
-		private void CalculateTopology(int position)
+		private HashSet<int> _adjacentEdges = new HashSet<int>(3);
+
+		private IEnumerable<int> GetAdjacentPositions(int nodeIndex, int nodeAvoid)
 		{
-			int nodeIndex = _mesh.PositionToNode[position];
-			_nodeTopologies[position] = _mesh.GetNodeTopology(nodeIndex);
+			_adjacentEdges.Clear();
+
+			int posToAvoid = _mesh.nodes[nodeAvoid].position;
+
+			int sibling = nodeIndex;
+			do
+			{
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
+				{
+					if (_mesh.nodes[relative].position != posToAvoid)
+					{
+						_adjacentEdges.Add(_mesh.nodes[relative].position);
+					}
+				}
+			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+
+			return _adjacentEdges;
 		}
+
+		private void CalculateErrors(in int nodeA, in int nodeB, ref double errorCollapseToA, ref double errorCollapseToB, ref double errorCollapseToC)
+        {
+			int pA = _mesh.nodes[nodeA].position;
+			int pB = _mesh.nodes[nodeB].position;
+			Vector3 posA = _mesh.positions[pA];
+			Vector3 posB = _mesh.positions[pB];
+			Vector3 posC = (posB + posA) / 2;
+
+			// We multiply by edge length to be agnotics with quadrics error.
+			// Otherwise it becomes too scale dependent
+			double length = (posB - posA).Length;
+			double coeff_hard = 1.0 * length;
+			double coeff_uvs = 2.0 * length;
+			double coeff_border = 3.0 * length;
+
+			foreach (var pD in GetAdjacentPositions(nodeA, nodeB))
+			{
+				Vector3 posD = _mesh.positions[pD];
+				EdgeCollapse edge = new EdgeCollapse(pA, pD);
+				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
+				{
+					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeA, _mesh.PositionToNode[pD])*/)
+					{
+						case EdgeTopology.Surface:
+							break;
+						case EdgeTopology.HardEdge:
+							errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posA);
+							break;
+						case EdgeTopology.UvBreak:
+							errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posA);
+							break;
+						case EdgeTopology.Border:
+							errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
+							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posA);
+							break;
+					}
+				}
+			}
+			foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
+			{
+				Vector3 posD = _mesh.positions[pD];
+				EdgeCollapse edge = new EdgeCollapse(pB, pD);
+				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
+				{
+					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeB, _mesh.PositionToNode[pD])*/)
+					{
+						case EdgeTopology.Surface:
+							break;
+						case EdgeTopology.HardEdge:
+							errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posB);
+							break;
+						case EdgeTopology.UvBreak:
+							errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posB);
+							break;
+						case EdgeTopology.Border:
+							errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
+							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posB);
+							break;
+					}
+				}
+			}
+		}
+
+		private EdgeTopology GetEdgeTopo(EdgeCollapse edge)
+        {
+			if (edge.Topology == EdgeTopology.Undefined)
+			{
+				edge.SetTopology(_mesh.GetEdgeTopo(_mesh.PositionToNode[edge.posA], _mesh.PositionToNode[edge.posB]));
+			}
+			return edge.Topology;
+        }
 
 		private void CalculateError(EdgeCollapse pair)
 		{
-            Debug.Assert(CheckPair(pair));
+			Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
 
 			Vector3 posA = _mesh.positions[pair.posA];
 			Vector3 posB = _mesh.positions[pair.posB];
+			Vector3 posC = (posB + posA) / 2;
 
 			int nodeA = _mesh.PositionToNode[pair.posA];
 			int nodeB = _mesh.PositionToNode[pair.posB];
 
-			NodeTopology topoA = _nodeTopologies[pair.posA];
-			NodeTopology topoB = _nodeTopologies[pair.posB];
-            pair.error = 0;
+			EdgeTopology edgeTopo = GetEdgeTopo(pair);
 
-            EdgeTopology edgeType;
+			double errorCollapseToA = 0;
+			double errorCollapseToB = 0;
+			double errorCollapseToC = 0;
 
-            if (topoA == NodeTopology.Border && topoB == NodeTopology.Border)
+			switch (edgeTopo)
             {
-                if (_mesh.IsEdgeInSurface(nodeA, nodeB))
-                {
-                    edgeType = EdgeTopology.SurfacicBorderAB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.BorderAB;
-                }
-            }
-            else if (topoA == NodeTopology.Border)
-            {
-                if (topoB == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicBorderAHardB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicBorderA;
-                }
-            }
-            else if (topoB == NodeTopology.Border)
-            {
-                if (topoA == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicBorderBHardA;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicBorderB;
-                }
-            }
-            else
-            {
-                if (topoA == NodeTopology.Hard && topoB == NodeTopology.Hard)
-                {
-                    if (_mesh.IsEdgeHard(nodeA, nodeB))
+				case EdgeTopology.Border:
+				case EdgeTopology.UvBreak:
+				case EdgeTopology.HardEdge:
+				case EdgeTopology.Surface:
                     {
-                        edgeType = EdgeTopology.SurfacicHardEdge;
-                    }
-                    else
-                    {
-                        edgeType = EdgeTopology.SurfacicHardAB;
-                    }
-                }
-                else if (topoA == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicHardA;
-                }
-                else if (topoB == NodeTopology.Hard)
-                {
-                    edgeType = EdgeTopology.SurfacicHardB;
-                }
-                else
-                {
-                    edgeType = EdgeTopology.SurfacicSmooth;
-                }
-            }
+						// If a node is smooth (no hard edge connected, no uv break or no border), we can compute a quadric error
+						// Otherwise, we add up linear errors for every non smooth source.
+						// If both nodes of the edge are smooth, we can find the optimal position to collapse to by inverting the
+						// quadric matrix, otherwise, we pick the best between A, B, and the position in the middle, C.
 
-            if (edgeType == EdgeTopology.Unknown)
-				throw new Exception("Should not happen");
+						CalculateErrors(nodeA, nodeB, ref errorCollapseToA, ref errorCollapseToB, ref errorCollapseToC);
 
-			switch (edgeType)
-			{
-                // Use quadric error to determine optimal vertex position only makes sense for manifold edges
-                case EdgeTopology.SurfacicHardEdge: // + offset
-				case EdgeTopology.SurfacicSmooth:
-					{
-						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-						double det = quadric.DeterminantXYZ();
+						if (errorCollapseToA == 0 && errorCollapseToB == 0)
+                        {
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							double det = q.DeterminantXYZ();
 
-						if (det > _ƐDET || det < -_ƐDET)
-						{
-							pair.result = new Vector3(
-								-1d / det * quadric.DeterminantX(),
-								+1d / det * quadric.DeterminantY(),
-								-1d / det * quadric.DeterminantZ());
-							pair.error += ComputeVertexError(quadric, pair.result.x, pair.result.y, pair.result.z);
+							if (det > _ƐDET || det < -_ƐDET)
+							{
+								pair.result = new Vector3(
+									-1d / det * q.DeterminantX(),
+									+1d / det * q.DeterminantY(),
+									-1d / det * q.DeterminantZ());
+								pair.error = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
+								return;
+							}
+							else
+							{
+								errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+								errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+								errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
+							}
 						}
-						else
+						else if (errorCollapseToB == 0)
 						{
-							// Not cool when it goes there...
-							Vector3 posC = (posA + posB) / 2d;
-							double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-							double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-							double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z);
-							pair.error += Math.Min(error1, Math.Min(error2, error3));
-							if (error1 == pair.error) pair.result = posA;
-							else if (error2 == pair.error) pair.result = posB;
-							else pair.result = posC;
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
 						}
-						//if (edgeType is SURFACIC_HARD_EDGE)
-						//	pair.error += offset_hard;
-					}
-					break;
-				case EdgeTopology.SurfacicBorderAHardB: // + offset
-				case EdgeTopology.SurfacicHardA:
-				case EdgeTopology.SurfacicBorderA:
-					{
-						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error += ComputeVertexError(q, posA.x, posA.y, posA.z);
-						pair.result = posA;
-						//if (edgeType is SURFACIC_BORDER_A_HARD_B)
-						//	pair.error += offset_hard;
-					}
-					break;
-				case EdgeTopology.SurfacicBorderBHardA: // + offset
-				case EdgeTopology.SurfacicHardB:
-				case EdgeTopology.SurfacicBorderB:
-					{
-						SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-						pair.error += ComputeVertexError(q, posB.x, posB.y, posB.z);
-						pair.result = posB;
-						//if (edgeType is SURFACIC_BORDER_B_HARD_A)
-						//	pair.error += offset_hard;
-					}
-					break;
-				case EdgeTopology.BorderAB:
-					{
-						/*
-						// Todo : Improve quality by finding analytical solution that minimizes the error
-						Vector3 borderA = mesh.positions[mesh.nodes[edg_bord.borderNodeA].position];
-						Vector3 borderB = mesh.positions[mesh.nodes[edg_bord.borderNodeB].position];
-						var error1 = ComputeLineicError(borderA, borderB, posA);
-						var error2 = ComputeLineicError(borderA, borderB, posB);
-						//var error1 = 0.1 * ComputeLineicError(p1o, p1, p2o);
-						//var error2 = 0.1 * ComputeLineicError(p1o, p2, p2o);
-						if (error1 < error2)
+						else if (errorCollapseToA == 0)
 						{
-							pair.error = error1;
-							pair.result = posA;
+							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+							errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
 						}
-						else
-						{
-							pair.error = error2;
-							pair.result = posB;
-						}
-						/*/
-						SymmetricMatrix quadric = _matrices[pair.posA] + _matrices[pair.posB];
-						Vector3 posC = (posA + posB) / 2d;
-						double error1 = ComputeVertexError(quadric, posA.x, posA.y, posA.z);
-						double error2 = ComputeVertexError(quadric, posB.x, posB.y, posB.z);
-						double error3 = ComputeVertexError(quadric, posC.x, posC.y, posC.z) + 1000;
-						pair.error += Math.Min(error1, Math.Min(error2, error3));
-						if (error1 == pair.error) pair.result = posA;
-						else if (error2 == pair.error) pair.result = posB;
-						else pair.result = posC;
-						//*/
-					}
-					break;
-				case EdgeTopology.SurfacicHardAB:
-					{
-						pair.result = (posA + posB) / 2;
-						pair.error += _OFFSET_NOCOLLAPSE - 1; // Never collapse, but still do it before A-Shapes
-					}
-					break;
-				case EdgeTopology.SurfacicBorderAB:
-					{
-						// Todo : Put a warning when trying to collapse A-Shapes
-						pair.result = (posA + posB) / 2;
-						pair.error += _OFFSET_NOCOLLAPSE; // Never collapse A-Shapes
+
+						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
+
+						//BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[nodeA].attribute].boneWeight;
+						//BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[nodeB].attribute].boneWeight;
+
+						//if (boneWeightA.index0 != boneWeightB.index0
+					    // || boneWeightA.index1 != boneWeightB.index1
+					    // || boneWeightA.index2 != boneWeightB.index2
+					    // || boneWeightA.index3 != boneWeightB.index3)
+						//{
+						//	pair.error += 10000;
+						//}
 					}
 					break;
 			}
+			
+			pair.error = Math.Max(0d, pair.error);
 
-			// Ponderate error with edge length to collapse first shortest edges
-			// Todo : Make it less sensitive to model scale
-			pair.error = Math.Abs(pair.error);// + εprio * Vector3.Magnitude(p2 - p1); 
-
-			//if (pair.error >= _OFFSET_NOCOLLAPSE && CollapseWillInvert(pair))
-			//	pair.error = _OFFSET_NOCOLLAPSE;
+			// TODO : Make it insensitive to model scale
+			// TODO : Prevent flipping triangles
 		}
 
+		// TODO : Fix this (doesn't seems to work properly
 		public bool CollapseWillInvert(EdgeCollapse edge)
 		{
 			int nodeIndexA = _mesh.PositionToNode[edge.posA];
@@ -498,12 +418,12 @@ namespace Nanomesh
 		/// <param name="B"></param>
 		/// <param name="X"></param>
 		/// <returns></returns>
-		private double ComputeLineicError(Vector3 A, Vector3 B, in Vector3 X) 
+		private double ComputeLineicError(in Vector3 A, in Vector3 B, in Vector3 X) 
 		{
 			return Vector3.DistancePointLine(X, A, B);
 		}
 
-		private double ComputeVertexError(SymmetricMatrix q, double x, double y, double z)
+		private double ComputeVertexError(in SymmetricMatrix q, double x, double y, double z)
 		{
 			return q.m0 * x * x + 2 * q.m1 * x * y + 2 * q.m2 * x * z + 2 * q.m3 * x
 				 + q.m4 * y * y + 2 * q.m5 * y * z + 2 * q.m6 * y
@@ -513,14 +433,31 @@ namespace Nanomesh
 
 		private void InterpolateAttributes(EdgeCollapse pair)
 		{
-			int nodeIndexA = _mesh.PositionToNode[pair.posA];
-			int nodeIndexB = _mesh.PositionToNode[pair.posB];
+			int posA = pair.posA;
 			int posB = pair.posB;
 
-			Vector3 positionA = _mesh.positions[pair.posA];
-			Vector3 positionB = _mesh.positions[pair.posB];
+			int nodeIndexA = _mesh.PositionToNode[posA];
+			int nodeIndexB = _mesh.PositionToNode[posB];
 
-			int siblingOfA = nodeIndexA;
+			Vector3 positionA = _mesh.positions[posA];
+			Vector3 positionB = _mesh.positions[posB];
+
+			HashSet<int> procAttributes = new HashSet<int>();
+
+            Vector3 positionN = pair.result;
+            double AN = Vector3.Magnitude(positionA - positionN);
+            double BN = Vector3.Magnitude(positionB - positionN);
+            double ratio = MathUtils.DivideSafe(AN, AN + BN);
+
+			/* // Other way (same results I think)
+            double ratio = 0;
+            double dot = Vector3.Dot(pair.result - positionA, positionB - positionA);
+            if (dot > 0)
+                ratio = Math.Sqrt(dot);
+            ratio /= (positionB - positionA).Length;
+			*/
+
+            int siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
 			{
 				int relativeOfA = siblingOfA;
@@ -528,62 +465,155 @@ namespace Nanomesh
 				{
 					if (_mesh.nodes[relativeOfA].position == posB)
 					{
-						Vector3 positionN = pair.result;
-						double AN = Vector3.Magnitude(positionA - positionN);
-						double BN = Vector3.Magnitude(positionB - positionN);
-						double ratio = MathUtils.DivideSafe(AN, AN + BN);
+						if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
+							continue;
 
-						// Normals
-						Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
-						Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
+						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
+							continue;
 
-						// Todo : Interpolate differently depending on pair type
-						//normalAtA = ratio * normalAtA + (1 - ratio) * normalAtB;
-						normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
-						//normalAtA = (normalAtA + normalAtA) / 2;
-						normalAtA = normalAtA.Normalized;
+                        // Normals
+                        {
+							Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
+							Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
 
-						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+							// TODO : Interpolate differently depending on pair type
+							normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
+							normalAtA = normalAtA.Normalized;
 
-						// UVs
-						Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
-						Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+						}
 
-						//uvAtA = ratio * uvAtA + (1 - ratio) * uvAtB;
-						uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
-						//uvAtA = (uvAtA + uvAtB) / 2;
+                        // UVs
+                        {
+							Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
+							Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
 
-						_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
-						_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
+							uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
+
+							// TODO : Don't interpolate UVs of different islands
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
+						}
+
+                        // Boneweights
+                        {
+							BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight;
+							BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
+
+							boneWeightA = new BoneWeight(
+								ratio < 0.5f ? boneWeightA.index0 : boneWeightB.index0,
+								ratio < 0.5f ? boneWeightA.index1 : boneWeightB.index1,
+								ratio < 0.5f ? boneWeightA.index2 : boneWeightB.index2,
+								ratio < 0.5f ? boneWeightA.index3 : boneWeightB.index3,
+								(float)(ratio * boneWeightB.weight0 + (1 - ratio) * boneWeightA.weight0),
+								(float)(ratio * boneWeightB.weight1 + (1 - ratio) * boneWeightA.weight1),
+								(float)(ratio * boneWeightB.weight2 + (1 - ratio) * boneWeightA.weight2),
+								(float)(ratio * boneWeightB.weight3 + (1 - ratio) * boneWeightA.weight3));
+
+							// TODO : Don't interpolate UVs of different islands
+							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
+							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
+						}
+
+						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
+						procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
 
 						break;
 					}
 				} while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+
+			//return;
+
+			siblingOfA = nodeIndexA;
+			do // Iterator over faces around A
+			{
+				if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
+					continue;
+
+				int posC = _mesh.nodes[_mesh.nodes[siblingOfA].relative].position;
+				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfA].relative].relative].position;
+
+				if (posC == posB || posD == posB)
+                {
+					continue;
+                }
+
+				Vector3 faceNormalBefore = Vector3.Cross(
+					_mesh.positions[posC] - positionA,
+					_mesh.positions[posD] - positionA).Normalized;
+
+				Vector3 faceNormalAfter = Vector3.Cross(
+					_mesh.positions[posC] - pair.result,
+					_mesh.positions[posD] - pair.result).Normalized;
+
+				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
+				rotation.Normalize();
+
+				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
+
+				_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = rotation * normal;
+
+				procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
+
+			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+
+			int siblingOfB = nodeIndexB;
+			do // Iterator over faces around B
+			{
+				if (procAttributes.Contains(_mesh.nodes[siblingOfB].attribute))
+					continue;
+
+				int posC = _mesh.nodes[_mesh.nodes[siblingOfB].relative].position;
+				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfB].relative].relative].position;
+
+				if (posC == posA || posD == posA)
+				{
+					continue;
+				}
+
+				Vector3 faceNormalBefore = Vector3.Cross(
+					_mesh.positions[posC] - positionB,
+					_mesh.positions[posD] - positionB).Normalized;
+
+				Vector3 faceNormalAfter = Vector3.Cross(
+					_mesh.positions[posC] - pair.result,
+					_mesh.positions[posD] - pair.result).Normalized;
+
+				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
+				rotation.Normalize();
+
+				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal;
+
+				_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal = rotation * normal;
+
+				procAttributes.Add(_mesh.nodes[siblingOfB].attribute);
+
+			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}
 
-		private Dictionary<Vector3F, int> _normalToAttr = new Dictionary<Vector3F, int>(new Vector3FComparer(0.001f));
+		private Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.001f));
 
 		private void MergeAttributes(int nodeIndex)
 		{
-			_normalToAttr.Clear();
+			_uniqueAttributes.Clear();
 
 			int sibling = nodeIndex;
 			do
 			{
-				_normalToAttr.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute].normal, _mesh.nodes[sibling].attribute);
+				_uniqueAttributes.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			sibling = nodeIndex;
 			do
 			{
-				_mesh.nodes[sibling].attribute = _normalToAttr[_mesh.attributes[_mesh.nodes[sibling].attribute].normal];
+				_mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.attributes[_mesh.nodes[sibling].attribute]];
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
-		private HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>(6);
+		private HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>();
 
 		private void CollapseEdge(EdgeCollapse pair)
 		{
@@ -595,11 +625,11 @@ namespace Nanomesh
 
 			// Remove all edges around A
 			int sibling = nodeIndexA;
-			int relative;
+			//for (relative = sibling; relative != sibling; relative = _mesh.nodes[relative].relative)
+			//for (sibling = nodeIndexA; sibling != nodeIndexA; sibling = _mesh.nodes[sibling].sibling)
 			do
 			{
-				relative = sibling;
-				while ((relative = _mesh.nodes[relative].relative) != sibling)
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
 				{
 					int posC = _mesh.nodes[relative].position;
 					var pairAC = new EdgeCollapse(posA, posC);
@@ -609,15 +639,13 @@ namespace Nanomesh
 						_mins.Remove(pairAC);
 					}
 				} 
-
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexA);
 
 			// Remove all edges around B
 			sibling = nodeIndexB;
 			do
 			{
-				relative = sibling;
-				while ((relative = _mesh.nodes[relative].relative) != sibling)
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
 				{
 					int posC = _mesh.nodes[relative].position;
 					var pairBC = new EdgeCollapse(posB, posC);
@@ -626,7 +654,6 @@ namespace Nanomesh
 						_mins.Remove(pairBC);
 					}
 				}
-
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexB);
 
 			// Interpolates attributes
@@ -646,20 +673,18 @@ namespace Nanomesh
 			MergeAttributes(validNode);
 
 			CalculateQuadric(posA);
-			CalculateTopology(posA);
 
 			_edgeToRefresh.Clear();
 
 			sibling = validNode;
 			do
 			{
-				relative = sibling;
-				while ((relative = _mesh.nodes[relative].relative) != sibling)
+				for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
 				{
 					int posC = _mesh.nodes[relative].position;
 					_edgeToRefresh.Add(new EdgeCollapse(posA, posC));
 
-					if (preciseMode)
+					if (UpdateFarNeighbors)
 					{
 						int sibling2 = relative;
 						while ((sibling2 = _mesh.nodes[sibling2].sibling) != relative)
@@ -681,16 +706,17 @@ namespace Nanomesh
 			foreach (var edge in _edgeToRefresh)
 			{
 				CalculateQuadric(edge.posB);
-				CalculateTopology(edge.posB);
+				edge.SetTopology(EdgeTopology.Undefined);
+				_pairs.Remove(edge);
+				_pairs.Add(edge);
 			}
 
 			foreach (var edge in _edgeToRefresh)
 			{
 				CalculateError(edge);
-				_pairs.Remove(edge);
-				_pairs.Add(edge);
 				_mins.Remove(edge);
-				_mins.AddMin(edge);
+				if (UpdateMinsOnCollapse)
+					_mins.AddMin(edge);
 			}
 		}
 	}
