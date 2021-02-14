@@ -77,7 +77,7 @@ namespace Nanomesh.Tests
                 }
                 else
                 {
-                    Assert.AreEqual(EdgeTopology.HardEdge, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                    Assert.AreEqual(EdgeTopology.Surface, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
                 }
             }
         }
