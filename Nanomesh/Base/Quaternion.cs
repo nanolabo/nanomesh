@@ -225,11 +225,9 @@ namespace Nanomesh
 		{
 			Vector3 xyz = Vector3.Cross(fromDirection, toDirection);
 			double w = Math.Sqrt((fromDirection.LengthSquared) * (toDirection.LengthSquared)) + Vector3.Dot(fromDirection, toDirection);
-			Quaternion q = new Quaternion(xyz, w);
+			return new Quaternion(xyz, w);
 
-			return q;
-
-			return RotateTowards(LookRotation(fromDirection), LookRotation(toDirection), double.MaxValue);
+			//return RotateTowards(LookRotation(fromDirection), LookRotation(toDirection), double.MaxValue);
 		}
 
 		/// <summary>

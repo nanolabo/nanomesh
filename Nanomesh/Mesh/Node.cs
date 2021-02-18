@@ -14,9 +14,9 @@
 
         public bool IsRemoved => position == -10;
 
-        //public override string ToString()
-        //{
-        //    return $"sibl:{sibling} rela:{relative} posi:{position} attr:{attribute}";
-        //}
+        public override string ToString()
+        {
+            return $"sibl:{sibling} rela:{relative} posi:{position} attr:{attribute}";
+        }
     }
 }

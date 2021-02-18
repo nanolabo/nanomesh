@@ -2,10 +2,10 @@ using System;
 
 namespace Nanomesh
 {
-    public struct Vector2 : IEquatable<Vector2>
+    public readonly struct Vector2 : IEquatable<Vector2>
     {
-        public double x;
-        public double y;
+        public readonly double x;
+        public readonly double y;
 
         // Access the /x/ or /y/ component using [0] or [1] respectively.
         public double this[int index]
@@ -16,16 +16,6 @@ namespace Nanomesh
                 {
                     case 0: return x;
                     case 1: return y;
-                    default:
-                        throw new IndexOutOfRangeException("Invalid Vector2 index!");
-                }
-            }
-            set
-            {
-                switch (index)
-                {
-                    case 0: x = value; break;
-                    case 1: y = value; break;
                     default:
                         throw new IndexOutOfRangeException("Invalid Vector2 index!");
                 }
@@ -75,29 +65,13 @@ namespace Nanomesh
         // Multiplies two vectors component-wise.
         public static Vector2 Scale(Vector2 a, Vector2 b) { return new Vector2(a.x * b.x, a.y * b.y); }
 
-        // Multiplies every component of this vector by the same component of /scale/.
-        public void Scale(Vector2 scale) { x *= scale.x; y *= scale.y; }
-
-        // Makes this vector have a ::ref::magnitude of 1.
-        public void Normalize()
+        public static Vector2F Normalize(in Vector2F value)
         {
-            double mag = magnitude;
-            if (mag > kEpsilon)
-                this = this / mag;
-            else
-                this = Zero;
+            float mag = Magnitude(value);
+            return value / mag;
         }
 
-        // Returns this vector with a ::ref::magnitude of 1 (RO).
-        public Vector2 normalized
-        {
-            get
-            {
-                Vector2 v = new Vector2(x, y);
-                v.Normalize();
-                return v;
-            }
-        }
+        public Vector2F Normalized => Vector2F.Normalize(this);
 
         // used to allow Vector2s to be used as keys in hash tables
         public override int GetHashCode()
@@ -139,10 +113,10 @@ namespace Nanomesh
         /// <returns></returns>
         public static double Dot(Vector2 lhs, Vector2 rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 
-        /// <summary>
-        /// Returns the length of this vector (RO).
-        /// </summary>
-        public double magnitude { get { return Math.Sqrt(x * x + y * y); } }
+        public static float Magnitude(in Vector2F vector)
+        {
+            return MathF.Sqrt(vector.x * vector.x + vector.y * vector.y);
+        }
 
         /// <summary>
         /// Returns the squared length of this vector (RO).
