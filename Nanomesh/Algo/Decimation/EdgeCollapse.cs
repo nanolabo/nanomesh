@@ -16,6 +16,11 @@ namespace Nanomesh
             public ref EdgeTopology Topology => ref _topology;
 
             public void SetTopology(EdgeTopology topology)
+			private double _topology = -1;
+
+			public ref double Topology => ref _topology;
+
+			public void SetTopology(double topology)
             {
                 _topology = topology;
             }

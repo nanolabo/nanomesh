@@ -2,7 +2,7 @@
 
 namespace Nanomesh
 {
-    public readonly struct Vector3F
+    public readonly struct Vector3F : IEquatable<Vector3F>
     {
         public readonly float x;
         public readonly float y;

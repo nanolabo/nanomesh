@@ -433,6 +433,7 @@ namespace Nanomesh
             double BN = Vector3.Magnitude(positionB - positionN);
             double ratio = MathUtils.DivideSafe(AN, AN + BN);
 
+			/* // Other way (same results I think)
             /* // Other way (same results I think)
             double ratio = 0;
             double dot = Vector3.Dot(pair.result - positionA, positionB - positionA);
@@ -442,6 +443,15 @@ namespace Nanomesh
 			*/
 
             int siblingOfA = nodeIndexA;
+			do // Iterator over faces around A
+			{
+				int relativeOfA = siblingOfA;
+				do // Circulate around face
+				{
+					if (_mesh.nodes[relativeOfA].position == posB)
+					{
+						if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
+							continue;
             do // Iterator over faces around A
             {
                 int relativeOfA = siblingOfA;
@@ -527,9 +537,15 @@ namespace Nanomesh
                                     break;
                                 }
 
+						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
+							continue;
                                 k++;
                             }
 
+						foreach (var attr in _mesh.attributes)
+						{
+							attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
+						}
                             // Normalize
                             if (totalWeight > 0)
                             {
@@ -539,10 +555,15 @@ namespace Nanomesh
                                 }
                             }
 
+						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
+						procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
                             boneWeightA = new BoneWeight(
                                 newIndices[0], newIndices[1], newIndices[2], newIndices[3],
                                 newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
 
+						break;
+					}
+				} while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
                             _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
                             _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
                         }

@@ -4,6 +4,14 @@ using System.Diagnostics;
 
 namespace Nanomesh
 {
+    public enum AttributeType
+    {
+        Normals,
+        UVs,
+        BoneWeights,
+        Colors,
+    }
+
     // Let's say F = 2V
     // Halfedge mesh is V * sizeof(vertex) + 3F * sizeof(Halfedge) + F * sizeof(Face) = 16 * 0.5F + 3F * 20 + 4F = 72F
     // Connected mesh is V * sizeof(Vector3) + 3F * sizeof(Node) + F * sizeof(Face) = 12 * 0.5F + 3F * 12 + 12F = 54F (without attributes)
@@ -12,22 +20,19 @@ namespace Nanomesh
     public partial class ConnectedMesh
     {
         public Vector3[] positions;
-        public Attribute[] attributes;
+        public Attributes attributes;
         public Node[] nodes;
         public Group[] groups;
 
         public int[] PositionToNode => _positionToNode ?? (_positionToNode = GetPositionToNode());
         private int[] _positionToNode;
 
-        public int[] AttributeToNode => _attributeToNode ?? (_attributeToNode = GetAttributeToNode());
-        private int[] _attributeToNode;
-
         internal int _faceCount;
         public int FaceCount => _faceCount;
 
-        public static ConnectedMesh Build(SharedMesh mesh)
+        public static ConnectedMesh Build(SharedMesh mesh, bool copy = false)
         {
-            Debug.Assert(mesh.CheckLengths(), "Attributes size mismatch");
+            mesh.CheckLengths();
 
             ConnectedMesh connectedMesh = new ConnectedMesh
             {
@@ -36,36 +41,16 @@ namespace Nanomesh
 
             int[] triangles = mesh.triangles;
 
-            connectedMesh.positions = new Vector3[mesh.vertices.Length];
-            connectedMesh.attributes = new Attribute[mesh.vertices.Length];
+            connectedMesh.attributes = new Attributes();
 
-            for (int i = 0; i < mesh.vertices.Length; i++)
+            if (copy)
             {
-                connectedMesh.positions[i] = mesh.vertices[i];
+                throw new NotImplementedException();
             }
-
-            if (mesh.uvs != null)
+            else
             {
-                for (int i = 0; i < mesh.uvs.Length; i++)
-                {
-                    connectedMesh.attributes[i].uv = mesh.uvs[i];
-                }
-            }
-
-            if (mesh.normals != null)
-            {
-                for (int i = 0; i < mesh.normals.Length; i++)
-                {
-                    connectedMesh.attributes[i].normal = mesh.normals[i];
-                }
-            }
-
-            if (mesh.boneWeights != null)
-            {
-                for (int i = 0; i < mesh.boneWeights.Length; i++)
-                {
-                    connectedMesh.attributes[i].boneWeight = mesh.boneWeights[i];
-                }
+                connectedMesh.positions = mesh.vertices;
+                connectedMesh.attributes = mesh.attributes;
             }
 
             List<Node> nodesList = new List<Node>();
@@ -144,15 +129,16 @@ namespace Nanomesh
         {
             SharedMesh mesh = new SharedMesh();
 
-            List<int> triangles = new List<int>();
-            HashSet<int> browsedNodes = new HashSet<int>();
-            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
+            var triangles = new List<int>();
+            var browsedNodes = new HashSet<int>();
 
             Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
 
             int currentGroup = 0;
             int indicesInGroup = 0;
+
+            var perVertexMap = new Dictionary<(int positionIndex, int attributeIndex), int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -188,16 +174,9 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData
-                        {
-                            position = nodes[relative].position,
-                            attribute = attributes[nodes[relative].attribute]
-                        };
-
-                        // TODO : Merge attributes in a separate method ?
-                        vertexData.TryAdd(data, vertexData.Count);
-
-                        triangles.Add(vertexData[data]);
+                        var key = (nodes[relative].position, nodes[relative].attribute);
+                        perVertexMap.TryAdd(key, perVertexMap.Count);
+                        triangles.Add(perVertexMap[key]);
                     }
                 } while ((relative = nodes[relative].relative) != i);
             }
@@ -207,19 +186,24 @@ namespace Nanomesh
                 newGroups[currentGroup].indexCount = indicesInGroup;
             }
 
-            mesh.vertices = new Vector3[vertexData.Count];
-
-            // TODO : Only assign existing attributes ?
-            mesh.uvs = new Vector2F[vertexData.Count];
-            mesh.normals = new Vector3F[vertexData.Count];
-            mesh.boneWeights = new BoneWeight[vertexData.Count];
-
-            foreach (KeyValuePair<VertexData, int> pair in vertexData)
+            // Positions
+            mesh.vertices = new Vector3[perVertexMap.Count];
+            foreach (var mapping in perVertexMap)
             {
-                mesh.vertices[pair.Value] = positions[pair.Key.position];
-                mesh.normals[pair.Value] = pair.Key.attribute.normal;
-                mesh.uvs[pair.Value] = pair.Key.attribute.uv;
-                mesh.boneWeights[pair.Value] = pair.Key.attribute.boneWeight;
+                mesh.vertices[mapping.Value] = positions[mapping.Key.positionIndex];
+            }
+
+            // Attributes
+            mesh.attributes = new Attributes();
+            foreach (var pair in attributes)
+            {
+                mesh.attributes.Add(pair.Key, pair.Value.CreateNew(perVertexMap.Count));
+                IAttributeList destAttributes = mesh.attributes[pair.Key];
+                IAttributeList fromAttributes = attributes[pair.Key];
+                foreach (var mapping in perVertexMap)
+                {
+                    destAttributes[mapping.Value] = fromAttributes[mapping.Key.attributeIndex];
+                }
             }
 
             mesh.triangles = triangles.ToArray();
@@ -250,25 +234,6 @@ namespace Nanomesh
             }
 
             return positionToNode;
-        }
-
-        public int[] GetAttributeToNode()
-        {
-            int[] attributeToNode = new int[attributes.Length];
-
-            for (int i = 0; i < attributes.Length; i++)
-            {
-                attributeToNode[i] = -1;
-            }
-
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                if (!nodes[i].IsRemoved)
-                {
-                    attributeToNode[nodes[i].attribute] = i;
-                }
-            }
-            return attributeToNode;
         }
 
         public int GetEdgeCount(int nodeIndex)
@@ -477,7 +442,7 @@ namespace Nanomesh
             return validNodeAtA;
         }
 
-        public EdgeTopology GetEdgeTopo(int nodeIndexA, int nodeIndexB)
+        public double GetEdgeTopo(int nodeIndexA, int nodeIndexB)
         {
             int posB = nodes[nodeIndexB].position;
 
@@ -486,10 +451,7 @@ namespace Nanomesh
             int attrAtA = -1;
             int attrAtB = -1;
 
-            bool hardAtA = false;
-            bool hardAtB = false;
-            bool uvBreakAtA = false;
-            bool uvBreakAtB = false;
+            double edgeWeight = 0;
 
             int siblingOfA = nodeIndexA;
             do
@@ -502,16 +464,23 @@ namespace Nanomesh
                     {
                         facesAttached++;
 
-                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                        foreach (var attr in attributes)
                         {
-                            hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
-                            uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
-                        }
+                            if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                            {
+                                if (!attr.Value[attrAtB].Equals(attr.Value[nodes[relativeOfA].attribute]))
+                                {
+                                    edgeWeight += attr.Value.Weight;
+                                }
+                            }
 
-                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                        {
-                            hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
-                            uvBreakAtB = !Vector2FComparer.Default.Equals(attributes[attrAtA].uv, attributes[nodes[siblingOfA].attribute].uv);
+                            if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                            {
+                                if (!attr.Value[attrAtA].Equals(attr.Value[nodes[siblingOfA].attribute]))
+                                {
+                                    edgeWeight += attr.Value.Weight;
+                                }
+                            }
                         }
 
                         attrAtB = nodes[relativeOfA].attribute;
@@ -520,25 +489,15 @@ namespace Nanomesh
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            if (facesAttached < 2)
+            if (facesAttached < 3)
             {
-                return EdgeTopology.Border;
+                edgeWeight += 100;
             }
 
-            if (uvBreakAtA || uvBreakAtB)
-            {
-                return EdgeTopology.UvBreak;
-            }
-
-            if (hardAtA || hardAtB)
-            {
-                return EdgeTopology.HardEdge;
-            }
-
-            return EdgeTopology.Surface;
+            return edgeWeight;
         }
 
-        // Only works with triangles !
+        // TODO : Make it work with any polygon (other than triangle)
         public Vector3 GetFaceNormal(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
@@ -552,7 +511,7 @@ namespace Nanomesh
             return normal.Normalized;
         }
 
-        // Only works with triangles !
+        // TODO : Make it work with any polygon (other than triangle)
         public double GetFaceArea(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
@@ -598,15 +557,6 @@ namespace Nanomesh
                 }
             }
 
-            int validAttrCount = 0;
-            for (int i = 0; i < attributes.Length; i++)
-            {
-                if (AttributeToNode[i] >= 0)
-                {
-                    validAttrCount++;
-                }
-            }
-
             Node[] newNodes = new Node[validNodesCount];
             Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
             for (int i = 0; i < nodes.Length; i++)
@@ -629,6 +579,7 @@ namespace Nanomesh
                 }
             }
 
+            /*
             Attribute[] newAttributes = new Attribute[validAttrCount];
             Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
             for (int i = 0; i < attributes.Length; i++)
@@ -647,13 +598,14 @@ namespace Nanomesh
                 newNodes[i].position = oldToNewPosIndex[newNodes[i].position];
                 newNodes[i].attribute = oldToNewAttrIndex[newNodes[i].attribute];
             }
+            */
 
             nodes = newNodes;
             positions = newPositions;
 
             // Invalidate mapping
             _positionToNode = null;
-            _attributeToNode = null;
+            //_attributeToNode = null;
         }
 
         public void MergePositions(double tolerance = 0.01)

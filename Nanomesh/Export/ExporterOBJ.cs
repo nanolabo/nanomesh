@@ -28,8 +28,8 @@ namespace Nanomesh
         {
             using (StreamWriter outfile = new StreamWriter(stream, Encoding.UTF8, 256, true))
             {
-                bool hasUvs = mesh.uvs?.Length == mesh.vertices.Length;
-                bool hasNormals = mesh.normals?.Length == mesh.vertices.Length;
+                bool hasUvs = mesh.attributes.ContainsKey(AttributeType.UVs);
+                bool hasNormals = mesh.attributes.ContainsKey(AttributeType.Normals);
 
                 outfile.WriteLine("g Default");
 
@@ -40,17 +40,13 @@ namespace Nanomesh
                 }
 
                 if (hasNormals)
-                {
-                    foreach (Vector3F normal in mesh.normals)
-                    {
+                    foreach (Vector3F normal in mesh.attributes[AttributeType.Normals])
                         outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
                     }
                 }
 
                 if (hasUvs)
-                {
-                    foreach (Vector2F uv in mesh.uvs)
-                    {
+                    foreach (Vector2F uv in mesh.attributes[AttributeType.UVs])
                         outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
                     }
                 }

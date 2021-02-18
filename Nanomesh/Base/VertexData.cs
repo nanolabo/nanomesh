@@ -1,11 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Nanomesh
 {
     public struct VertexData : IEquatable<VertexData>
     {
         public int position;
-        public Attribute attribute;
+        public List<object> attributes; // TODO : This is not optimal regarding memory
+
+        public VertexData(int pos)
+        {
+            position = pos;
+            attributes = new List<object>();
+        }
 
         public override int GetHashCode()
         {
@@ -13,15 +20,29 @@ namespace Nanomesh
             {
                 int hash = 17;
                 hash = hash * 31 + position;
-                hash = hash * 31 + attribute.GetHashCode();
+                foreach (var attr in attributes)
+                {
+                    hash = hash * 31 + attr.GetHashCode();
+                }
                 return hash;
             }
         }
 
         public bool Equals(VertexData other)
         {
-            return position.Equals(other.position)
-                && attribute.Equals(other.attribute);
+            if (!position.Equals(other.position))
+                return false;
+
+            if (attributes.Count != other.attributes.Count)
+                return false;
+
+            for (int i = 0; i < attributes.Count; i++)
+            {
+                if (!attributes[i].Equals(other.attributes[i]))
+                    return false;
+            }
+
+            return true;
         }
     }
 }
