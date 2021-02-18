@@ -219,23 +219,9 @@ namespace Nanomesh
 				EdgeCollapse edge = new EdgeCollapse(pA, pD);
 				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
 				{
-					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeA, _mesh.PositionToNode[pD])*/)
-					{
-						case EdgeTopology.Surface:
-							break;
-						case EdgeTopology.HardEdge:
-							errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posA);
-							break;
-						case EdgeTopology.UvBreak:
-							errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posA);
-							break;
-						case EdgeTopology.Border:
-							errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
-							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posA);
-							break;
-					}
+					var weight = GetEdgeTopo(realEdge);
+					errorCollapseToB += weight * length * ComputeLineicError(posB, posD, posA);
+					errorCollapseToC += 0.5 * weight * length * ComputeLineicError(posC, posD, posA);
 				}
 			}
 			foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
@@ -244,30 +230,16 @@ namespace Nanomesh
 				EdgeCollapse edge = new EdgeCollapse(pB, pD);
 				if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
 				{
-					switch (GetEdgeTopo(realEdge)/*_mesh.GetEdgeTopo(nodeB, _mesh.PositionToNode[pD])*/)
-					{
-						case EdgeTopology.Surface:
-							break;
-						case EdgeTopology.HardEdge:
-							errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_hard * ComputeLineicError(posC, posD, posB);
-							break;
-						case EdgeTopology.UvBreak:
-							errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_uvs * ComputeLineicError(posC, posD, posB);
-							break;
-						case EdgeTopology.Border:
-							errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
-							errorCollapseToC += 0.5 * coeff_border * ComputeLineicError(posC, posD, posB);
-							break;
-					}
+					var weight = GetEdgeTopo(realEdge);
+					errorCollapseToA += weight * length * ComputeLineicError(posA, posD, posB);
+					errorCollapseToC += 0.5 * weight * length * ComputeLineicError(posC, posD, posB);
 				}
 			}
 		}
 
-		private EdgeTopology GetEdgeTopo(EdgeCollapse edge)
+		private double GetEdgeTopo(EdgeCollapse edge)
         {
-			if (edge.Topology == EdgeTopology.Undefined)
+			if (edge.Topology == -1)
 			{
 				edge.SetTopology(_mesh.GetEdgeTopo(_mesh.PositionToNode[edge.posA], _mesh.PositionToNode[edge.posB]));
 			}
@@ -285,18 +257,10 @@ namespace Nanomesh
 			int nodeA = _mesh.PositionToNode[pair.posA];
 			int nodeB = _mesh.PositionToNode[pair.posB];
 
-			EdgeTopology edgeTopo = GetEdgeTopo(pair);
-
 			double errorCollapseToA = 0;
 			double errorCollapseToB = 0;
 			double errorCollapseToC = 0;
 
-			switch (edgeTopo)
-            {
-				case EdgeTopology.Border:
-				case EdgeTopology.UvBreak:
-				case EdgeTopology.HardEdge:
-				case EdgeTopology.Surface:
                     {
 						// If a node is smooth (no hard edge connected, no uv break or no border), we can compute a quadric error
 						// Otherwise, we add up linear errors for every non smooth source.
@@ -338,21 +302,8 @@ namespace Nanomesh
 						}
 
 						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
-
-						//BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[nodeA].attribute].boneWeight;
-						//BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[nodeB].attribute].boneWeight;
-
-						//if (boneWeightA.index0 != boneWeightB.index0
-					    // || boneWeightA.index1 != boneWeightB.index1
-					    // || boneWeightA.index2 != boneWeightB.index2
-					    // || boneWeightA.index3 != boneWeightB.index3)
-						//{
-						//	pair.error += 10000;
-						//}
 					}
-					break;
-			}
-			
+
 			pair.error = Math.Max(0d, pair.error);
 
 			// TODO : Make it insensitive to model scale
@@ -471,49 +422,9 @@ namespace Nanomesh
 						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
 							continue;
 
-                        // Normals
-                        {
-							Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
-							Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
-
-							// TODO : Interpolate differently depending on pair type
-							normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
-							normalAtA = normalAtA.Normalized;
-
-							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
-						}
-
-                        // UVs
-                        {
-							Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
-							Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
-
-							uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
-
-							// TODO : Don't interpolate UVs of different islands
-							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
-							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
-						}
-
-                        // Boneweights
-                        {
-							BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight;
-							BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
-
-							boneWeightA = new BoneWeight(
-								ratio < 0.5f ? boneWeightA.index0 : boneWeightB.index0,
-								ratio < 0.5f ? boneWeightA.index1 : boneWeightB.index1,
-								ratio < 0.5f ? boneWeightA.index2 : boneWeightB.index2,
-								ratio < 0.5f ? boneWeightA.index3 : boneWeightB.index3,
-								(float)(ratio * boneWeightB.weight0 + (1 - ratio) * boneWeightA.weight0),
-								(float)(ratio * boneWeightB.weight1 + (1 - ratio) * boneWeightA.weight1),
-								(float)(ratio * boneWeightB.weight2 + (1 - ratio) * boneWeightA.weight2),
-								(float)(ratio * boneWeightB.weight3 + (1 - ratio) * boneWeightA.weight3));
-
-							// TODO : Don't interpolate UVs of different islands
-							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
-							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
+						foreach (var attr in _mesh.attributes)
+						{
+							attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
 						}
 
 						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
@@ -524,92 +435,30 @@ namespace Nanomesh
 				} while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
-
-			//return;
-
-			siblingOfA = nodeIndexA;
-			do // Iterator over faces around A
-			{
-				if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
-					continue;
-
-				int posC = _mesh.nodes[_mesh.nodes[siblingOfA].relative].position;
-				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfA].relative].relative].position;
-
-				if (posC == posB || posD == posB)
-                {
-					continue;
-                }
-
-				Vector3 faceNormalBefore = Vector3.Cross(
-					_mesh.positions[posC] - positionA,
-					_mesh.positions[posD] - positionA).Normalized;
-
-				Vector3 faceNormalAfter = Vector3.Cross(
-					_mesh.positions[posC] - pair.result,
-					_mesh.positions[posD] - pair.result).Normalized;
-
-				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
-				rotation.Normalize();
-
-				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
-
-				_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = rotation * normal;
-
-				procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
-
-			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
-
-			int siblingOfB = nodeIndexB;
-			do // Iterator over faces around B
-			{
-				if (procAttributes.Contains(_mesh.nodes[siblingOfB].attribute))
-					continue;
-
-				int posC = _mesh.nodes[_mesh.nodes[siblingOfB].relative].position;
-				int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[siblingOfB].relative].relative].position;
-
-				if (posC == posA || posD == posA)
-				{
-					continue;
-				}
-
-				Vector3 faceNormalBefore = Vector3.Cross(
-					_mesh.positions[posC] - positionB,
-					_mesh.positions[posD] - positionB).Normalized;
-
-				Vector3 faceNormalAfter = Vector3.Cross(
-					_mesh.positions[posC] - pair.result,
-					_mesh.positions[posD] - pair.result).Normalized;
-
-				var rotation = Quaternion.FromToRotation(faceNormalBefore, faceNormalAfter);
-				rotation.Normalize();
-
-				var normal = (Vector3)_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal;
-
-				_mesh.attributes[_mesh.nodes[siblingOfB].attribute].normal = rotation * normal;
-
-				procAttributes.Add(_mesh.nodes[siblingOfB].attribute);
-
-			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}
 
-		private Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.001f));
+		public static class AttributePool<T> {
+			private static Dictionary<T, int> _dic;
+			public static Dictionary<T, int> Instance => _dic ??= new Dictionary<T, int>();
+		}
+
+		private Dictionary<Vector3F, int> _uniqueAttributes = new Dictionary<Vector3F, int>(Vector3FComparer.Default);
 
 		private void MergeAttributes(int nodeIndex)
 		{
+			// TODO : Make it work for ALL attributes :)
 			_uniqueAttributes.Clear();
 
 			int sibling = nodeIndex;
 			do
 			{
-				_uniqueAttributes.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
+				_uniqueAttributes.TryAdd((Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			sibling = nodeIndex;
 			do
 			{
-				_mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.attributes[_mesh.nodes[sibling].attribute]];
+				_mesh.nodes[sibling].attribute = _uniqueAttributes[(Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute]];
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 
@@ -706,7 +555,7 @@ namespace Nanomesh
 			foreach (var edge in _edgeToRefresh)
 			{
 				CalculateQuadric(edge.posB);
-				edge.SetTopology(EdgeTopology.Undefined);
+				edge.SetTopology(-1);
 				_pairs.Remove(edge);
 				_pairs.Add(edge);
 			}

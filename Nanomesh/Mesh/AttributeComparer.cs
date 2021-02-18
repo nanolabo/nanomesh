@@ -2,7 +2,7 @@
 
 namespace Nanomesh
 {
-    public class AttributeComparer : IEqualityComparer<Attribute>
+    public class AttributeComparer : IEqualityComparer<Attribute2>
     {
         private Vector3FComparer _vec3FComp = new Vector3FComparer(0.001f);
         private Vector2FComparer _vec2FComp = new Vector2FComparer(0.001f);
@@ -13,12 +13,12 @@ namespace Nanomesh
             _vec2FComp = new Vector2FComparer(tolerance);
         }
 
-        public bool Equals(Attribute x, Attribute y)
+        public bool Equals(Attribute2 x, Attribute2 y)
         {
             return x.normal.Equals(y.normal) && x.uv.Equals(y.uv);
         }
 
-        public int GetHashCode(Attribute obj)
+        public int GetHashCode(Attribute2 obj)
         {
             unchecked
             {

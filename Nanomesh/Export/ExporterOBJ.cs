@@ -32,19 +32,19 @@ namespace Nanomesh
 
             using (StreamWriter outfile = new StreamWriter(stream))
             {
-                bool hasUvs = mesh.uvs?.Length == mesh.vertices.Length;
-                bool hasNormals = mesh.normals?.Length == mesh.vertices.Length;
+                bool hasUvs = mesh.attributes.ContainsKey(AttributeType.UVs);
+                bool hasNormals = mesh.attributes.ContainsKey(AttributeType.Normals);
 
                 // Writting vertexes in file and making Index correspondance table.
                 foreach (Vector3 vertex in mesh.vertices)
                     outfile.WriteLine("v " + vertex.x.ToInvariantString() + " " + vertex.y.ToInvariantString() + " " + vertex.z.ToInvariantString());
 
                 if (hasNormals)
-                    foreach (Vector3F normal in mesh.normals)
+                    foreach (Vector3F normal in mesh.attributes[AttributeType.Normals].Array)
                         outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
 
                 if (hasUvs)
-                    foreach (Vector2F uv in mesh.uvs)
+                    foreach (Vector2F uv in mesh.attributes[AttributeType.UVs].Array)
                         outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
 
                 // Writting faces data (with index shifting)

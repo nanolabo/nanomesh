@@ -12,15 +12,15 @@ namespace Nanomesh
             unchecked {
                 int hash = 17;
                 hash = hash * 31 + position;
-                hash = hash * 31 + attribute.GetHashCode();
+                //hash = hash * 31 + attribute.GetHashCode();
                 return hash;
             }
         }
 
         public bool Equals(VertexData other)
         {
-            return position.Equals(other.position)
-                && attribute.Equals(other.attribute);
+            return position.Equals(other.position);
+                //&& attribute.Equals(other.attribute);
         }
     }
 }

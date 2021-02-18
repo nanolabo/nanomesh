@@ -1,26 +1,23 @@
-﻿namespace Nanomesh
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+
+namespace Nanomesh
 {
     public class SharedMesh
     {
         public Vector3[] vertices;
-        public Vector3F[] normals;
-        public Vector2F[] uvs;
-        public BoneWeight[] boneWeights;
+        public Dictionary<AttributeType, IAttributeList> attributes;
         public int[] triangles;
         public Group[] groups;
 
-        public bool CheckLengths()
+        [Conditional("DEBUG")]
+        public void CheckLengths()
         {
-            if (uvs != null && uvs.Length > 0 && vertices.Length != uvs.Length)
-                return false;
-
-            if (normals != null && normals.Length > 0 && vertices.Length != normals.Length)
-                return false;
-
-            if (boneWeights != null && boneWeights.Length > 0 && vertices.Length != boneWeights.Length)
-                return false;
-
-            return true;
+            foreach (var pair in attributes)
+            {
+                Debug.Assert(pair.Value.Length == vertices.Length, $"Attribute '{pair.Value}' must have as many elements as vertices");
+            }
         }
     }
 

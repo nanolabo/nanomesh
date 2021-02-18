@@ -79,24 +79,12 @@ namespace Nanomesh
 
 					sum = sum.Normalized;
 
-					Attribute attribute = mesh.attributes[mesh.nodes[sibling1].attribute];
-					attribute.normal = sum;
-
-					PosAndAttribute posAndAttribute = new PosAndAttribute { position = p, attribute = attribute };
-
-					attributeToIndex.TryAdd(posAndAttribute, attributeToIndex.Count);
-
-					mesh.nodes[sibling1].attribute = attributeToIndex[posAndAttribute];
 
 				} while ((sibling1 = mesh.nodes[sibling1].sibling) != nodeIndex);
 			}
 
 			// Assign new attributes
-			mesh.attributes = new Attribute[attributeToIndex.Count];
-			foreach (var pair in attributeToIndex)
-			{
-				mesh.attributes[pair.Value] = pair.Key.attribute;
-			}
+
 		}
 	}
 }

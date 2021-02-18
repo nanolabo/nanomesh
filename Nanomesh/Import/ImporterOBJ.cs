@@ -89,21 +89,25 @@ namespace Nanomesh
             }
 
             mesh.vertices = new Vector3[vertexData.Count];
-            mesh.uvs = new Vector2F[vertexData.Count];
-            mesh.normals = new Vector3F[vertexData.Count];
+
+            var muvs = new Vector2F[vertexData.Count];
+            var mnormals = new Vector3F[vertexData.Count];
 
             foreach (var pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
 
                 if (uvs.Count > 0)
-                    mesh.uvs[pair.Value] = uvs[pair.Key.uv];
+                    muvs[pair.Value] = uvs[pair.Key.uv];
 
                 if (normals.Count > 0)
-                    mesh.normals[pair.Value] = normals[pair.Key.normal];
+                    mnormals[pair.Value] = normals[pair.Key.normal];
             }
 
             mesh.triangles = triangles.ToArray();
+            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            mesh.attributes.Add(AttributeType.Normals, new Vector3FList(mnormals));
+            mesh.attributes.Add(AttributeType.UVs, new Vector2FList(muvs));
 
             return mesh;
         }
