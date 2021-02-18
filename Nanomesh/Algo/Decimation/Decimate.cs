@@ -224,7 +224,6 @@ namespace Nanomesh
 			double errorCollapseToB = 0;
 			double errorCollapseToC = 0;
 			double errorCollapseToO = 0;
-			Vector3 posC = (posB + posA) / 2;
 			Vector3 posO = Vector3.PositiveInfinity;
 
 			switch (edgeTopo)
