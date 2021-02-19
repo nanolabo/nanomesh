@@ -161,9 +161,13 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData();
-                        data.position = nodes[relative].position;
-                        //data.attribute = attributes[nodes[relative].attribute];
+                        VertexData data = new VertexData(nodes[relative].position);
+
+                        foreach (var attr in attributes)
+                        {
+                            var o = attr.Value.Array[nodes[relative].attribute];
+                            data.attributes.Add(o);
+                        }
 
                         // TODO : Merge attributes in a separate method ?
                         vertexData.TryAdd(data, vertexData.Count);
@@ -176,19 +180,26 @@ namespace Nanomesh
             if (newGroups.Length > 0)
                 newGroups[currentGroup].indexCount = indicesInGroup;
 
+            // Attributes
+            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            foreach (var attr in attributes)
+            {
+                mesh.attributes.Add(attr.Key, attr.Value.CreateNew(vertexData.Count));
+            }
+
             // Positions
             mesh.vertices = new Vector3[vertexData.Count];
             foreach (var pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
-            }
-
-            // Attributes
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
-            foreach (var attr in attributes)
-            {
-                IAttributeList array;
-                mesh.attributes.Add(attr.Key, array = attr.Value.Clone());
+                int i = 0;
+                foreach (var attr in mesh.attributes)
+                {
+                    var o = pair.Key.attributes[i];
+                    int k = pair.Value;
+                    attr.Value.Array[k] = o;
+                    i++;
+                }
             }
 
             mesh.triangles = triangles.ToArray();
@@ -424,11 +435,6 @@ namespace Nanomesh
             int attrAtA = -1;
             int attrAtB = -1;
 
-            bool hardAtA = false;
-            bool hardAtB = false;
-            bool uvBreakAtA = false;
-            bool uvBreakAtB = false;
-
             double edgeWeight = 0;
 
             int siblingOfA = nodeIndexA;
@@ -466,6 +472,11 @@ namespace Nanomesh
                     }
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            if (facesAttached < 3)
+            {
+                edgeWeight += 100;
+            }
 
             return edgeWeight;
         }
