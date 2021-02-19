@@ -261,48 +261,46 @@ namespace Nanomesh
 			double errorCollapseToB = 0;
 			double errorCollapseToC = 0;
 
-                    {
-						// If a node is smooth (no hard edge connected, no uv break or no border), we can compute a quadric error
-						// Otherwise, we add up linear errors for every non smooth source.
-						// If both nodes of the edge are smooth, we can find the optimal position to collapse to by inverting the
-						// quadric matrix, otherwise, we pick the best between A, B, and the position in the middle, C.
+			// If a node is smooth (no hard edge connected, no uv break or no border), we can compute a quadric error
+			// Otherwise, we add up linear errors for every non smooth source.
+			// If both nodes of the edge are smooth, we can find the optimal position to collapse to by inverting the
+			// quadric matrix, otherwise, we pick the best between A, B, and the position in the middle, C.
 
-						CalculateErrors(nodeA, nodeB, ref errorCollapseToA, ref errorCollapseToB, ref errorCollapseToC);
+			CalculateErrors(nodeA, nodeB, ref errorCollapseToA, ref errorCollapseToB, ref errorCollapseToC);
 
-						if (errorCollapseToA == 0 && errorCollapseToB == 0)
-                        {
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							double det = q.DeterminantXYZ();
+			if (errorCollapseToA == 0 && errorCollapseToB == 0)
+            {
+				SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+				double det = q.DeterminantXYZ();
 
-							if (det > _ƐDET || det < -_ƐDET)
-							{
-								pair.result = new Vector3(
-									-1d / det * q.DeterminantX(),
-									+1d / det * q.DeterminantY(),
-									-1d / det * q.DeterminantZ());
-								pair.error = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
-								return;
-							}
-							else
-							{
-								errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
-								errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
-								errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
-							}
-						}
-						else if (errorCollapseToB == 0)
-						{
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
-						}
-						else if (errorCollapseToA == 0)
-						{
-							SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
-							errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
-						}
+				if (det > _ƐDET || det < -_ƐDET)
+				{
+					pair.result = new Vector3(
+						-1d / det * q.DeterminantX(),
+						+1d / det * q.DeterminantY(),
+						-1d / det * q.DeterminantZ());
+					pair.error = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
+					return;
+				}
+				else
+				{
+					errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+					errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+					errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
+				}
+			}
+			else if (errorCollapseToB == 0)
+			{
+				SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+				errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+			}
+			else if (errorCollapseToA == 0)
+			{
+				SymmetricMatrix q = _matrices[pair.posA] + _matrices[pair.posB];
+				errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+			}
 
-						MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
-					}
+			MathUtils.SelectMin(errorCollapseToA, errorCollapseToB, errorCollapseToC, posA, posB, posC, out pair.error, out pair.result);
 
 			pair.error = Math.Max(0d, pair.error);
 

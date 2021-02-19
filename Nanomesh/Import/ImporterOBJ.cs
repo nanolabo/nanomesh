@@ -88,26 +88,35 @@ namespace Nanomesh
                 }
             }
 
-            mesh.vertices = new Vector3[vertexData.Count];
+            mesh.triangles = triangles.ToArray();
+            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
 
-            var muvs = new Vector2F[vertexData.Count];
-            var mnormals = new Vector3F[vertexData.Count];
+            mesh.vertices = new Vector3[vertexData.Count];
 
             foreach (var pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
-
-                if (uvs.Count > 0)
-                    muvs[pair.Value] = uvs[pair.Key.uv];
-
-                if (normals.Count > 0)
-                    mnormals[pair.Value] = normals[pair.Key.normal];
             }
 
-            mesh.triangles = triangles.ToArray();
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
-            mesh.attributes.Add(AttributeType.Normals, new Vector3FList(mnormals));
-            mesh.attributes.Add(AttributeType.UVs, new Vector2FList(muvs));
+            if (uvs.Count > 0)
+            {
+                Vector2F[] muvs = new Vector2F[vertexData.Count];
+                foreach (var pair in vertexData)
+                {
+                    muvs[pair.Value] = uvs[pair.Key.uv];
+                }
+                mesh.attributes.Add(AttributeType.UVs, new Vector2FList(muvs));
+            }
+
+            if (normals.Count > 0)
+            {
+                Vector3F[] mnormals = new Vector3F[vertexData.Count];
+                foreach (var pair in vertexData)
+                {
+                    mnormals[pair.Value] = normals[pair.Key.normal];
+                }
+                mesh.attributes.Add(AttributeType.Normals, new Vector3FList(mnormals));
+            }
 
             return mesh;
         }

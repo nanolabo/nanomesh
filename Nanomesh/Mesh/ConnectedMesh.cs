@@ -161,9 +161,13 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData();
-                        data.position = nodes[relative].position;
-                        //data.attribute = attributes[nodes[relative].attribute];
+                        VertexData data = new VertexData(nodes[relative].position);
+
+                        foreach (var attr in attributes)
+                        {
+                            var o = attr.Value.Array[nodes[relative].attribute];
+                            data.attributes.Add(o);
+                        }
 
                         // TODO : Merge attributes in a separate method ?
                         vertexData.TryAdd(data, vertexData.Count);
@@ -185,10 +189,18 @@ namespace Nanomesh
 
             // Attributes
             mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
-            foreach (var attr in attributes)
+            foreach (var attributeList in attributes)
             {
-                IAttributeList array;
-                mesh.attributes.Add(attr.Key, array = attr.Value.Clone());
+                mesh.attributes.Add(attributeList.Key, attributeList.Value.CreateNew(vertexData.Count));
+            }
+            int k = 0;
+            foreach (var attr in mesh.attributes)
+            {
+                foreach (var pair in vertexData)
+                {
+                    attr.Value.Array[pair.Value] = pair.Key.attributes[k];
+                }
+                k++;
             }
 
             mesh.triangles = triangles.ToArray();
@@ -424,11 +436,6 @@ namespace Nanomesh
             int attrAtA = -1;
             int attrAtB = -1;
 
-            bool hardAtA = false;
-            bool hardAtB = false;
-            bool uvBreakAtA = false;
-            bool uvBreakAtB = false;
-
             double edgeWeight = 0;
 
             int siblingOfA = nodeIndexA;
@@ -466,6 +473,11 @@ namespace Nanomesh
                     }
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
+
+            if (facesAttached < 3)
+            {
+                edgeWeight += 100;
+            }
 
             return edgeWeight;
         }
