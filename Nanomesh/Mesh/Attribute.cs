@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Nanomesh
 {
@@ -38,7 +39,7 @@ namespace Nanomesh
         T Interpolate<T>(double ratio, in T otherAttribute);
     }
 
-    public interface IAttribute<T>
+    public interface IAttribute<T> : IEquatable<T>
     {
         T Interpolate(double ratio, in T otherAttribute);
     }
@@ -236,5 +237,119 @@ namespace Nanomesh
         {
             return new BoneWeightList(size);
         }
+    }
+
+    public readonly struct Attribute<A1, A2> : IEquatable<Attribute<A1, A2>>
+        where A1 : IAttribute<A1>
+        where A2 : IAttribute<A2>
+    {
+        public readonly A1 a1;
+        public readonly A2 a2;
+
+        public Attribute(A1 a1, A2 a2)
+        {
+            this.a1 = a1;
+            this.a2 = a2;
+        }
+
+        public bool Equals(Attribute<A1, A2> other)
+        {
+            return a1.Equals(other.a1)
+                && a2.Equals(other.a2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Attribute<A1, A2> attribute)
+                return Equals(attribute);
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + a1.GetHashCode();
+                hash = hash * 31 + a2.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
+    public abstract class AttributeListBase
+    {
+        public abstract void Interpolate(int indexA, int indexB, double ratio);
+        public abstract int Length { get; }
+        public abstract int[] Merge();
+        public abstract MergeContextBase CreateMergeContext();
+    }
+
+    public class AttributeList<A1, A2> : AttributeListBase
+        where A1 : IAttribute<A1>
+        where A2 : IAttribute<A2>
+    {
+        private Attribute<A1, A2>[] _array;
+
+        public override int Length => _array.Length;
+
+        public override MergeContextBase CreateMergeContext() => new MergeContext(this);
+
+        public override void Interpolate(int indexA, int indexB, double ratio)
+        {
+            _array[indexA] = new Attribute<A1, A2>(
+                _array[indexA].a1.Interpolate(ratio, in _array[indexB].a1),
+                _array[indexA].a2.Interpolate(ratio, in _array[indexB].a2));
+        }
+
+        public override int[] Merge()
+        {
+            Dictionary<Attribute<A1, A2>, int> mergedAttributes = new Dictionary<Attribute<A1, A2>, int>();
+
+            int[] indexMapping = new int[_array.Length];
+
+            for (int i = 0; i < _array.Length; i++)
+            {
+                mergedAttributes.TryAdd(_array[i], mergedAttributes.Count);
+                indexMapping[i] = mergedAttributes[_array[i]];
+            }
+
+            return indexMapping;
+        }
+
+        public class MergeContext : MergeContextBase
+        {
+            AttributeList<A1, A2> _attributeList;
+            Dictionary<Attribute<A1, A2>, int> _mergedAttributes;
+            int[] _indexMapping;
+
+            public MergeContext(AttributeList<A1, A2> attributeList)
+            {
+                _attributeList = attributeList;
+                _indexMapping = new int[attributeList._array.Length];
+                _mergedAttributes = new Dictionary<Attribute<A1, A2>, int>();
+            }
+
+            public override int Length => _mergedAttributes.Count;
+
+            public override void Merge(int index)
+            {
+                _mergedAttributes.TryAdd(_attributeList._array[index], _mergedAttributes.Count);
+                _indexMapping[index] = _mergedAttributes[_attributeList._array[index]];
+            }
+
+            public override int[] AssignBack()
+            {
+                _attributeList._array = _mergedAttributes.Keys.ToArray();
+                return _indexMapping;
+            }
+        }
+    }
+
+    public abstract class MergeContextBase
+    {
+        public abstract void Merge(int index);
+        public abstract int[] AssignBack();
+        public abstract int Length { get; }
     }
 }

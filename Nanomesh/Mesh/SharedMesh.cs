@@ -1,23 +1,18 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Nanomesh
 {
     public class SharedMesh
     {
         public Vector3[] vertices;
-        public Dictionary<AttributeType, IAttributeList> attributes;
+        public AttributeListBase attributes;
         public int[] triangles;
         public Group[] groups;
 
         [Conditional("DEBUG")]
         public void CheckLengths()
         {
-            foreach (var pair in attributes)
-            {
-                Debug.Assert(pair.Value.Length == vertices.Length, $"Attribute '{pair.Value}' must have as many elements as vertices");
-            }
+            Debug.Assert(attributes.Length == vertices.Length, $"Mesh must have as many attributes as vertices");
         }
     }
 

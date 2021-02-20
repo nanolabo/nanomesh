@@ -21,7 +21,7 @@ namespace Nanomesh
     public partial class ConnectedMesh
     {
         public Vector3[] positions;
-        public Dictionary<AttributeType, IAttributeList> attributes;
+        public AttributeListBase attributes;
         public Node[] nodes;
         public Group[] groups;
 
@@ -40,8 +40,6 @@ namespace Nanomesh
             connectedMesh.groups = mesh.groups;
 
             int[] triangles = mesh.triangles;
-
-            connectedMesh.attributes = new Dictionary<AttributeType, IAttributeList>();
 
             if (copy)
             {
@@ -123,13 +121,14 @@ namespace Nanomesh
 
             var triangles = new List<int>();
             var browsedNodes = new HashSet<int>();
-            var vertexData = new Dictionary<VertexData, int>();
 
             Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
 
             int currentGroup = 0;
             int indicesInGroup = 0;
+
+            MergeContextBase mergeContextBase = attributes.CreateMergeContext();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -161,18 +160,8 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData(nodes[relative].position);
-
-                        foreach (var attr in attributes)
-                        {
-                            var o = attr.Value.Array[nodes[relative].attribute];
-                            data.attributes.Add(o);
-                        }
-
-                        // TODO : Merge attributes in a separate method ?
-                        vertexData.TryAdd(data, vertexData.Count);
-
-                        triangles.Add(vertexData[data]);
+                        mergeContextBase.Merge(nodes[relative].attribute);
+                        triangles.Add(mergeContextBase.Length);
                     }
                 } while ((relative = nodes[relative].relative) != i);
             }
@@ -181,7 +170,8 @@ namespace Nanomesh
                 newGroups[currentGroup].indexCount = indicesInGroup;
 
             // Attributes
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            int[] attributeMapping = mergeContextBase.AssignBack();
+
             foreach (var attr in attributes)
             {
                 mesh.attributes.Add(attr.Key, attr.Value.CreateNew(vertexData.Count));
