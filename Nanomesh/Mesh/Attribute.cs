@@ -1,43 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 
 namespace Nanomesh
 {
-    public struct Attribute2 : IEquatable<Attribute2>
-    {
-        // TODO : Separate attributes ? To be spec'ed
-        public Vector3F normal;
-        public Vector3F color;
-        public Vector2F uv;
-        public BoneWeight boneWeight;
-
-        public bool Equals(Attribute2 other)
-        {
-            return normal == other.normal
-                && color == other.color
-                && uv == other.uv;
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
-                hash = hash * 31 + normal.GetHashCode();
-                hash = hash * 31 + color.GetHashCode();
-                hash = hash * 31 + uv.GetHashCode();
-                hash = hash * 31 + boneWeight.GetHashCode();
-                return hash;
-            }
-        }
-    }
-
-    public interface IAttribute
-    {
-        T Interpolate<T>(double ratio, in T otherAttribute);
-    }
-
     public interface IAttribute<T>
     {
         T Interpolate(double ratio, in T otherAttribute);

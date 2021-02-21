@@ -123,13 +123,14 @@ namespace Nanomesh
 
             var triangles = new List<int>();
             var browsedNodes = new HashSet<int>();
-            var vertexData = new Dictionary<VertexData, int>();
 
             Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
 
             int currentGroup = 0;
             int indicesInGroup = 0;
+
+            var perVertexMap = new Dictionary<(int positionIndex, int attributeIndex), int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -161,18 +162,9 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData(nodes[relative].position);
-
-                        foreach (var attr in attributes)
-                        {
-                            var o = attr.Value.Array[nodes[relative].attribute];
-                            data.attributes.Add(o);
-                        }
-
-                        // TODO : Merge attributes in a separate method ?
-                        vertexData.TryAdd(data, vertexData.Count);
-
-                        triangles.Add(vertexData[data]);
+                        var key = (nodes[relative].position, nodes[relative].attribute);
+                        perVertexMap.TryAdd(key, perVertexMap.Count);
+                        triangles.Add(perVertexMap[key]);
                     }
                 } while ((relative = nodes[relative].relative) != i);
             }
@@ -181,26 +173,23 @@ namespace Nanomesh
                 newGroups[currentGroup].indexCount = indicesInGroup;
 
             // Positions
-            mesh.vertices = new Vector3[vertexData.Count];
-            foreach (var pair in vertexData)
+            mesh.vertices = new Vector3[perVertexMap.Count];
+            foreach (var mapping in perVertexMap)
             {
-                mesh.vertices[pair.Value] = positions[pair.Key.position];
+                mesh.vertices[mapping.Value] = positions[mapping.Key.positionIndex];
             }
 
             // Attributes
             mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
-            foreach (var attributeList in attributes)
+            foreach (var pair in attributes)
             {
-                mesh.attributes.Add(attributeList.Key, attributeList.Value.CreateNew(vertexData.Count));
-            }
-            int k = 0;
-            foreach (var attr in mesh.attributes)
-            {
-                foreach (var pair in vertexData)
+                mesh.attributes.Add(pair.Key, pair.Value.CreateNew(perVertexMap.Count));
+                IList destAttributes = mesh.attributes[pair.Key].Array;
+                IList fromAttributes = attributes[pair.Key].Array;
+                foreach (var mapping in perVertexMap)
                 {
-                    attr.Value.Array[pair.Value] = pair.Key.attributes[k];
+                    destAttributes[mapping.Value] = fromAttributes[mapping.Key.attributeIndex];
                 }
-                k++;
             }
 
             mesh.triangles = triangles.ToArray();
