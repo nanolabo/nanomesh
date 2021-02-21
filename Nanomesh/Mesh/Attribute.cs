@@ -42,6 +42,7 @@ namespace Nanomesh
     public interface IAttribute<T> : IEquatable<T>
     {
         T Interpolate(double ratio, in T otherAttribute);
+        bool IsAlmostEqual(T other);
     }
 
     public interface IAttributeList
@@ -283,6 +284,14 @@ namespace Nanomesh
         public abstract int Length { get; }
         public abstract int[] Merge();
         public abstract MergeContextBase CreateMergeContext();
+        public abstract AttributeListBase CreateNew(int length);
+        public abstract object this[int index] { get; set; }
+        public void Copy(int indexFrom, AttributeListBase from, int indexTo, AttributeListBase to)
+        {
+            // TODO : Make this more generic to avoid casting object
+            to[indexTo] = from[indexFrom];
+        }
+        public abstract double GetAttributePenalty(int indexA, int indexB);
     }
 
     public class AttributeList<A1, A2> : AttributeListBase
@@ -291,9 +300,33 @@ namespace Nanomesh
     {
         private Attribute<A1, A2>[] _array;
 
+        public AttributeList(int length)
+        {
+            _array = new Attribute<A1, A2>[length];
+        }
+
+        public AttributeList(Attribute<A1, A2>[] array)
+        {
+            _array = array;
+        }
+
+        public override object this[int index] { get => _array[index]; set => _array[index] = (Attribute<A1, A2>)value; }
+
         public override int Length => _array.Length;
 
-        public override MergeContextBase CreateMergeContext() => new MergeContext(this);
+        public override MergeContextBase CreateMergeContext() => new MergeContext<Attribute<A1, A2>>((int index) => _array[index]);
+        
+        public override AttributeListBase CreateNew(int length) => new AttributeList<A1, A2>(length);
+
+        public override double GetAttributePenalty(int indexA, int indexB)
+        {
+            double penalty = 0;
+            if (_array[indexA].a1.IsAlmostEqual(_array[indexB].a1))
+                penalty += 1;
+            if (_array[indexA].a2.IsAlmostEqual(_array[indexB].a2))
+                penalty += 1;
+            return penalty;
+        }
 
         public override void Interpolate(int indexA, int indexB, double ratio)
         {
@@ -316,40 +349,40 @@ namespace Nanomesh
 
             return indexMapping;
         }
+    }
 
-        public class MergeContext : MergeContextBase
+    public class MergeContext<T> : MergeContextBase
+    {
+        Func<int, T> _getValue;
+        Dictionary<T, int> _mergedAttributes; // TODO : Pool this
+        Dictionary<int, int> _indexMapping; // TODO : Pool this
+
+        public MergeContext(Func<int, T> getValue)
         {
-            AttributeList<A1, A2> _attributeList;
-            Dictionary<Attribute<A1, A2>, int> _mergedAttributes;
-            int[] _indexMapping;
+            _getValue = getValue;
+            _indexMapping = new Dictionary<int, int>();
+            _mergedAttributes = new Dictionary<T, int>();
+        }
 
-            public MergeContext(AttributeList<A1, A2> attributeList)
-            {
-                _attributeList = attributeList;
-                _indexMapping = new int[attributeList._array.Length];
-                _mergedAttributes = new Dictionary<Attribute<A1, A2>, int>();
-            }
+        public override int Length => _mergedAttributes.Count;
 
-            public override int Length => _mergedAttributes.Count;
+        public override void Add(int index)
+        {
+            T item = _getValue(index);
+            _mergedAttributes.TryAdd(item, index);
+            _indexMapping.TryAdd(index, _mergedAttributes[item]);
+        }
 
-            public override void Merge(int index)
-            {
-                _mergedAttributes.TryAdd(_attributeList._array[index], _mergedAttributes.Count);
-                _indexMapping[index] = _mergedAttributes[_attributeList._array[index]];
-            }
-
-            public override int[] AssignBack()
-            {
-                _attributeList._array = _mergedAttributes.Keys.ToArray();
-                return _indexMapping;
-            }
+        public override int GetMapped(int oldIndex)
+        {
+            return _indexMapping[oldIndex];
         }
     }
 
     public abstract class MergeContextBase
     {
-        public abstract void Merge(int index);
-        public abstract int[] AssignBack();
+        public abstract void Add(int index);
+        public abstract int GetMapped(int oldIndex);
         public abstract int Length { get; }
     }
 }

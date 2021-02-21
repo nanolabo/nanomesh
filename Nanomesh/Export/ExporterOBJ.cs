@@ -32,21 +32,29 @@ namespace Nanomesh
 
             using (StreamWriter outfile = new StreamWriter(stream))
             {
-                bool hasUvs = mesh.attributes.ContainsKey(AttributeType.UVs);
-                bool hasNormals = mesh.attributes.ContainsKey(AttributeType.Normals);
+                bool hasUvs = true;// mesh.attributes.ContainsKey(AttributeType.UVs);
+                bool hasNormals = true;// mesh.attributes.ContainsKey(AttributeType.Normals);
 
                 // Writting vertexes in file and making Index correspondance table.
                 foreach (Vector3 vertex in mesh.vertices)
                     outfile.WriteLine("v " + vertex.x.ToInvariantString() + " " + vertex.y.ToInvariantString() + " " + vertex.z.ToInvariantString());
 
-                if (hasNormals)
-                    foreach (Vector3F normal in mesh.attributes[AttributeType.Normals].Array)
-                        outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
+                var attr = (AttributeList<Vector3F, Vector2F>)mesh.attributes;
 
-                if (hasUvs)
-                    foreach (Vector2F uv in mesh.attributes[AttributeType.UVs].Array)
-                        outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
+                //if (hasNormals)
+                for (int i = 0; i < attr.Length; i++)
+                {
+                    Vector3F normal = ((Attribute<Vector3F, Vector2F>)attr[i]).a1;
+                    outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
+                }
 
+                //if (hasUvs)
+                for (int i = 0; i < attr.Length; i++)
+                {
+                    Vector2F uv = ((Attribute<Vector3F, Vector2F>)attr[i]).a2;
+                    outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
+                }
+                        
                 // Writting faces data (with index shifting)
                 for (int i = 0; i < mesh.triangles.Length; i += 3)
                 {

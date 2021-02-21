@@ -105,9 +105,12 @@ namespace Nanomesh
             }
 
             mesh.triangles = triangles.ToArray();
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
-            mesh.attributes.Add(AttributeType.Normals, new Vector3FList(mnormals));
-            mesh.attributes.Add(AttributeType.UVs, new Vector2FList(muvs));
+            var attr = new Attribute<Vector3F, Vector2F>[mnormals.Length];
+            for (int i = 0; i < attr.Length; i++)
+            {
+                attr[i] = new Attribute<Vector3F, Vector2F>(mnormals[i], muvs[i]);
+            }
+            mesh.attributes = new AttributeList<Vector3F, Vector2F>(attr);
 
             return mesh;
         }

@@ -358,5 +358,10 @@ namespace Nanomesh
         {
             return ratio * this + (1 - ratio) * otherAttribute;
         }
+
+        public bool IsAlmostEqual(Vector2 other)
+        {
+            return Equals(other); // TODO : Make use of comparer
+        }
     }
 }

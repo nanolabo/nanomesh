@@ -128,7 +128,7 @@ namespace Nanomesh
             int currentGroup = 0;
             int indicesInGroup = 0;
 
-            MergeContextBase mergeContextBase = attributes.CreateMergeContext();
+            var perVertexMap = new Dictionary<(int positionIndex, int attributeIndex), int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -160,8 +160,9 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        mergeContextBase.Merge(nodes[relative].attribute);
-                        triangles.Add(mergeContextBase.Length);
+                        var key = (nodes[relative].position, nodes[relative].attribute);
+                        perVertexMap.TryAdd(key, perVertexMap.Count);
+                        triangles.Add(perVertexMap[key]);
                     }
                 } while ((relative = nodes[relative].relative) != i);
             }
@@ -170,26 +171,13 @@ namespace Nanomesh
                 newGroups[currentGroup].indexCount = indicesInGroup;
 
             // Attributes
-            int[] attributeMapping = mergeContextBase.AssignBack();
+            mesh.attributes = attributes.CreateNew(perVertexMap.Count);
+            mesh.vertices = new Vector3[perVertexMap.Count];
 
-            foreach (var attr in attributes)
+            foreach (var pair in perVertexMap)
             {
-                mesh.attributes.Add(attr.Key, attr.Value.CreateNew(vertexData.Count));
-            }
-
-            // Positions
-            mesh.vertices = new Vector3[vertexData.Count];
-            foreach (var pair in vertexData)
-            {
-                mesh.vertices[pair.Value] = positions[pair.Key.position];
-                int i = 0;
-                foreach (var attr in mesh.attributes)
-                {
-                    var o = pair.Key.attributes[i];
-                    int k = pair.Value;
-                    attr.Value.Array[k] = o;
-                    i++;
-                }
+                mesh.vertices[pair.Value] = positions[pair.Key.positionIndex];
+                attributes.Copy(pair.Key.attributeIndex, attributes, pair.Value, mesh.attributes);
             }
 
             mesh.triangles = triangles.ToArray();
@@ -438,23 +426,14 @@ namespace Nanomesh
                     {
                         facesAttached++;
 
-                        foreach (var attr in attributes)
+                        if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
                         {
-                            if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
-                            {
-                                if (!attr.Value.AreSame(attrAtB, nodes[relativeOfA].attribute))
-                                {
-                                    edgeWeight += attr.Value.Weight;
-                                }
-                            }
+                            edgeWeight += attributes.GetAttributePenalty(attrAtB, nodes[relativeOfA].attribute);
+                        }
 
-                            if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            {
-                                if (!attr.Value.AreSame(attrAtA, nodes[siblingOfA].attribute))
-                                {
-                                    edgeWeight += attr.Value.Weight;
-                                }
-                            }
+                        if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
+                        {
+                            edgeWeight += attributes.GetAttributePenalty(attrAtA, nodes[siblingOfA].attribute);
                         }
 
                         attrAtB = nodes[relativeOfA].attribute;

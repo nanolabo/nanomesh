@@ -422,10 +422,7 @@ namespace Nanomesh
 						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
 							continue;
 
-						foreach (var attr in _mesh.attributes)
-						{
-							attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
-						}
+						_mesh.attributes.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
 
 						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
 						procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
@@ -442,23 +439,20 @@ namespace Nanomesh
 			public static Dictionary<T, int> Instance => _dic ??= new Dictionary<T, int>();
 		}
 
-		private Dictionary<Vector3F, int> _uniqueAttributes = new Dictionary<Vector3F, int>(Vector3FComparer.Default);
-
 		private void MergeAttributes(int nodeIndex)
 		{
-			// TODO : Make it work for ALL attributes :)
-			_uniqueAttributes.Clear();
+			var context = _mesh.attributes.CreateMergeContext();
 
 			int sibling = nodeIndex;
 			do
 			{
-				_uniqueAttributes.TryAdd((Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
+				context.Add(_mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			sibling = nodeIndex;
 			do
 			{
-				_mesh.nodes[sibling].attribute = _uniqueAttributes[(Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute]];
+				_mesh.nodes[sibling].attribute = context.GetMapped(_mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 

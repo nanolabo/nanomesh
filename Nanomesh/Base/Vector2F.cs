@@ -358,5 +358,10 @@ namespace Nanomesh
         {
             return ratio * this + (1 - ratio) * otherAttribute;
         }
+
+        public bool IsAlmostEqual(Vector2F other)
+        {
+            return Vector2FComparer.Default.Equals(this, other);
+        }
     }
 }

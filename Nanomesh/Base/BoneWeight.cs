@@ -66,5 +66,10 @@ namespace Nanomesh
                 (float)(ratio * weight2 + (1 - ratio) * boneWeight.weight2),
                 (float)(ratio * weight3 + (1 - ratio) * boneWeight.weight3));
         }
+
+        public bool IsAlmostEqual(BoneWeight other)
+        {
+            return Equals(other); // TODO : Make use of comparer
+        }
     }
 }
