@@ -9,6 +9,15 @@ namespace Nanomesh.Sandbox
         static void Main(string[] args)
         {
             //Benchmark();
+
+            AttributeList2 test = new AttributeList2();
+            test.AddAttributeType<Vector3F>(AttributeType.Normals);
+
+            test.Initialize(10);
+
+            test.Set(2, AttributeType.Normals, new Vector3F(1, 2, 3));
+            var x = test.Get<Vector3F>(2, AttributeType.Normals);
+            Console.WriteLine(x);
             
             DecimateFile();
 
@@ -17,7 +26,7 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/monkey.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/buggy.obj");
             //sharedMesh.groups = new Group[3]
             //{
             //    new Group { firstIndex = 0, indexCount = 9000 },

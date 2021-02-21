@@ -278,6 +278,58 @@ namespace Nanomesh
         }
     }
 
+    public unsafe class AttributeList2 : IDisposable
+    {
+        private byte* _bytes;
+        private Dictionary<AttributeType, int> _attrTypeToSize = new Dictionary<AttributeType, int>();
+        private Dictionary<AttributeType, int> _attrTypeTiPos = new Dictionary<AttributeType, int>();
+        private int _length;
+
+        public AttributeList2 AddAttributeType<T>(AttributeType type) where T : unmanaged, IAttribute<T>
+        {
+            int sizeOf = sizeof(T);
+            _attrTypeToSize.Add(type, sizeOf);
+            return this;
+        }
+
+        public void Initialize(int length)
+        {
+            _length = length;
+            int blockSize = 0;
+            foreach (var pair in _attrTypeToSize)
+            {
+                _attrTypeTiPos.Add(pair.Key, blockSize);
+                blockSize += pair.Value * length;
+            }
+            _bytes = (byte*)System.Runtime.InteropServices.Marshal.AllocHGlobal(blockSize).ToPointer();
+        }
+
+        public T Get<T>(int index, AttributeType type) where T : unmanaged
+        {
+            T* k = (T*)(_bytes + _attrTypeTiPos[type]);
+            return k[index];
+        }
+
+        public void Set<T>(int index, AttributeType type, T value) where T : unmanaged
+        {
+            T* k = (T*)(_bytes + _attrTypeTiPos[type]);
+            k[index] = value;
+        }
+
+        public int this[int index]
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            System.Runtime.InteropServices.Marshal.FreeHGlobal((IntPtr)_bytes);
+        }
+    }
+
     public abstract class AttributeListBase
     {
         public abstract void Interpolate(int indexA, int indexB, double ratio);
