@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -21,7 +20,7 @@ namespace Nanomesh
     public partial class ConnectedMesh
     {
         public Vector3[] positions;
-        public Dictionary<AttributeType, IAttributeList> attributes;
+        public Attributes attributes;
         public Node[] nodes;
         public Group[] groups;
 
@@ -41,7 +40,7 @@ namespace Nanomesh
 
             int[] triangles = mesh.triangles;
 
-            connectedMesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            connectedMesh.attributes = new Attributes();
 
             if (copy)
             {
@@ -180,12 +179,12 @@ namespace Nanomesh
             }
 
             // Attributes
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            mesh.attributes = new Attributes();
             foreach (var pair in attributes)
             {
                 mesh.attributes.Add(pair.Key, pair.Value.CreateNew(perVertexMap.Count));
-                IList destAttributes = mesh.attributes[pair.Key].Array;
-                IList fromAttributes = attributes[pair.Key].Array;
+                IAttributeList destAttributes = mesh.attributes[pair.Key];
+                IAttributeList fromAttributes = attributes[pair.Key];
                 foreach (var mapping in perVertexMap)
                 {
                     destAttributes[mapping.Value] = fromAttributes[mapping.Key.attributeIndex];
@@ -442,7 +441,7 @@ namespace Nanomesh
                         {
                             if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
                             {
-                                if (!attr.Value.AreSame(attrAtB, nodes[relativeOfA].attribute))
+                                if (!attr.Value[attrAtB].Equals(attr.Value[nodes[relativeOfA].attribute]))
                                 {
                                     edgeWeight += attr.Value.Weight;
                                 }
@@ -450,7 +449,7 @@ namespace Nanomesh
 
                             if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
                             {
-                                if (!attr.Value.AreSame(attrAtA, nodes[siblingOfA].attribute))
+                                if (!attr.Value[attrAtA].Equals(attr.Value[nodes[siblingOfA].attribute]))
                                 {
                                     edgeWeight += attr.Value.Weight;
                                 }
@@ -471,7 +470,7 @@ namespace Nanomesh
             return edgeWeight;
         }
 
-        // Only works with triangles !
+        // TODO : Make it work with any polygon (other than triangle)
         public Vector3 GetFaceNormal(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;
@@ -485,7 +484,7 @@ namespace Nanomesh
             return normal.Normalized;
         }
 
-        // Only works with triangles !
+        // TODO : Make it work with any polygon (other than triangle)
         public double GetFaceArea(int nodeIndex)
         {
             int posA = nodes[nodeIndex].position;

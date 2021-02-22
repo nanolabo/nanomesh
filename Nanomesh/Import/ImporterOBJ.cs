@@ -89,7 +89,7 @@ namespace Nanomesh
             }
 
             mesh.triangles = triangles.ToArray();
-            mesh.attributes = new Dictionary<AttributeType, IAttributeList>();
+            mesh.attributes = new Attributes();
 
             mesh.vertices = new Vector3[vertexData.Count];
 

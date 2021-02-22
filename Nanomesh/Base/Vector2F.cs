@@ -2,7 +2,7 @@ using System;
 
 namespace Nanomesh
 {
-    public readonly struct Vector2F : IEquatable<Vector2F>, IAttribute<Vector2F>
+    public readonly struct Vector2F : IEquatable<Vector2F>
     {
         public readonly float x;
         public readonly float y;
@@ -353,10 +353,5 @@ namespace Nanomesh
         public const float kEpsilon = 0.00001F;
 
         public const float kEpsilonNormalSqrt = 1e-15f;
-
-        public Vector2F Interpolate(double ratio, in Vector2F otherAttribute)
-        {
-            return ratio * this + (1 - ratio) * otherAttribute;
-        }
     }
 }

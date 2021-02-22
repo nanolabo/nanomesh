@@ -71,13 +71,15 @@ namespace Nanomesh.Tests
                 Vector3 A = mesh.positions[edge.posA];
                 Vector3 B = mesh.positions[edge.posB];
 
+                Assert.Fail("Please fix test");
+
                 if ((B - A).Length == 1)
                 {
-                    Assert.AreEqual(EdgeTopology.HardEdge, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                    //Assert.AreEqual(EdgeTopology.HardEdge, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
                 }
                 else
                 {
-                    Assert.AreEqual(EdgeTopology.Surface, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
+                    //Assert.AreEqual(EdgeTopology.Surface, mesh.GetEdgeTopo(mesh.PositionToNode[edge.posA], mesh.PositionToNode[edge.posB]));
                 }
             }
         }

@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Nanomesh
 {
-	public partial class DecimateModifier
+    public partial class DecimateModifier
     {
 		public bool UpdateFarNeighbors = false;
 		public bool UpdateMinsOnCollapse = true;
@@ -74,6 +74,7 @@ namespace Nanomesh
 			_matrices = new SymmetricMatrix[mesh.positions.Length];
 			_pairs = new FastHashSet<EdgeCollapse>();
 			_mins = new LinkedHashSet<EdgeCollapse>();
+			_uniqueAttributes = new Dictionary<int, int>(new AttributeComparer(mesh.attributes));
 
 			InitializePairs();
 
@@ -440,23 +441,22 @@ namespace Nanomesh
 			public static Dictionary<T, int> Instance => _dic ??= new Dictionary<T, int>();
 		}
 
-		private Dictionary<Vector3F, int> _uniqueAttributes = new Dictionary<Vector3F, int>(Vector3FComparer.Default);
+		private Dictionary<int, int> _uniqueAttributes;
 
 		private void MergeAttributes(int nodeIndex)
 		{
-			// TODO : Make it work for ALL attributes :)
 			_uniqueAttributes.Clear();
 
 			int sibling = nodeIndex;
 			do
 			{
-				_uniqueAttributes.TryAdd((Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
+				_uniqueAttributes.TryAdd(_mesh.nodes[sibling].attribute, _mesh.nodes[sibling].attribute);
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
 			sibling = nodeIndex;
 			do
 			{
-				_mesh.nodes[sibling].attribute = _uniqueAttributes[(Vector3F)_mesh.attributes[AttributeType.Normals].Array[_mesh.nodes[sibling].attribute]];
+				_mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.nodes[sibling].attribute];
 			} while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 		}
 

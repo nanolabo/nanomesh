@@ -85,6 +85,7 @@ namespace Nanomesh
 
 			// Assign new attributes
 
+			// TODO : Fix
 		}
 	}
 }
