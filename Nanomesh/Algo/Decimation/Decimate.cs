@@ -26,47 +26,9 @@ namespace Nanomesh
 		const double _OFFSET_HARD = 1e6;
 		const double _OFFSET_NOCOLLAPSE = 1e300;
 
-		public event Action<string> Verbosed;
+		public ConnectedMesh Mesh => _mesh;
 
-		public void DecimateToRatio(ConnectedMesh mesh, float targetTriangleRatio)
-		{
-			targetTriangleRatio = MathF.Clamp(targetTriangleRatio, 0f, 1f);
-			DecimateToPolycount(mesh, (int)MathF.Round(targetTriangleRatio * mesh.FaceCount));
-		}
-
-		public void DecimateToError(ConnectedMesh mesh, float maximumError)
-		{
-			Initialize(mesh);
-
-			while (GetPairWithMinimumError().error <= maximumError)
-			{
-				Iterate();
-			}
-		}
-
-		public void DecimatePolycount(ConnectedMesh mesh, int polycount)
-		{
-			DecimateToPolycount(mesh, (int)MathF.Round(mesh.FaceCount - polycount));
-		}
-
-		public void DecimateToPolycount(ConnectedMesh mesh, int targetTriangleCount)
-		{
-			Initialize(mesh);
-
-			while (mesh.FaceCount > targetTriangleCount)
-			{
-				Iterate();
-
-				int progress = (int)MathF.Round(100f * (_initialTriangleCount - mesh.FaceCount) / (_initialTriangleCount - targetTriangleCount));
-				if (progress >= _lastProgress + 10)
-				{
-					Console.WriteLine("Progress : " + progress + "%");
-					_lastProgress = progress;
-				}
-			}
-		}
-
-		private void Initialize(ConnectedMesh mesh)
+		public void Initialize(ConnectedMesh mesh)
 		{
 			_mesh = mesh;
 
@@ -83,6 +45,40 @@ namespace Nanomesh
 
 			foreach (var pair in _pairs)
 				CalculateError(pair);
+		}
+
+		public void DecimateToRatio(float targetTriangleRatio)
+		{
+			targetTriangleRatio = MathF.Clamp(targetTriangleRatio, 0f, 1f);
+			DecimateToPolycount((int)MathF.Round(targetTriangleRatio * _mesh.FaceCount));
+		}
+
+		public void DecimateToError(float maximumError)
+		{
+			while (GetPairWithMinimumError().error <= maximumError)
+			{
+				Iterate();
+			}
+		}
+
+		public void DecimatePolycount(int polycount)
+		{
+			DecimateToPolycount((int)MathF.Round(_mesh.FaceCount - polycount));
+		}
+
+		public void DecimateToPolycount(int targetTriangleCount)
+		{
+			while (_mesh.FaceCount > targetTriangleCount)
+			{
+				Iterate();
+
+				int progress = (int)MathF.Round(100f * (_initialTriangleCount - _mesh.FaceCount) / (_initialTriangleCount - targetTriangleCount));
+				if (progress >= _lastProgress + 10)
+				{
+					Console.WriteLine("Progress : " + progress + "%");
+					_lastProgress = progress;
+				}
+			}
 		}
 
 		private void Iterate()

@@ -18,7 +18,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToRatio(mesh, 0.2f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0.2f);
 
             Assert.IsTrue(mesh.Check());
         }
@@ -33,7 +34,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToRatio(mesh, 0f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0f);
 
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 0);
@@ -49,7 +51,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToRatio(mesh, 0f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0f);
 
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 0);
@@ -65,7 +68,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToError(mesh, 0.01f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToError(0.01f);
 
             ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
 
@@ -83,7 +87,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToRatio(mesh, 0f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0f);
 
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 0);
@@ -99,7 +104,8 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
 
             DecimateModifier decimateModifier = new DecimateModifier();
-            decimateModifier.DecimateToRatio(mesh, 0f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0f);
 
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 0);

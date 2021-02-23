@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
-using System;
 
 namespace Nanomesh.Unity
 {
@@ -21,6 +20,37 @@ namespace Nanomesh.Unity
                 {
                     UnityEngine.Object.DestroyImmediate(renderer.gameObject);
                 }
+            }
+
+            // This allows the function to decimate every mesh a single time for all its instances and all its LODs
+            Dictionary<Mesh, DecimateModifier> decimationModifiers = new Dictionary<Mesh, DecimateModifier>();
+
+            Mesh decimateGradualy(Mesh mesh, float ratio)
+            {
+                if (!decimationModifiers.ContainsKey(mesh))
+                {
+                    SharedMesh smesh = UnityConverter.ToSharedMesh(mesh);
+                    ConnectedMesh cmesh = ConnectedMesh.Build(smesh);
+                    cmesh.MergePositions(0.001);
+
+                    var decimationModifier = new DecimateModifier();
+                    decimationModifier.Initialize(cmesh);
+
+                    decimationModifiers.Add(mesh, decimationModifier);
+                }
+
+                decimationModifiers[mesh].DecimateToRatio(ratio);
+
+                Mesh outputMesh = new Mesh();
+                // We can use the same format since we expect less indices after decimation
+                outputMesh.indexFormat = mesh.indexFormat;
+                outputMesh.bindposes = mesh.bindposes;
+
+                var sharedMesh = decimationModifiers[mesh].Mesh.ToSharedMesh();
+                UnityConverter.ToUnityMesh(sharedMesh, outputMesh);
+                outputMesh.RecalculateTangents(); // Mandatory for some shaders
+
+                return outputMesh;
             }
 
             // Assign LOD0
@@ -49,7 +79,7 @@ namespace Nanomesh.Unity
                             MeshFilter mf = gameObject.AddComponent<MeshFilter>();
 
                             mr.sharedMaterials = meshRenderer.sharedMaterials;
-                            mf.sharedMesh = Decimate(meshFilter.sharedMesh, lods[i - 1].screenRelativeTransitionHeight);
+                            mf.sharedMesh = decimateGradualy(meshFilter.sharedMesh, lods[i - 1].screenRelativeTransitionHeight);
 
                             lodRenderers.Add(mr);
                         }
@@ -67,7 +97,7 @@ namespace Nanomesh.Unity
                         smr.rootBone = skinnedMeshRenderer.rootBone;
 
                         smr.sharedMaterials = skinnedMeshRenderer.sharedMaterials;
-                        smr.sharedMesh = Decimate(skinnedMeshRenderer.sharedMesh, lods[i - 1].screenRelativeTransitionHeight);
+                        smr.sharedMesh = decimateGradualy(skinnedMeshRenderer.sharedMesh, lods[i - 1].screenRelativeTransitionHeight);
 
                         lodRenderers.Add(smr);
                     }
@@ -78,100 +108,6 @@ namespace Nanomesh.Unity
             }
 
             lodGroup.SetLODs(lods);
-        }
-
-        [MenuItem("Nanolabo/Decimate 50% Edit")]
-        public static void Decimate50_Edit()
-        {
-            HashSet<Mesh> uniqueMeshes = new HashSet<Mesh>();
-
-            MeshFilter[] meshFilters = Selection.activeGameObject.GetComponentsInChildren<MeshFilter>();
-            foreach (var meshFilter in meshFilters)
-            {
-                Mesh sharedMesh = meshFilter.sharedMesh;
-                if (sharedMesh != null)
-                    uniqueMeshes.Add(sharedMesh);
-            }
-
-            SkinnedMeshRenderer[] skmRenderers = Selection.activeGameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var skmRenderer in skmRenderers)
-            {
-                Mesh sharedMesh = skmRenderer.sharedMesh;
-                if (sharedMesh != null)
-                    uniqueMeshes.Add(sharedMesh);
-            }
-
-            foreach (var mesh in uniqueMeshes)
-            {
-                Decimate(mesh, mesh);
-            }
-        }
-
-        [MenuItem("Nanolabo/Decimate 50% Create")]
-        public static void Decimate50_Create()
-        {
-            Dictionary<Mesh, Action<Mesh>> meshToAssign = new Dictionary<Mesh, Action<Mesh>>();
-
-            MeshFilter[] meshFilters = Selection.activeGameObject.GetComponentsInChildren<MeshFilter>();
-            foreach (var meshFilter in meshFilters)
-            {
-                Mesh sharedMesh = meshFilter.sharedMesh;
-                if (sharedMesh != null)
-                {
-                    var assign = meshToAssign.GetOrAdd(sharedMesh, (m) => { });
-                    assign += (m) => meshFilter.sharedMesh = m;
-                    meshToAssign[sharedMesh] = assign;
-                }
-            }
-
-            SkinnedMeshRenderer[] skmRenderers = Selection.activeGameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var skmRenderer in skmRenderers)
-            {
-                Mesh sharedMesh = skmRenderer.sharedMesh;
-                if (sharedMesh != null)
-                {
-                    var assign = meshToAssign.GetOrAdd(sharedMesh, (m) => { });
-                    assign += (m) => skmRenderer.sharedMesh = m;
-                    meshToAssign[sharedMesh] = assign;
-                }
-            }
-
-            foreach (var pair in meshToAssign)
-            {
-                Mesh newMesh = Decimate(pair.Key);
-                pair.Value(newMesh);
-            }
-        }
-
-        private static void Decimate(in Mesh inputMesh, Mesh outputMesh, float targetRatio = 0.5f)
-        {
-            SharedMesh smesh = UnityConverter.ToSharedMesh(inputMesh);
-            ConnectedMesh cmesh = ConnectedMesh.Build(smesh);
-            cmesh.MergePositions(0.001);
-            //cmesh.Scale(1000);
-            //NormalsModifier normalsModifier = new NormalsModifier();
-            //normalsModifier.Run(cmesh, 45);
-            DecimateModifier decimateModifier = new DecimateModifier();
-            Profiling.Start("decimate");
-            //decimateModifier.Verbosed += DecimateModifier_Verbosed;
-            decimateModifier.DecimateToRatio(cmesh, targetRatio);
-            //decimateModifier.DecimateToPolycount(cmesh, 15000);
-            //decimateModifier.DecimateToError(cmesh, 0.05f);
-            //cmesh.Compact();
-            Debug.Log(Profiling.End("decimate"));
-            //cmesh.Scale(0.001);
-            smesh = cmesh.ToSharedMesh();
-            UnityConverter.ToUnityMesh(smesh, outputMesh);
-            outputMesh.RecalculateTangents();
-        }
-
-        private static Mesh Decimate(Mesh mesh, float targetRatio = 0.5f)
-        {
-            Mesh outputMesh = new Mesh();
-            outputMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            outputMesh.bindposes = mesh.bindposes;
-            Decimate(in mesh, outputMesh, targetRatio);
-            return outputMesh;
         }
     }
 }

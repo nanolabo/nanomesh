@@ -33,16 +33,17 @@ namespace Nanomesh.Sandbox
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
-            //NormalsModifier normalsModifier = new NormalsModifier();
-            //normalsModifier.Run(mesh, 180f);
-
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
-            decimateModifier.DecimateToRatio(mesh, 0.5f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0.2f);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
+
+            //NormalsModifier normalsModifier = new NormalsModifier();
+            //normalsModifier.Run(mesh, 55);
 
             //mesh.Compact();
 
