@@ -495,21 +495,50 @@ namespace Nanomesh
 						}
 
                         // Boneweights
-                        {
+                        unsafe {
 							BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight;
 							BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
 
-							boneWeightA = new BoneWeight(
-								ratio < 0.5f ? boneWeightA.index0 : boneWeightB.index0,
-								ratio < 0.5f ? boneWeightA.index1 : boneWeightB.index1,
-								ratio < 0.5f ? boneWeightA.index2 : boneWeightB.index2,
-								ratio < 0.5f ? boneWeightA.index3 : boneWeightB.index3,
-								(float)(ratio * boneWeightB.weight0 + (1 - ratio) * boneWeightA.weight0),
-								(float)(ratio * boneWeightB.weight1 + (1 - ratio) * boneWeightA.weight1),
-								(float)(ratio * boneWeightB.weight2 + (1 - ratio) * boneWeightA.weight2),
-								(float)(ratio * boneWeightB.weight3 + (1 - ratio) * boneWeightA.weight3));
+							Dictionary<int, float> newBoneWeight = new Dictionary<int, float>();
 
-							// TODO : Don't interpolate UVs of different islands
+							// Map weights and indices
+							for (int i = 0; i < 4; i++)
+							{
+								newBoneWeight.TryAdd(boneWeightA.GetIndex(i), 0);
+								newBoneWeight.TryAdd(boneWeightB.GetIndex(i), 0);
+								newBoneWeight[boneWeightA.GetIndex(i)] += (float)((1 - ratio) * boneWeightA.GetWeight(i));
+								newBoneWeight[boneWeightB.GetIndex(i)] += (float)(ratio * boneWeightB.GetWeight(i));
+							}
+
+							int* newIndices = stackalloc int[4];
+							float* newWeights = stackalloc float[4];
+
+							// Order from biggest to smallest weight, and drop bones above 4th
+							float totalWeight = 0;
+							int k = 0;
+							foreach (var boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
+                            {
+								newIndices[k] = boneWeightN.Key;
+								newWeights[k] = boneWeightN.Value;
+								totalWeight += boneWeightN.Value;
+								if (k == 3)
+									break;
+								k++;
+                            }
+
+							// Normalize
+							if (totalWeight > 0)
+                            {
+								for (int j = 0; j < 4; j++)
+								{
+									newWeights[k] /= totalWeight;
+								}
+							}
+
+							boneWeightA = new BoneWeight(
+								newIndices[0], newIndices[1], newIndices[2], newIndices[3],
+								newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
+
 							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
 							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
 						}
