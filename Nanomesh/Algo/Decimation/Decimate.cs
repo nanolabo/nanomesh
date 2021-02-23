@@ -9,6 +9,7 @@ namespace Nanomesh
     {
 		public bool UpdateFarNeighbors = false;
 		public bool UpdateMinsOnCollapse = true;
+		public float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
 
 		private ConnectedMesh _mesh;
 
@@ -467,12 +468,22 @@ namespace Nanomesh
 							Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
 							Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
 
-							// TODO : Interpolate differently depending on pair type
-							normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
-							normalAtA = normalAtA.Normalized;
+							float dot = Vector3F.Dot(normalAtA, normalAtB);
 
-							_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-							_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+							if (dot >= MergeNormalsThreshold)
+							{
+								// TODO : Interpolate differently depending on pair type
+								normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
+								normalAtA = normalAtA.Normalized;
+
+								_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
+								_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
+							}
+							else
+                            {
+								_mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
+								_mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtB;
+							}
 						}
 
                         // UVs
@@ -516,7 +527,7 @@ namespace Nanomesh
 
 			} while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
 
-			//return;
+			return;
 
 			siblingOfA = nodeIndexA;
 			do // Iterator over faces around A
@@ -585,7 +596,7 @@ namespace Nanomesh
 			} while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
 		}
 
-		private Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.001f));
+		private Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.0001f));
 
 		private void MergeAttributes(int nodeIndex)
 		{
