@@ -11,9 +11,5 @@
     <Optimize>false</Optimize>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
-  
-  <Target Name="CopyToUnityPackage" AfterTargets="AfterBuild">
-    <Copy SourceFiles="$(TargetDir)Nanomesh.dll" DestinationFolder="$(SolutionDir)Package" />
-  </Target>
 
 </Project>
