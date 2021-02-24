@@ -58,21 +58,18 @@ namespace Nanomesh
 				{
 					Vector3F sum = Vector3F.Zero;
 
+					Vector3F normal1 = getFaceNormal(sibling1);
+
 					int sibling2 = nodeIndex;
 					do
 					{
-						if (sibling1 == sibling2)
-						{
-							sum += getFaceNormal(sibling2);
-						}
-						else
-						{
-							float dot = Vector3F.Dot(getFaceNormal(sibling1), getFaceNormal(sibling2));
+						Vector3F normal2 = getFaceNormal(sibling2);
 
-							if (dot >= cosineThreshold)
-							{
-								sum += getFaceNormal(sibling2);
-							}
+						float dot = Vector3F.Dot(normal1, normal2);
+
+						if (dot >= cosineThreshold)
+						{
+							sum += mesh.GetFaceArea(sibling2) * mesh.GetAngleRadians(sibling2) * normal2;
 						}
 
 					} while ((sibling2 = mesh.nodes[sibling2].sibling) != nodeIndex);

@@ -515,6 +515,18 @@ namespace Nanomesh
             return 0.5 * normal.Length;
         }
 
+        // Only works with triangles !
+        public double GetAngleRadians(int nodeIndex)
+        {
+            int posA = nodes[nodeIndex].position;
+            int posB = nodes[nodes[nodeIndex].relative].position;
+            int posC = nodes[nodes[nodes[nodeIndex].relative].relative].position;
+
+            return Vector3.AngleRadians(
+                positions[posB] - positions[posA],
+                positions[posC] - positions[posA]);
+        }
+
         public void Compact()
         {
             int validNodesCount = 0;

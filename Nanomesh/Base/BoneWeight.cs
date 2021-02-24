@@ -13,6 +13,29 @@ namespace Nanomesh
         public readonly float weight2;
         public readonly float weight3;
 
+        public int GetIndex(int i)
+        {
+            switch (i) {
+                case 0: return index0;
+                case 1: return index1;
+                case 2: return index2;
+                case 3: return index3;
+                default: return -1;
+            }
+        }
+
+        public float GetWeight(int i)
+        {
+            switch (i)
+            {
+                case 0: return weight0;
+                case 1: return weight1;
+                case 2: return weight2;
+                case 3: return weight3;
+                default: return -1;
+            }
+        }
+
         public BoneWeight(int index0, int index1, int index2, int index3, float weight0, float weight1, float weight2, float weight3)
         {
             this.index0 = index0;

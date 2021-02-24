@@ -18,7 +18,7 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\buggy.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/brakes.obj");
             //sharedMesh.groups = new Group[3]
             //{
             //    new Group { firstIndex = 0, indexCount = 9000 },
@@ -33,23 +33,24 @@ namespace Nanomesh.Sandbox
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
-            //NormalsModifier normalsModifier = new NormalsModifier();
-            //normalsModifier.Run(mesh, 180f);
-
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
-            decimateModifier.DecimateToRatio(mesh, 0.2f);
+            decimateModifier.Initialize(mesh);
+            decimateModifier.DecimateToRatio(0.2f);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
+
+            //NormalsModifier normalsModifier = new NormalsModifier();
+            //normalsModifier.Run(mesh, 55);
 
             //mesh.Compact();
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
-            Directory.CreateDirectory(@"..\..\..\..\Nanomesh.Tests\output\");
-            ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
+            Directory.CreateDirectory(@"../../../../Nanomesh.Tests/output/");
+            ExporterOBJ.Save(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
         }
 
         static void Benchmark()
