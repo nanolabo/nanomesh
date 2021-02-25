@@ -21,10 +21,12 @@ namespace Nanomesh.Tests
 
             SharedMesh smesh = mesh.ToSharedMesh();
 
-            string path = @"../../../../Nanomesh.Tests/output/export-obj.obj";
-            ExporterOBJ.Save(smesh, path);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                ExporterOBJ.SaveToStream(smesh, ms);
 
-            Assert.IsTrue(File.Exists(path));
+                Assert.IsTrue(ms.Length > 0);
+            }
         }
     }
 }

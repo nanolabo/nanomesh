@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
+using System.Text;
 
 namespace Nanomesh
 {
@@ -18,19 +18,17 @@ namespace Nanomesh
             return value.ToString(CultureInfo.InvariantCulture);
         }
 
-        public static void Save(this SharedMesh mesh, string path)
+        public static void SaveToFile(this SharedMesh mesh, string path)
         {
             using (FileStream fs = new FileStream(path, FileMode.Create))
             {
-                Write(mesh, fs);
+                SaveToStream(mesh, fs);
             }
         }
 
-        public static void Write(SharedMesh mesh, Stream stream, bool saveGroups = true, char groupChar = 'g')
+        public static void SaveToStream(this SharedMesh mesh, Stream stream, bool saveGroups = true, char groupChar = 'g')
         {
-            HashSet<int> uniqueSubmeshes = new HashSet<int>();
-
-            using (StreamWriter outfile = new StreamWriter(stream))
+            using (StreamWriter outfile = new StreamWriter(stream, Encoding.UTF8, 256, true))
             {
                 bool hasUvs = mesh.uvs?.Length == mesh.vertices.Length;
                 bool hasNormals = mesh.normals?.Length == mesh.vertices.Length;

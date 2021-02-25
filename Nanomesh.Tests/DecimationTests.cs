@@ -71,7 +71,7 @@ namespace Nanomesh.Tests
             decimateModifier.Initialize(mesh);
             decimateModifier.DecimateToError(0.01f);
 
-            ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
+            ExporterOBJ.SaveToFile(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
 
             Assert.IsTrue(mesh.Check());
             Assert.AreEqual(2, mesh.FaceCount);

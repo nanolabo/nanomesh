@@ -50,7 +50,7 @@ namespace Nanomesh.Sandbox
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             Directory.CreateDirectory(@"../../../../Nanomesh.Tests/output/");
-            ExporterOBJ.Save(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
+            ExporterOBJ.SaveToFile(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
         }
 
         static void Benchmark()
@@ -73,7 +73,7 @@ namespace Nanomesh.Sandbox
 
             Console.WriteLine(sw.ElapsedMilliseconds);
 
-            ExporterOBJ.Save(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables(@"..\..\..\..\Nanomesh.Tests\output\decimation.obj"));
+            ExporterOBJ.SaveToFile(mesh.ToSharedMesh(), Environment.ExpandEnvironmentVariables(@"..\..\..\..\Nanomesh.Tests\output\decimation.obj"));
         }
     }
 }
