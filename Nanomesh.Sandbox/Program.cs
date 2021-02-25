@@ -65,7 +65,8 @@ namespace Nanomesh.Sandbox
 
             double ms = Profiling.Time(() => {
                 DecimateModifier decimateModifier = new DecimateModifier();
-                decimateModifier.DecimateToPolycount(mesh, 500);
+                decimateModifier.Initialize(mesh);
+                decimateModifier.DecimateToPolycount(500);
             }).TotalMilliseconds;
 
             sw.Stop();
