@@ -47,18 +47,18 @@ namespace Nanomesh
 				CalculateError(pair);
 		}
 
+		public void DecimateToError(float maximumError)
+		{
+			while (GetPairWithMinimumError().error <= maximumError && _pairs.Count > 0)
+			{
+				Iterate();
+			}
+		}
+
 		public void DecimateToRatio(float targetTriangleRatio)
 		{
 			targetTriangleRatio = MathF.Clamp(targetTriangleRatio, 0f, 1f);
 			DecimateToPolycount((int)MathF.Round(targetTriangleRatio * _mesh.FaceCount));
-		}
-
-		public void DecimateToError(float maximumError)
-		{
-			while (GetPairWithMinimumError().error <= maximumError)
-			{
-				Iterate();
-			}
 		}
 
 		public void DecimatePolycount(int polycount)
@@ -68,7 +68,7 @@ namespace Nanomesh
 
 		public void DecimateToPolycount(int targetTriangleCount)
 		{
-			while (_mesh.FaceCount > targetTriangleCount)
+			while (_mesh.FaceCount > targetTriangleCount && _pairs.Count > 0)
 			{
 				Iterate();
 
@@ -81,7 +81,7 @@ namespace Nanomesh
 			}
 		}
 
-		private void Iterate()
+		public void Iterate()
 		{
 			EdgeCollapse pair = GetPairWithMinimumError();
 
@@ -93,6 +93,8 @@ namespace Nanomesh
 
 			CollapseEdge(pair);
 		}
+
+		public double GetMinimumError() => GetPairWithMinimumError().error;
 
 		private EdgeCollapse GetPairWithMinimumError()
 		{
@@ -108,16 +110,6 @@ namespace Nanomesh
 
 		private void ComputeMins()
 		{
-			Console.WriteLine("Compute Mins");
-
-            //MinHeap<EdgeCollapse> queue = new MinHeap<EdgeCollapse>(_pairs);
-            //foreach (var pair in _pairs)
-            //{
-            //    queue.Add(pair);
-            //}
-
-            //_mins = new LinkedHashSet<EdgeCollapse>(queue.Elements);
-
             _mins = new LinkedHashSet<EdgeCollapse>(_pairs.OrderBy(x => x).Take(MinsCount));
 		}
 
