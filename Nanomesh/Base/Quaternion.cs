@@ -223,12 +223,6 @@ namespace Nanomesh
 		/// <param name="toDirection"></param>
 		public static Quaternion FromToRotation(Vector3 fromDirection, Vector3 toDirection)
 		{
-			Vector3 xyz = Vector3.Cross(fromDirection, toDirection);
-			double w = Math.Sqrt((fromDirection.LengthSquared) * (toDirection.LengthSquared)) + Vector3.Dot(fromDirection, toDirection);
-			Quaternion q = new Quaternion(xyz, w);
-
-			return q;
-
 			return RotateTowards(LookRotation(fromDirection), LookRotation(toDirection), double.MaxValue);
 		}
 
