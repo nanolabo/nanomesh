@@ -47,7 +47,7 @@ namespace Nanomesh.Collections
                 throw new InvalidOperationException("Heap is empty.");
             }
 
-            var min = Min;
+            T min = Min;
             values[1] = values[count];
             values.RemoveAt(count);
 
@@ -127,13 +127,19 @@ namespace Nanomesh.Collections
 
         private void Exchange(int index, int max)
         {
-            var tmp = values[index];
+            T tmp = values[index];
             values[index] = values[max];
             values[max] = tmp;
         }
 
-        public IEnumerator<T> GetEnumerator() => values.Skip(1).GetEnumerator();
+        public IEnumerator<T> GetEnumerator()
+        {
+            return values.Skip(1).GetEnumerator();
+        }
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }

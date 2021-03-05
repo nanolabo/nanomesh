@@ -19,10 +19,7 @@ namespace Nanomesh
                 y = value.y;
                 z = value.z;
             }
-            get
-            {
-                return new Vector3(x, y, z);
-            }
+            get => new Vector3(x, y, z);
         }
 
         public double x;
@@ -40,13 +37,13 @@ namespace Nanomesh
                 switch (index)
                 {
                     case 0:
-                        return this.x;
+                        return x;
                     case 1:
-                        return this.y;
+                        return y;
                     case 2:
-                        return this.z;
+                        return z;
                     case 3:
-                        return this.w;
+                        return w;
                     default:
                         throw new IndexOutOfRangeException("Invalid Quaternion index: " + index + ", can use only 0,1,2,3");
                 }
@@ -56,16 +53,16 @@ namespace Nanomesh
                 switch (index)
                 {
                     case 0:
-                        this.x = value;
+                        x = value;
                         break;
                     case 1:
-                        this.y = value;
+                        y = value;
                         break;
                     case 2:
-                        this.z = value;
+                        z = value;
                         break;
                     case 3:
-                        this.w = value;
+                        w = value;
                         break;
                     default:
                         throw new IndexOutOfRangeException("Invalid Quaternion index: " + index + ", can use only 0,1,2,3");
@@ -75,36 +72,18 @@ namespace Nanomesh
         /// <summary>
         ///   <para>The identity rotation (RO).</para>
         /// </summary>
-        public static Quaternion identity
-        {
-            get
-            {
-                return new Quaternion(0, 0, 0, 1);
-            }
-        }
+        public static Quaternion identity => new Quaternion(0, 0, 0, 1);
 
         /// <summary>
         /// Gets the length (magnitude) of the quaternion.
         /// </summary>
         /// <seealso cref="LengthSquared"/>
-        public double Length
-        {
-            get
-            {
-                return (double)System.Math.Sqrt(x * x + y * y + z * z + w * w);
-            }
-        }
+        public double Length => (double)System.Math.Sqrt(x * x + y * y + z * z + w * w);
 
         /// <summary>
         /// Gets the square of the quaternion length (magnitude).
         /// </summary>
-        public double LengthSquared
-        {
-            get
-            {
-                return x * x + y * y + z * z + w * w;
-            }
-        }
+        public double LengthSquared => x * x + y * y + z * z + w * w;
 
         /// <summary>
         ///   <para>Constructs new Quaternion with given x,y,z,w components.</para>
@@ -128,9 +107,9 @@ namespace Nanomesh
         /// <param name="w">The w part</param>
         public Quaternion(Vector3 v, double w)
         {
-            this.x = v.x;
-            this.y = v.y;
-            this.z = v.z;
+            x = v.x;
+            y = v.y;
+            z = v.z;
             this.w = w;
         }
 
@@ -143,10 +122,10 @@ namespace Nanomesh
         /// <param name="new_w"></param>
         public void Set(double new_x, double new_y, double new_z, double new_w)
         {
-            this.x = new_x;
-            this.y = new_y;
-            this.z = new_z;
-            this.w = new_w;
+            x = new_x;
+            y = new_y;
+            z = new_z;
+            w = new_w;
         }
 
         /// <summary>
@@ -157,7 +136,9 @@ namespace Nanomesh
             double mag = Math.Sqrt(Dot(q, q));
 
             if (mag < kEpsilon)
+            {
                 return Quaternion.identity;
+            }
 
             return new Quaternion(q.x / mag, q.y / mag, q.z / mag, q.w / mag);
         }
@@ -195,10 +176,12 @@ namespace Nanomesh
         private static Quaternion AngleAxis(double degress, ref Vector3 axis)
         {
             if (axis.LengthSquared == 0.0)
+            {
                 return identity;
+            }
 
             Quaternion result = identity;
-            var radians = degress * degToRad;
+            double radians = degress * degToRad;
             radians *= 0.5;
             axis = axis.Normalized;
             axis = axis * Math.Sin(radians);
@@ -257,21 +240,21 @@ namespace Nanomesh
             forward = Vector3.Normalize(forward);
             Vector3 right = Vector3.Normalize(Vector3.Cross(up, forward));
             up = Vector3.Cross(forward, right);
-            var m00 = right.x;
-            var m01 = right.y;
-            var m02 = right.z;
-            var m10 = up.x;
-            var m11 = up.y;
-            var m12 = up.z;
-            var m20 = forward.x;
-            var m21 = forward.y;
-            var m22 = forward.z;
+            double m00 = right.x;
+            double m01 = right.y;
+            double m02 = right.z;
+            double m10 = up.x;
+            double m11 = up.y;
+            double m12 = up.z;
+            double m20 = forward.x;
+            double m21 = forward.y;
+            double m22 = forward.z;
 
             double num8 = (m00 + m11) + m22;
-            var quaternion = new Quaternion();
+            Quaternion quaternion = new Quaternion();
             if (num8 > 0)
             {
-                var num = Math.Sqrt(num8 + 1);
+                double num = Math.Sqrt(num8 + 1);
                 quaternion.w = num * 0.5;
                 num = 0.5 / num;
                 quaternion.x = (m12 - m21) * num;
@@ -281,8 +264,8 @@ namespace Nanomesh
             }
             if ((m00 >= m11) && (m00 >= m22))
             {
-                var num7 = Math.Sqrt(((1 + m00) - m11) - m22);
-                var num4 = 0.5 / num7;
+                double num7 = Math.Sqrt(((1 + m00) - m11) - m22);
+                double num4 = 0.5 / num7;
                 quaternion.x = 0.5 * num7;
                 quaternion.y = (m01 + m10) * num4;
                 quaternion.z = (m02 + m20) * num4;
@@ -291,16 +274,16 @@ namespace Nanomesh
             }
             if (m11 > m22)
             {
-                var num6 = Math.Sqrt(((1 + m11) - m00) - m22);
-                var num3 = 0.5 / num6;
+                double num6 = Math.Sqrt(((1 + m11) - m00) - m22);
+                double num3 = 0.5 / num6;
                 quaternion.x = (m10 + m01) * num3;
                 quaternion.y = 0.5 * num6;
                 quaternion.z = (m21 + m12) * num3;
                 quaternion.w = (m20 - m02) * num3;
                 return quaternion;
             }
-            var num5 = Math.Sqrt(((1 + m22) - m00) - m11);
-            var num2 = 0.5 / num5;
+            double num5 = Math.Sqrt(((1 + m22) - m00) - m11);
+            double num2 = 0.5 / num5;
             quaternion.x = (m20 + m02) * num2;
             quaternion.y = (m21 + m12) * num2;
             quaternion.z = 0.5 * num5;
@@ -311,7 +294,7 @@ namespace Nanomesh
         public void SetLookRotation(Vector3 view)
         {
             Vector3 up = new Vector3(1, 0, 0);
-            this.SetLookRotation(view, up);
+            SetLookRotation(view, up);
         }
 
         /// <summary>
@@ -337,8 +320,16 @@ namespace Nanomesh
 
         private static Quaternion Slerp(ref Quaternion a, ref Quaternion b, double t)
         {
-            if (t > 1) t = 1;
-            if (t < 0) t = 0;
+            if (t > 1)
+            {
+                t = 1;
+            }
+
+            if (t < 0)
+            {
+                t = 0;
+            }
+
             return SlerpUnclamped(ref a, ref b, t);
         }
 
@@ -403,9 +394,13 @@ namespace Nanomesh
 
             Quaternion result = new Quaternion(blendA * a.xyz + blendB * b.xyz, blendA * a.w + blendB * b.w);
             if (result.LengthSquared > 0.0)
+            {
                 return Normalize(result);
+            }
             else
+            {
                 return identity;
+            }
         }
 
         /// <summary>
@@ -416,8 +411,16 @@ namespace Nanomesh
         /// <param name="t"></param>
         public static Quaternion Lerp(Quaternion a, Quaternion b, double t)
         {
-            if (t > 1) t = 1;
-            if (t < 0) t = 0;
+            if (t > 1)
+            {
+                t = 1;
+            }
+
+            if (t < 0)
+            {
+                t = 0;
+            }
+
             return Slerp(ref a, ref b, t); // TODO: use lerp not slerp, "Because quaternion works in 4D. Rotation in 4D are linear" ???
         }
 
@@ -470,7 +473,7 @@ namespace Nanomesh
         /// <param name="format"></param>
         public override string ToString()
         {
-            return $"{this.x}, {this.y}, {this.z}, {this.w}";
+            return $"{x}, {y}, {z}, {w}";
         }
 
         /// <summary>
@@ -479,7 +482,7 @@ namespace Nanomesh
         /// <param name="format"></param>
         public string ToString(string format)
         {
-            return string.Format("({0}, {1}, {2}, {3})", this.x.ToString(format), this.y.ToString(format), this.z.ToString(format), this.w.ToString(format));
+            return string.Format("({0}, {1}, {2}, {3})", x.ToString(format), y.ToString(format), z.ToString(format), w.ToString(format));
         }
 
         /// <summary>
@@ -516,17 +519,23 @@ namespace Nanomesh
         private static double NormalizeAngle(double angle)
         {
             while (angle > 360)
+            {
                 angle -= 360;
+            }
+
             while (angle < 0)
+            {
                 angle += 360;
+            }
+
             return angle;
         }
 
         private static Quaternion FromEulerRad(Vector3 euler)
         {
-            var yaw = euler.x;
-            var pitch = euler.y;
-            var roll = euler.z;
+            double yaw = euler.x;
+            double pitch = euler.y;
+            double roll = euler.z;
             double rollOver2 = roll * 0.5;
             double sinRollOver2 = (double)System.Math.Sin((double)rollOver2);
             double cosRollOver2 = (double)System.Math.Cos((double)rollOver2);
@@ -547,7 +556,10 @@ namespace Nanomesh
         private static void ToAxisAngleRad(Quaternion q, out Vector3 axis, out double angle)
         {
             if (System.Math.Abs(q.w) > 1.0)
+            {
                 q.Normalize();
+            }
+
             angle = 2.0f * (double)System.Math.Acos(q.w); // angle
             double den = (double)System.Math.Sqrt(1.0 - q.w * q.w);
             if (den > 0.0001)
@@ -564,7 +576,7 @@ namespace Nanomesh
 
         public override int GetHashCode()
         {
-            return this.x.GetHashCode() ^ this.y.GetHashCode() << 2 ^ this.z.GetHashCode() >> 2 ^ this.w.GetHashCode() >> 1;
+            return x.GetHashCode() ^ y.GetHashCode() << 2 ^ z.GetHashCode() >> 2 ^ w.GetHashCode() >> 1;
         }
         public override bool Equals(object other)
         {
@@ -573,12 +585,12 @@ namespace Nanomesh
                 return false;
             }
             Quaternion quaternion = (Quaternion)other;
-            return this.x.Equals(quaternion.x) && this.y.Equals(quaternion.y) && this.z.Equals(quaternion.z) && this.w.Equals(quaternion.w);
+            return x.Equals(quaternion.x) && y.Equals(quaternion.y) && z.Equals(quaternion.z) && w.Equals(quaternion.w);
         }
 
         public bool Equals(Quaternion other)
         {
-            return this.x.Equals(other.x) && this.y.Equals(other.y) && this.z.Equals(other.z) && this.w.Equals(other.w);
+            return x.Equals(other.x) && y.Equals(other.y) && z.Equals(other.z) && w.Equals(other.w);
         }
 
         public static Quaternion operator *(Quaternion lhs, Quaternion rhs)

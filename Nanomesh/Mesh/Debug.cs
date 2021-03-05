@@ -32,13 +32,19 @@ namespace Nanomesh
         internal bool CheckEdge(int nodeIndexA, int nodeIndexB)
         {
             if (nodes[nodeIndexA].position == nodes[nodeIndexB].position)
+            {
                 throw new Exception("Positions must be different");
+            }
 
             if (nodes[nodeIndexA].IsRemoved)
+            {
                 throw new Exception($"Node A is unreferenced {nodeIndexA}");
+            }
 
             if (nodes[nodeIndexB].IsRemoved)
+            {
                 throw new Exception($"Node B is unreferenced {nodeIndexB}");
+            }
 
             return true;
         }
@@ -46,7 +52,9 @@ namespace Nanomesh
         internal bool CheckRelatives(int nodeIndex)
         {
             if (nodes[nodeIndex].IsRemoved)
+            {
                 throw new Exception($"Node {nodeIndex} is removed");
+            }
 
             int relative = nodeIndex;
             int edgecount = 0;
@@ -79,7 +87,9 @@ namespace Nanomesh
         internal bool CheckSiblings(int nodeIndex)
         {
             if (nodes[nodeIndex].IsRemoved)
+            {
                 throw new Exception($"Node {nodeIndex} is removed");
+            }
 
             int sibling = nodeIndex;
             int cardinality = 0;
@@ -108,14 +118,18 @@ namespace Nanomesh
             for (int nodeIndex = 0; nodeIndex < nodes.Length; nodeIndex++)
             {
                 if (nodes[nodeIndex].IsRemoved)
+                {
                     continue;
+                }
 
                 CheckRelatives(nodeIndex);
 
                 CheckSiblings(nodeIndex);
 
                 if (GetEdgeCount(nodeIndex) == 2)
+                {
                     throw new Exception($"Node {nodeIndex} is part of a polygon of degree 2");
+                }
             }
 
             return true;

@@ -11,7 +11,7 @@ namespace Nanomesh
 
         public Vector2FComparer(float tolerance)
         {
-            this._tolerance = tolerance;
+            _tolerance = tolerance;
         }
 
         public bool Equals(Vector2F x, Vector2F y)

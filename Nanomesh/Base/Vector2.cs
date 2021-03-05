@@ -64,7 +64,9 @@ namespace Nanomesh
             double sqDist = toVector_x * toVector_x + toVector_y * toVector_y;
 
             if (sqDist == 0 || (maxDistanceDelta >= 0 && sqDist <= maxDistanceDelta * maxDistanceDelta))
+            {
                 return target;
+            }
 
             double dist = Math.Sqrt(sqDist);
 
@@ -83,9 +85,13 @@ namespace Nanomesh
         {
             double mag = magnitude;
             if (mag > kEpsilon)
+            {
                 this = this / mag;
+            }
             else
+            {
                 this = Zero;
+            }
         }
 
         // Returns this vector with a ::ref::magnitude of 1 (RO).
@@ -108,7 +114,10 @@ namespace Nanomesh
         // also required for being able to use Vector2s as keys in hash tables
         public override bool Equals(object other)
         {
-            if (!(other is Vector2)) return false;
+            if (!(other is Vector2))
+            {
+                return false;
+            }
 
             return Equals((Vector2)other);
         }
@@ -142,12 +151,12 @@ namespace Nanomesh
         /// <summary>
         /// Returns the length of this vector (RO).
         /// </summary>
-        public double magnitude { get { return Math.Sqrt(x * x + y * y); } }
+        public double magnitude => Math.Sqrt(x * x + y * y);
 
         /// <summary>
         /// Returns the squared length of this vector (RO).
         /// </summary>
-        public double sqrMagnitude { get { return x * x + y * y; } }
+        public double sqrMagnitude => x * x + y * y;
 
         /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
@@ -160,7 +169,9 @@ namespace Nanomesh
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
             double denominator = Math.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
             if (denominator < kEpsilonNormalSqrt)
+            {
                 return 0F;
+            }
 
             double dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
             return Math.Acos(dot);
@@ -348,8 +359,15 @@ namespace Nanomesh
             return new Vector3(v.x, v.y, 0);
         }
 
-        public static implicit operator Vector2F(Vector2 vec) => new Vector2F((float)vec.x, (float)vec.y);
-        public static explicit operator Vector2(Vector2F vec) => new Vector2(vec.x, vec.y);
+        public static implicit operator Vector2F(Vector2 vec)
+        {
+            return new Vector2F((float)vec.x, (float)vec.y);
+        }
+
+        public static explicit operator Vector2(Vector2F vec)
+        {
+            return new Vector2(vec.x, vec.y);
+        }
 
         private static readonly Vector2 zeroVector = new Vector2(0F, 0F);
         private static readonly Vector2 oneVector = new Vector2(1F, 1F);

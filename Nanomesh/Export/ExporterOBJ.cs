@@ -33,15 +33,25 @@ namespace Nanomesh
 
                 // Writting vertexes in file and making Index correspondance table.
                 foreach (Vector3 vertex in mesh.vertices)
+                {
                     outfile.WriteLine("v " + vertex.x.ToInvariantString() + " " + vertex.y.ToInvariantString() + " " + vertex.z.ToInvariantString());
+                }
 
                 if (hasNormals)
+                {
                     foreach (Vector3F normal in mesh.normals)
+                    {
                         outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
+                    }
+                }
 
                 if (hasUvs)
+                {
                     foreach (Vector2F uv in mesh.uvs)
+                    {
                         outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
+                    }
+                }
 
                 // Writting faces data (with index shifting)
                 for (int i = 0; i < mesh.triangles.Length; i += 3)
@@ -52,13 +62,21 @@ namespace Nanomesh
                     int ind3 = mesh.triangles[i + 2] + 1;
 
                     if (hasUvs && hasNormals)
+                    {
                         outfile.WriteLine(string.Format("f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}", ind1, ind2, ind3));
+                    }
                     else if (hasUvs)
+                    {
                         outfile.WriteLine(string.Format("f {0}/{0}/ {1}/{1} {2}/{2}", ind1, ind2, ind3));
+                    }
                     else if (hasNormals)
+                    {
                         outfile.WriteLine(string.Format("f {0}//{0} {1}//{1} {2}//{2}", ind1, ind2, ind3));
+                    }
                     else
+                    {
                         outfile.WriteLine(string.Format("f {0} {1} {2}", ind1, ind2, ind3));
+                    }
                 }
             }
         }

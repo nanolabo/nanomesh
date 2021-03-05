@@ -13,7 +13,7 @@ namespace Nanomesh
             _meshes = new HashSet<ConnectedMesh>(meshes);
             _modifiers = new Dictionary<ConnectedMesh, DecimateModifier>();
 
-            foreach (var mesh in meshes)
+            foreach (ConnectedMesh mesh in meshes)
             {
                 DecimateModifier modifier = new DecimateModifier();
                 modifier.Initialize(mesh);
@@ -40,7 +40,7 @@ namespace Nanomesh
         {
             while (_faceCount > targetTriangleCount)
             {
-                var pair = _modifiers.OrderBy(x => x.Value.GetMinimumError()).First();
+                KeyValuePair<ConnectedMesh, DecimateModifier> pair = _modifiers.OrderBy(x => x.Value.GetMinimumError()).First();
 
                 int facesBefore = pair.Key.FaceCount;
                 pair.Value.Iterate();

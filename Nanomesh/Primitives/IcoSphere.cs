@@ -30,41 +30,43 @@ namespace Nanomesh
             vertList.Add(new Vector3(-t, 0f, 1f).Normalized * radius);
 
             // create 20 triangles of the icosahedron
-            List<TriangleIndices> faces = new List<TriangleIndices>();
+            List<TriangleIndices> faces = new List<TriangleIndices>
+            {
 
-            // 5 faces around point 0
-            faces.Add(new TriangleIndices(0, 11, 5));
-            faces.Add(new TriangleIndices(0, 5, 1));
-            faces.Add(new TriangleIndices(0, 1, 7));
-            faces.Add(new TriangleIndices(0, 7, 10));
-            faces.Add(new TriangleIndices(0, 10, 11));
+                // 5 faces around point 0
+                new TriangleIndices(0, 11, 5),
+                new TriangleIndices(0, 5, 1),
+                new TriangleIndices(0, 1, 7),
+                new TriangleIndices(0, 7, 10),
+                new TriangleIndices(0, 10, 11),
 
-            // 5 adjacent faces 
-            faces.Add(new TriangleIndices(1, 5, 9));
-            faces.Add(new TriangleIndices(5, 11, 4));
-            faces.Add(new TriangleIndices(11, 10, 2));
-            faces.Add(new TriangleIndices(10, 7, 6));
-            faces.Add(new TriangleIndices(7, 1, 8));
+                // 5 adjacent faces 
+                new TriangleIndices(1, 5, 9),
+                new TriangleIndices(5, 11, 4),
+                new TriangleIndices(11, 10, 2),
+                new TriangleIndices(10, 7, 6),
+                new TriangleIndices(7, 1, 8),
 
-            // 5 faces around point 3
-            faces.Add(new TriangleIndices(3, 9, 4));
-            faces.Add(new TriangleIndices(3, 4, 2));
-            faces.Add(new TriangleIndices(3, 2, 6));
-            faces.Add(new TriangleIndices(3, 6, 8));
-            faces.Add(new TriangleIndices(3, 8, 9));
+                // 5 faces around point 3
+                new TriangleIndices(3, 9, 4),
+                new TriangleIndices(3, 4, 2),
+                new TriangleIndices(3, 2, 6),
+                new TriangleIndices(3, 6, 8),
+                new TriangleIndices(3, 8, 9),
 
-            // 5 adjacent faces 
-            faces.Add(new TriangleIndices(4, 9, 5));
-            faces.Add(new TriangleIndices(2, 4, 11));
-            faces.Add(new TriangleIndices(6, 2, 10));
-            faces.Add(new TriangleIndices(8, 6, 7));
-            faces.Add(new TriangleIndices(9, 8, 1));
+                // 5 adjacent faces 
+                new TriangleIndices(4, 9, 5),
+                new TriangleIndices(2, 4, 11),
+                new TriangleIndices(6, 2, 10),
+                new TriangleIndices(8, 6, 7),
+                new TriangleIndices(9, 8, 1)
+            };
 
             // refine triangles
             for (int i = 0; i < recursionLevel; i++)
             {
                 List<TriangleIndices> faces2 = new List<TriangleIndices>();
-                foreach (var tri in faces)
+                foreach (TriangleIndices tri in faces)
                 {
                     // replace triangle by 4 triangles
                     int a = GetMiddlePoint(tri.v1, tri.v2, ref vertList, ref middlePointIndexCache, radius);
@@ -92,7 +94,9 @@ namespace Nanomesh
 
             Vector3[] normales = new Vector3[vertList.Count];
             for (int i = 0; i < normales.Length; i++)
+            {
                 normales[i] = vertList[i].Normalized;
+            }
 
             return mesh;
         }
@@ -120,8 +124,7 @@ namespace Nanomesh
             long greaterIndex = firstIsSmaller ? p2 : p1;
             long key = (smallerIndex << 32) + greaterIndex;
 
-            int ret;
-            if (cache.TryGetValue(key, out ret))
+            if (cache.TryGetValue(key, out int ret))
             {
                 return ret;
             }

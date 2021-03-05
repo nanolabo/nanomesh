@@ -41,12 +41,17 @@ namespace Nanomesh
         {
             int len = values.Length;
             if (len == 0)
+            {
                 return 0;
+            }
+
             float m = values[0];
             for (int i = 1; i < len; i++)
             {
                 if (values[i] < m)
+                {
                     m = values[i];
+                }
             }
             return m;
         }
@@ -58,12 +63,17 @@ namespace Nanomesh
         {
             int len = values.Length;
             if (len == 0)
+            {
                 return 0;
+            }
+
             int m = values[0];
             for (int i = 1; i < len; i++)
             {
                 if (values[i] < m)
+                {
                     m = values[i];
+                }
             }
             return m;
         }
@@ -75,12 +85,17 @@ namespace Nanomesh
         {
             int len = values.Length;
             if (len == 0)
+            {
                 return 0;
+            }
+
             float m = values[0];
             for (int i = 1; i < len; i++)
             {
                 if (values[i] > m)
+                {
                     m = values[i];
+                }
             }
             return m;
         }
@@ -92,12 +107,17 @@ namespace Nanomesh
         {
             int len = values.Length;
             if (len == 0)
+            {
                 return 0;
+            }
+
             int m = values[0];
             for (int i = 1; i < len; i++)
             {
                 if (values[i] > m)
+                {
                     m = values[i];
+                }
             }
             return m;
         }
@@ -142,10 +162,10 @@ namespace Nanomesh
         public const float PI = (float)Math.PI;
 
         // A representation of positive infinity (RO).
-        public const float Infinity = Single.PositiveInfinity;
+        public const float Infinity = float.PositiveInfinity;
 
         // A representation of negative infinity (RO).
-        public const float NegativeInfinity = Single.NegativeInfinity;
+        public const float NegativeInfinity = float.NegativeInfinity;
 
         // Degrees-to-radians conversion constant (RO).
         public const float Deg2Rad = PI * 2F / 360F;
@@ -157,9 +177,14 @@ namespace Nanomesh
         public static double Clamp(double value, double min, double max)
         {
             if (value < min)
+            {
                 value = min;
+            }
             else if (value > max)
+            {
                 value = max;
+            }
+
             return value;
         }
 
@@ -167,9 +192,14 @@ namespace Nanomesh
         public static float Clamp(float value, float min, float max)
         {
             if (value < min)
+            {
                 value = min;
+            }
             else if (value > max)
+            {
                 value = max;
+            }
+
             return value;
         }
 
@@ -180,9 +210,14 @@ namespace Nanomesh
         public static int Clamp(int value, int min, int max)
         {
             if (value < min)
+            {
                 value = min;
+            }
             else if (value > max)
+            {
                 value = max;
+            }
+
             return value;
         }
 
@@ -190,11 +225,17 @@ namespace Nanomesh
         public static float Clamp01(float value)
         {
             if (value < 0F)
+            {
                 return 0F;
+            }
             else if (value > 1F)
+            {
                 return 1F;
+            }
             else
+            {
                 return value;
+            }
         }
 
         // Interpolates between /a/ and /b/ by /t/. /t/ is clamped between 0 and 1.
@@ -214,7 +255,10 @@ namespace Nanomesh
         {
             float delta = Repeat((b - a), 360);
             if (delta > 180)
+            {
                 delta -= 360;
+            }
+
             return a + delta * Clamp01(t);
         }
 
@@ -222,7 +266,10 @@ namespace Nanomesh
         public static float MoveTowards(float current, float target, float maxDelta)
         {
             if (MathF.Abs(target - current) <= maxDelta)
+            {
                 return target;
+            }
+
             return current + MathF.Sign(target - current) * maxDelta;
         }
 
@@ -231,7 +278,10 @@ namespace Nanomesh
         {
             float deltaAngle = DeltaAngle(current, target);
             if (-maxDelta < deltaAngle && deltaAngle < maxDelta)
+            {
                 return target;
+            }
+
             target = current + deltaAngle;
             return MoveTowards(current, target, maxDelta);
         }
@@ -250,7 +300,9 @@ namespace Nanomesh
             bool negative = value < 0F;
             float absval = Abs(value);
             if (absval > absmax)
+            {
                 return negative ? -absval : absval;
+            }
 
             float result = Pow(absval / absmax, gamma) * absmax;
             return negative ? -result : result;
@@ -273,9 +325,13 @@ namespace Nanomesh
         public static float InverseLerp(float a, float b, float value)
         {
             if (a != b)
+            {
                 return Clamp01((value - a) / (b - a));
+            }
             else
+            {
                 return 0.0f;
+            }
         }
 
         // Calculates the shortest difference between two given angles.
@@ -283,15 +339,18 @@ namespace Nanomesh
         {
             float delta = MathF.Repeat((target - current), 360.0F);
             if (delta > 180.0F)
+            {
                 delta -= 360.0F;
+            }
+
             return delta;
         }
 
         internal static long RandomToLong(System.Random r)
         {
-            var buffer = new byte[8];
+            byte[] buffer = new byte[8];
             r.NextBytes(buffer);
-            return (long)(System.BitConverter.ToUInt64(buffer, 0) & System.Int64.MaxValue);
+            return (long)(System.BitConverter.ToUInt64(buffer, 0) & long.MaxValue);
         }
     }
 }

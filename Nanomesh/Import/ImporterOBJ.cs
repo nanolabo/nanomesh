@@ -43,7 +43,9 @@ namespace Nanomesh
                 brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
                 if (brokenString.Length == 0)
+                {
                     continue;
+                }
 
                 switch (brokenString[0])
                 {
@@ -51,18 +53,24 @@ namespace Nanomesh
                         ObjVertexData[] datas = new ObjVertexData[brokenString.Length - 1];
                         for (int x = 1; x < brokenString.Length; x++)
                         {
-                            var split = brokenString[x].Split(_CHAR_SLASH);
+                            string[] split = brokenString[x].Split(_CHAR_SLASH);
 
                             datas[x - 1].position = split[0].ToInt() + offset;
 
                             if (split.Length > 1 && !string.IsNullOrEmpty(split[1]))
+                            {
                                 datas[x - 1].uv = split[1].ToInt() + offset;
+                            }
 
                             if (split.Length > 2)
+                            {
                                 datas[x - 1].normal = split[2].ToInt() + offset;
+                            }
 
                             if (!vertexData.ContainsKey(datas[x - 1]))
+                            {
                                 vertexData.Add(datas[x - 1], vertexData.Count);
+                            }
                         }
 
                         // Handles any ngons
@@ -92,15 +100,19 @@ namespace Nanomesh
             mesh.uvs = new Vector2F[vertexData.Count];
             mesh.normals = new Vector3F[vertexData.Count];
 
-            foreach (var pair in vertexData)
+            foreach (KeyValuePair<ObjVertexData, int> pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
 
                 if (uvs.Count > 0)
+                {
                     mesh.uvs[pair.Value] = uvs[pair.Key.uv];
+                }
 
                 if (normals.Count > 0)
+                {
                     mesh.normals[pair.Value] = normals[pair.Key.normal];
+                }
             }
 
             mesh.triangles = triangles.ToArray();

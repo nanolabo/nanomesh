@@ -7,9 +7,14 @@ namespace Nanomesh
         private static T FindMedian<T>(T[] arr, int i, int n)
         {
             if (i <= n)
+            {
                 Array.Sort(arr, i, n); // Sort the array  
+            }
             else
+            {
                 Array.Sort(arr, n, i);
+            }
+
             return arr[n / 2]; // Return middle element  
         }
 
@@ -33,7 +38,9 @@ namespace Nanomesh
                 // There will be floor((n+4)/5) groups;  
                 T[] median = new T[(n + 4) / 5];
                 for (i = 0; i < n / 5; i++)
+                {
                     median[i] = FindMedian(arr, l + i * 5, 5);
+                }
 
                 // For last group with less than 5 elements  
                 if (i * 5 < n)
@@ -53,9 +60,14 @@ namespace Nanomesh
 
                 // If position is same as k  
                 if (pos - l == k - 1)
+                {
                     return arr[pos];
+                }
+
                 if (pos - l > k - 1) // If position is more, recur for left  
+                {
                     return FindKthSmallest(arr, l, pos - 1, k);
+                }
 
                 // Else recur for right subarray  
                 return FindKthSmallest(arr, pos + 1, r, k - pos + l - 1);
@@ -79,8 +91,13 @@ namespace Nanomesh
             // Search for x in arr[l..r] and move it to end  
             int i;
             for (i = l; i < r; i++)
+            {
                 if (arr[i].CompareTo(x) == 0)
+                {
                     break;
+                }
+            }
+
             Swap(ref arr, i, r);
 
             // Standard partition algorithm  

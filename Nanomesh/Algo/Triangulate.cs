@@ -16,7 +16,9 @@ namespace Nanomesh
                 }
 
                 if (edgeCount > 2)
+                {
                     throw new Exception("Mesh has polygons of dimension 4 or greater");
+                }
             }
 
             // Todo : Implement

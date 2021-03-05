@@ -45,7 +45,9 @@ namespace Nanomesh
         public override bool Equals(object other)
         {
             if (!(other is Vector3F))
+            {
                 return false;
+            }
 
             return Equals((Vector3F)other);
         }
@@ -145,7 +147,9 @@ namespace Nanomesh
         {
             float denominator = MathF.Sqrt(from.SqrMagnitude * to.SqrMagnitude);
             if (denominator < 1e-15F)
+            {
                 return 0F;
+            }
 
             float dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
             return MathF.Acos(dot);

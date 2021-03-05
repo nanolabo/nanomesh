@@ -49,7 +49,9 @@ namespace Nanomesh
             {
                 int nodeIndex = positionToNode[p];
                 if (nodeIndex < 0)
+                {
                     continue;
+                }
 
                 Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
 
@@ -90,7 +92,7 @@ namespace Nanomesh
 
             // Assign new attributes
             mesh.attributes = new Attribute[attributeToIndex.Count];
-            foreach (var pair in attributeToIndex)
+            foreach (KeyValuePair<PosAndAttribute, int> pair in attributeToIndex)
             {
                 mesh.attributes[pair.Value] = pair.Key.attribute;
             }

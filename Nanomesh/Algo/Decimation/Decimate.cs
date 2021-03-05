@@ -39,10 +39,14 @@ namespace Nanomesh
             InitializePairs();
 
             for (int p = 0; p < _mesh.PositionToNode.Length; p++)
+            {
                 CalculateQuadric(p);
+            }
 
-            foreach (var pair in _pairs)
+            foreach (EdgeCollapse pair in _pairs)
+            {
                 CalculateError(pair);
+            }
         }
 
         public void DecimateToError(float maximumError)
@@ -92,14 +96,19 @@ namespace Nanomesh
             CollapseEdge(pair);
         }
 
-        public double GetMinimumError() => GetPairWithMinimumError().error;
+        public double GetMinimumError()
+        {
+            return GetPairWithMinimumError().error;
+        }
 
         private EdgeCollapse GetPairWithMinimumError()
         {
             if (_mins.Count == 0)
+            {
                 ComputeMins();
+            }
 
-            var edge = _mins.First;
+            LinkedHashSet<EdgeCollapse>.LinkedHashNode<EdgeCollapse> edge = _mins.First;
 
             return edge.Value;
         }
@@ -120,7 +129,9 @@ namespace Nanomesh
             {
                 int nodeIndex = _mesh.PositionToNode[p];
                 if (nodeIndex < 0)
+                {
                     continue;
+                }
 
                 int sibling = nodeIndex;
                 do
@@ -128,7 +139,7 @@ namespace Nanomesh
                     int firstRelative = _mesh.nodes[sibling].relative;
                     int secondRelative = _mesh.nodes[firstRelative].relative;
 
-                    var pair = new EdgeCollapse(_mesh.nodes[firstRelative].position, _mesh.nodes[secondRelative].position);
+                    EdgeCollapse pair = new EdgeCollapse(_mesh.nodes[firstRelative].position, _mesh.nodes[secondRelative].position);
 
                     _pairs.Add(pair);
 
@@ -142,7 +153,9 @@ namespace Nanomesh
         {
             int nodeIndex = _mesh.PositionToNode[position];
             if (nodeIndex < 0) // TODO : Remove this check
+            {
                 return;
+            }
 
             Debug.Assert(!_mesh.nodes[nodeIndex].IsRemoved);
 
@@ -255,7 +268,7 @@ namespace Nanomesh
                         double coeff_uvs = 2.0 * length;
                         double coeff_border = 3.0 * length;
 
-                        foreach (var pD in GetAdjacentPositions(nodeA, nodeB))
+                        foreach (int pD in GetAdjacentPositions(nodeA, nodeB))
                         {
                             Vector3 posD = _mesh.positions[pD];
                             EdgeCollapse edge = new EdgeCollapse(pA, pD);
@@ -284,7 +297,7 @@ namespace Nanomesh
                             }
                         }
 
-                        foreach (var pD in GetAdjacentPositions(nodeB, nodeA))
+                        foreach (int pD in GetAdjacentPositions(nodeB, nodeA))
                         {
                             Vector3 posD = _mesh.positions[pD];
                             EdgeCollapse edge = new EdgeCollapse(pB, pD);
@@ -352,15 +365,18 @@ namespace Nanomesh
                 int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
 
                 if (posC == edge.posB || posD == edge.posB)
+                {
                     continue;
+                }
 
                 float dot = Vector3F.Dot(
                     Vector3F.Cross(_mesh.positions[posC] - positionA, _mesh.positions[posD] - positionA).Normalized,
                     Vector3F.Cross(_mesh.positions[posC] - edge.result, _mesh.positions[posD] - edge.result).Normalized);
 
                 if (dot < -_ƐDET)
+                {
                     return false;
-
+                }
             } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexA);
 
             sibling = nodeIndexB;
@@ -370,15 +386,18 @@ namespace Nanomesh
                 int posD = _mesh.nodes[_mesh.nodes[_mesh.nodes[sibling].relative].relative].position;
 
                 if (posC == edge.posA || posD == edge.posA)
+                {
                     continue;
+                }
 
                 float dot = Vector3F.Dot(
                     Vector3F.Cross(_mesh.positions[posC] - positionB, _mesh.positions[posD] - positionB).Normalized,
                     Vector3F.Cross(_mesh.positions[posC] - edge.result, _mesh.positions[posD] - edge.result).Normalized);
 
                 if (dot < -_ƐDET)
+                {
                     return false;
-
+                }
             } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndexB);
 
             return true;
@@ -444,10 +463,14 @@ namespace Nanomesh
                     if (_mesh.nodes[relativeOfA].position == posB)
                     {
                         if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
+                        {
                             continue;
+                        }
 
                         if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
+                        {
                             continue;
+                        }
 
                         // Normals
                         {
@@ -507,13 +530,16 @@ namespace Nanomesh
                             // Order from biggest to smallest weight, and drop bones above 4th
                             float totalWeight = 0;
                             int k = 0;
-                            foreach (var boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
+                            foreach (KeyValuePair<int, float> boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
                             {
                                 newIndices[k] = boneWeightN.Key;
                                 newWeights[k] = boneWeightN.Value;
                                 totalWeight += boneWeightN.Value;
                                 if (k == 3)
+                                {
                                     break;
+                                }
+
                                 k++;
                             }
 
@@ -582,7 +608,7 @@ namespace Nanomesh
                 for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
                 {
                     int posC = _mesh.nodes[relative].position;
-                    var pairAC = new EdgeCollapse(posA, posC);
+                    EdgeCollapse pairAC = new EdgeCollapse(posA, posC);
                     // Todo : Optimization by only removing first pair (first edge)
                     if (_pairs.Remove(pairAC))
                     {
@@ -598,7 +624,7 @@ namespace Nanomesh
                 for (int relative = sibling; (relative = _mesh.nodes[relative].relative) != sibling;)
                 {
                     int posC = _mesh.nodes[relative].position;
-                    var pairBC = new EdgeCollapse(posB, posC);
+                    EdgeCollapse pairBC = new EdgeCollapse(posB, posC);
                     if (_pairs.Remove(pairBC))
                     {
                         _mins.Remove(pairBC);
@@ -614,7 +640,9 @@ namespace Nanomesh
 
             // A disconnected triangle has been collapsed, there are no edges to register
             if (validNode < 0)
+            {
                 return;
+            }
 
             posA = _mesh.nodes[validNode].position;
 
@@ -653,7 +681,7 @@ namespace Nanomesh
                 }
             } while ((sibling = _mesh.nodes[sibling].sibling) != validNode);
 
-            foreach (var edge in _edgeToRefresh)
+            foreach (EdgeCollapse edge in _edgeToRefresh)
             {
                 CalculateQuadric(edge.posB);
                 edge.SetTopology(EdgeTopology.Undefined);
@@ -661,12 +689,14 @@ namespace Nanomesh
                 _pairs.Add(edge);
             }
 
-            foreach (var edge in _edgeToRefresh)
+            foreach (EdgeCollapse edge in _edgeToRefresh)
             {
                 CalculateError(edge);
                 _mins.Remove(edge);
                 if (UpdateMinsOnCollapse)
+                {
                     _mins.AddMin(edge);
+                }
             }
         }
     }

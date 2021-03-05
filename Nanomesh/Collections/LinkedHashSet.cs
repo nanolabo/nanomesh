@@ -66,10 +66,7 @@ namespace Nanomesh
         /// <returns>
         /// The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
         /// </returns>
-        public int Count
-        {
-            get { return elements.Count; }
-        }
+        public int Count => elements.Count;
 
         /// <summary>
         /// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
@@ -102,8 +99,10 @@ namespace Nanomesh
         {
             int index = arrayIndex;
 
-            foreach (var item in this)
+            foreach (T item in this)
+            {
                 array[index++] = item;
+            }
         }
 
         /// <summary>
@@ -115,8 +114,7 @@ namespace Nanomesh
         /// <param name="item">The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
         public bool Remove(T item)
         {
-            LinkedHashNode<T> node;
-            if (elements.TryGetValue(item, out node))
+            if (elements.TryGetValue(item, out LinkedHashNode<T> node))
             {
                 elements.Remove(item);
                 Unlink(node);
@@ -137,8 +135,10 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public void UnionWith(IEnumerable<T> other)
         {
-            foreach (var item in other)
+            foreach (T item in other)
+            {
                 Add(item);
+            }
         }
 
         /// <summary>
@@ -147,9 +147,9 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public void IntersectWith(IEnumerable<T> other)
         {
-            var otherSet = AsSet(other);
+            ISet<T> otherSet = AsSet(other);
 
-            var current = first;
+            LinkedHashNode<T> current = first;
             while (current != null)
             {
                 if (!otherSet.Contains(current.Value))
@@ -167,8 +167,10 @@ namespace Nanomesh
         /// <param name="other">The collection of items to remove from the set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public void ExceptWith(IEnumerable<T> other)
         {
-            foreach (var item in other)
+            foreach (T item in other)
+            {
                 Remove(item);
+            }
         }
 
         /// <summary>
@@ -177,16 +179,17 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public void SymmetricExceptWith(IEnumerable<T> other)
         {
-            foreach (var item in other)
+            foreach (T item in other)
             {
-                LinkedHashNode<T> node;
-                if (elements.TryGetValue(item, out node))
+                if (elements.TryGetValue(item, out LinkedHashNode<T> node))
                 {
                     elements.Remove(item);
                     Unlink(node);
                 }
                 else
+                {
                     Add(item);
+                }
             }
         }
 
@@ -199,8 +202,7 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public bool IsSupersetOf(IEnumerable<T> other)
         {
-            int numberOfOthersPresent;
-            var numberOfOthers = CountOthers(other, out numberOfOthersPresent);
+            int numberOfOthers = CountOthers(other, out int numberOfOthersPresent);
 
             // All others must be present.
             return numberOfOthersPresent == numberOfOthers;
@@ -215,8 +217,7 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set. </param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public bool IsProperSupersetOf(IEnumerable<T> other)
         {
-            int numberOfOthersPresent;
-            var numberOfOthers = CountOthers(other, out numberOfOthersPresent);
+            int numberOfOthers = CountOthers(other, out int numberOfOthersPresent);
 
             // All others must be present, plus we need to have at least one additional item.
             return numberOfOthersPresent == numberOfOthers && numberOfOthers < Count;
@@ -231,8 +232,7 @@ namespace Nanomesh
         /// <param name="other">The collection to compare to the current set.</param><exception cref="T:System.ArgumentNullException"><paramref name="other"/> is null.</exception>
         public bool SetEquals(IEnumerable<T> other)
         {
-            int numberOfOthersPresent;
-            var numberOfOthers = CountOthers(other, out numberOfOthersPresent);
+            int numberOfOthers = CountOthers(other, out int numberOfOthersPresent);
 
             return numberOfOthers == Count && numberOfOthersPresent == Count;
         }
@@ -247,15 +247,21 @@ namespace Nanomesh
         public bool Add(T item)
         {
             if (elements.ContainsKey(item))
+            {
                 return false;
+            }
 
-            var node = new LinkedHashNode<T>(item) { Previous = last };
+            LinkedHashNode<T> node = new LinkedHashNode<T>(item) { Previous = last };
 
             if (first == null)
+            {
                 first = node;
+            }
 
             if (last != null)
+            {
                 last.Next = node;
+            }
 
             last = node;
 
@@ -267,9 +273,11 @@ namespace Nanomesh
         public bool AddAfter(T item, LinkedHashNode<T> itemInPlace)
         {
             if (elements.ContainsKey(item))
+            {
                 return false;
+            }
 
-            var node = new LinkedHashNode<T>(item) { Previous = itemInPlace };
+            LinkedHashNode<T> node = new LinkedHashNode<T>(item) { Previous = itemInPlace };
 
             if (itemInPlace.Next != null)
             {
@@ -291,9 +299,11 @@ namespace Nanomesh
         public bool PushAfter(T item, LinkedHashNode<T> itemInPlace)
         {
             if (elements.ContainsKey(item))
+            {
                 return false;
+            }
 
-            var node = Last;
+            LinkedHashNode<T> node = Last;
             Unlink(node);
             elements.Remove(node.Value);
             node.Value = item;
@@ -320,9 +330,11 @@ namespace Nanomesh
         public bool AddBefore(T item, LinkedHashNode<T> itemInPlace)
         {
             if (elements.ContainsKey(item))
+            {
                 return false;
+            }
 
-            var node = new LinkedHashNode<T>(item) { Next = itemInPlace };
+            LinkedHashNode<T> node = new LinkedHashNode<T>(item) { Next = itemInPlace };
 
             if (itemInPlace.Previous != null)
             {
@@ -344,9 +356,11 @@ namespace Nanomesh
         public bool PushBefore(T item, LinkedHashNode<T> itemInPlace)
         {
             if (elements.ContainsKey(item))
+            {
                 return false;
+            }
 
-            var node = Last;
+            LinkedHashNode<T> node = Last;
             Unlink(node);
             elements.Remove(node.Value);
             node.Value = item;
@@ -393,11 +407,13 @@ namespace Nanomesh
             numberOfOthersPresent = 0;
             int numberOfOthers = 0;
 
-            foreach (var item in items)
+            foreach (T item in items)
             {
                 numberOfOthers++;
                 if (Contains(item))
+                {
                     numberOfOthersPresent++;
+                }
             }
             return numberOfOthers;
         }
@@ -421,16 +437,24 @@ namespace Nanomesh
         private void Unlink(LinkedHashNode<T> node)
         {
             if (node.Previous != null)
+            {
                 node.Previous.Next = node.Next;
+            }
 
             if (node.Next != null)
+            {
                 node.Next.Previous = node.Previous;
+            }
 
             if (ReferenceEquals(node, first))
+            {
                 first = node.Next;
+            }
 
             if (ReferenceEquals(node, last))
+            {
                 last = node.Previous;
+            }
         }
 
         public class LinkedHashNode<TElement>
@@ -465,7 +489,9 @@ namespace Nanomesh
             public bool MoveNext()
             {
                 if (_node == null)
+                {
                     return false;
+                }
 
                 _current = _node.Value;
                 _node = _node.Next;
@@ -479,7 +505,10 @@ namespace Nanomesh
             object IEnumerator.Current => Current;
 
             /// <inheritdoc />
-            void IEnumerator.Reset() => throw new NotSupportedException();
+            void IEnumerator.Reset()
+            {
+                throw new NotSupportedException();
+            }
 
             /// <inheritdoc />
             public void Dispose()
@@ -489,36 +518,48 @@ namespace Nanomesh
 
         public void AddMin(T item)
         {
-            var current = Last;
+            LinkedHashNode<T> current = Last;
             while (current != null && item.CompareTo(current.Value) < 0)
             {
                 current = current.Previous;
             }
 
             if (current == Last)
+            {
                 return;
+            }
 
             if (current == null)
+            {
                 AddBefore(item, First);
+            }
             else
+            {
                 AddAfter(item, current);
+            }
         }
 
         public void PushMin(T item)
         {
-            var current = Last;
+            LinkedHashNode<T> current = Last;
             while (current != null && item.CompareTo(current.Value) < 0)
             {
                 current = current.Previous;
             }
 
             if (current == Last)
+            {
                 return;
+            }
 
             if (current == null)
+            {
                 PushBefore(item, First);
+            }
             else
+            {
                 PushAfter(item, current);
+            }
         }
     }
 }

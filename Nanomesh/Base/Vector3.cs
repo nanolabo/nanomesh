@@ -45,7 +45,9 @@ namespace Nanomesh
         public override bool Equals(object other)
         {
             if (!(other is Vector3))
+            {
                 return false;
+            }
 
             return Equals((Vector3)other);
         }
@@ -88,8 +90,15 @@ namespace Nanomesh
                 lhs.x * rhs.y - lhs.y * rhs.x);
         }
 
-        public static implicit operator Vector3F(Vector3 vec) => new Vector3F((float)vec.x, (float)vec.y, (float)vec.z);
-        public static explicit operator Vector3(Vector3F vec) => new Vector3(vec.x, vec.y, vec.z);
+        public static implicit operator Vector3F(Vector3 vec)
+        {
+            return new Vector3F((float)vec.x, (float)vec.y, (float)vec.z);
+        }
+
+        public static explicit operator Vector3(Vector3F vec)
+        {
+            return new Vector3(vec.x, vec.y, vec.z);
+        }
 
         public static double Dot(in Vector3 lhs, in Vector3 rhs)
         {
@@ -159,7 +168,9 @@ namespace Nanomesh
         {
             double denominator = Math.Sqrt(from.LengthSquared * to.LengthSquared);
             if (denominator < 1e-15F)
+            {
                 return 0F;
+            }
 
             double dot = MathF.Clamp(Dot(from, to) / denominator, -1.0, 1.0);
             return Math.Acos(dot);

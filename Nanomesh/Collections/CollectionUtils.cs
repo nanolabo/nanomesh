@@ -18,15 +18,21 @@ namespace Nanomesh
         public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
         {
             if (dictionary.ContainsKey(key))
+            {
                 return false;
+            }
+
             dictionary.Add(key, value);
             return true;
         }
 
         public static V GetOrAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
         {
-            if (dictionary.TryGetValue(key, out var existingValue))
+            if (dictionary.TryGetValue(key, out V existingValue))
+            {
                 return existingValue;
+            }
+
             dictionary.Add(key, value);
             return value;
         }

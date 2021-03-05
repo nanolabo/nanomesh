@@ -11,7 +11,9 @@ namespace Nanomesh
         public static void Start(string key)
         {
             if (!stopwatches.ContainsKey(key))
+            {
                 stopwatches.Add(key, Stopwatch.StartNew());
+            }
             else
             {
                 stopwatches[key] = Stopwatch.StartNew();
@@ -27,7 +29,10 @@ namespace Nanomesh
         private static TimeSpan EndTimer(string key)
         {
             if (!stopwatches.ContainsKey(key))
+            {
                 return TimeSpan.MinValue;
+            }
+
             Stopwatch sw = stopwatches[key];
             sw.Stop();
             stopwatches.Remove(key);
@@ -36,7 +41,7 @@ namespace Nanomesh
 
         public static TimeSpan Time(Action toTime)
         {
-            var timer = Stopwatch.StartNew();
+            Stopwatch timer = Stopwatch.StartNew();
             toTime();
             timer.Stop();
             return timer.Elapsed;

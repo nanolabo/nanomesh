@@ -65,7 +65,9 @@ namespace Nanomesh
             float sqDist = toVector_x * toVector_x + toVector_y * toVector_y;
 
             if (sqDist == 0 || (maxDistanceDelta >= 0 && sqDist <= maxDistanceDelta * maxDistanceDelta))
+            {
                 return target;
+            }
 
             float dist = MathF.Sqrt(sqDist);
 
@@ -84,9 +86,13 @@ namespace Nanomesh
         {
             float mag = magnitude;
             if (mag > kEpsilon)
+            {
                 this = this / mag;
+            }
             else
+            {
                 this = Zero;
+            }
         }
 
         // Returns this vector with a ::ref::magnitude of 1 (RO).
@@ -109,7 +115,10 @@ namespace Nanomesh
         // also required for being able to use Vector2s as keys in hash tables
         public override bool Equals(object other)
         {
-            if (!(other is Vector2F)) return false;
+            if (!(other is Vector2F))
+            {
+                return false;
+            }
 
             return Equals((Vector2F)other);
         }
@@ -143,12 +152,12 @@ namespace Nanomesh
         /// <summary>
         /// Returns the length of this vector (RO).
         /// </summary>
-        public float magnitude { get { return MathF.Sqrt(x * x + y * y); } }
+        public float magnitude => MathF.Sqrt(x * x + y * y);
 
         /// <summary>
         /// Returns the squared length of this vector (RO).
         /// </summary>
-        public float sqrMagnitude { get { return x * x + y * y; } }
+        public float sqrMagnitude => x * x + y * y;
 
         /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
@@ -161,7 +170,9 @@ namespace Nanomesh
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
             float denominator = MathF.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
             if (denominator < kEpsilonNormalSqrt)
+            {
                 return 0F;
+            }
 
             float dot = MathF.Clamp(Dot(from, to) / denominator, -1F, 1F);
             return MathF.Acos(dot);

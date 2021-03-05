@@ -110,11 +110,11 @@ namespace Nanomesh
 
             public TNode(T elem, int nextIndex, int hash)
             {
-                this.item = elem;
+                item = elem;
 
                 this.nextIndex = nextIndex;
 
-                this.hashOrNextIndexForBlanks = hash;
+                hashOrNextIndexForBlanks = hash;
             }
         }
 
@@ -571,10 +571,7 @@ namespace Nanomesh
         }
 
         /// <summary>True if the FastHashSet if read-only.  This is always false.  This is only present to implement ICollection<T>, it has no real value otherwise.</summary>
-        bool ICollection<T>.IsReadOnly
-        {
-            get { return false; }
-        }
+        bool ICollection<T>.IsReadOnly => false;
 
         /// <summary>Copies all elements of the FastHashSet&lt;<typeparamref name="T"/>&gt; into an array starting at arrayIndex.  This implements ICollection<T>.CopyTo(T[], Int32).</summary>
         /// <param name="array">The destination array.</param>
@@ -670,27 +667,16 @@ namespace Nanomesh
         /// <summary>
         /// Gets the IEqualityComparer used to determine equality for items of this FastHashSet.
         /// </summary>
-        public IEqualityComparer<T> Comparer
-        {
-            get
-            {
+        public IEqualityComparer<T> Comparer =>
                 // if not set, return the default - this is what HashSet does
                 // even if it is set to null explicitly, it will still return the default
                 // this behavior is implmented in the constructor
-                return comparer;
-            }
-        }
+                comparer;
 
         /// <summary>
         /// >Gets the number of items in this FastHashSet.
         /// </summary>
-        public int Count
-        {
-            get
-            {
-                return count;
-            }
-        }
+        public int Count => count;
 
         // this is the percent of used items to all items (used + blank/available)
         // at which point any additional added items will
@@ -699,13 +685,7 @@ namespace Nanomesh
         /// Gets the fraction of 'used items count' divided by 'used items plus available/blank items count'.
         /// The buckets array is resized when adding items and this fraction is reached, so this is the minimum LoadFactor for the buckets array.
         /// </summary>
-        public double LoadFactor
-        {
-            get
-            {
-                return LoadFactorConst;
-            }
-        }
+        public double LoadFactor => LoadFactorConst;
 
         // this is the capacity that can be trimmed with TrimExcessCapacity
         // items that were removed from the hash arrays can't be trimmed by calling TrimExcessCapacity, only the blank items at the end
@@ -759,29 +739,14 @@ namespace Nanomesh
         /// <summary>
         /// Gets the size of the next capacity increase of the FastHashSet.
         /// </summary>
-        public int NextCapacityIncreaseSize
-        {
-            get
-            {
-                return GetNewSlotsArraySizeIncrease(out int oldSlotsArraySize);
-            }
-        }
+        public int NextCapacityIncreaseSize => GetNewSlotsArraySizeIncrease(out int oldSlotsArraySize);
 
         /// <summary>
         /// Gets the count of items when the next capacity increase (resize) of the FastHashSet will happen.
         /// </summary>
-        public int NextCapacityIncreaseAtCount
-        {
-            get
-            {
-                return resizeBucketsCountThreshold;
-            }
-        }
+        public int NextCapacityIncreaseAtCount => resizeBucketsCountThreshold;
 
-        public bool IsHashing
-        {
-            get => noHashArray == null;
-        }
+        public bool IsHashing => noHashArray == null;
 
         // the actual capacity at the end of this function may be more than specified
         // (in the case when it was more before this function was called - nothing is trimmed by this function, or in the case that slighly more capacity was allocated by this function)
@@ -3810,10 +3775,7 @@ namespace Nanomesh
             /// <summary>
             /// Gets the Current item for the FastHashSet enumerator.
             /// </summary>
-            object IEnumerator.Current
-            {
-                get { return Current; }
-            }
+            object IEnumerator.Current => Current;
         }
 
         public static class FastHashSetUtil
@@ -3864,8 +3826,8 @@ namespace Nanomesh
     {
         public ChainLevelAndCount(int level, int count)
         {
-            this.Level = level;
-            this.Count = count;
+            Level = level;
+            Count = count;
         }
 
         public int Level;

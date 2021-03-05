@@ -29,9 +29,10 @@ namespace Nanomesh
         {
             Debug.Assert(mesh.CheckLengths(), "Attributes size mismatch");
 
-            ConnectedMesh connectedMesh = new ConnectedMesh();
-
-            connectedMesh.groups = mesh.groups;
+            ConnectedMesh connectedMesh = new ConnectedMesh
+            {
+                groups = mesh.groups
+            };
 
             int[] triangles = mesh.triangles;
 
@@ -39,19 +40,33 @@ namespace Nanomesh
             connectedMesh.attributes = new Attribute[mesh.vertices.Length];
 
             for (int i = 0; i < mesh.vertices.Length; i++)
+            {
                 connectedMesh.positions[i] = mesh.vertices[i];
+            }
 
             if (mesh.uvs != null)
+            {
                 for (int i = 0; i < mesh.uvs.Length; i++)
+                {
                     connectedMesh.attributes[i].uv = mesh.uvs[i];
+                }
+            }
 
             if (mesh.normals != null)
+            {
                 for (int i = 0; i < mesh.normals.Length; i++)
+                {
                     connectedMesh.attributes[i].normal = mesh.normals[i];
+                }
+            }
 
             if (mesh.boneWeights != null)
+            {
                 for (int i = 0; i < mesh.boneWeights.Length; i++)
+                {
                     connectedMesh.attributes[i].boneWeight = mesh.boneWeights[i];
+                }
+            }
 
             List<Node> nodesList = new List<Node>();
             Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
@@ -74,11 +89,19 @@ namespace Nanomesh
                 C.relative = nodesList.Count; // A
 
                 if (!vertexToNodes.ContainsKey(A.position))
+                {
                     vertexToNodes.Add(A.position, new List<int>());
+                }
+
                 if (!vertexToNodes.ContainsKey(B.position))
+                {
                     vertexToNodes.Add(B.position, new List<int>());
+                }
+
                 if (!vertexToNodes.ContainsKey(C.position))
+                {
                     vertexToNodes.Add(C.position, new List<int>());
+                }
 
                 vertexToNodes[A.position].Add(nodesList.Count);
                 vertexToNodes[B.position].Add(nodesList.Count + 1);
@@ -93,7 +116,7 @@ namespace Nanomesh
 
             connectedMesh.nodes = nodesList.ToArray();
 
-            foreach (var pair in vertexToNodes)
+            foreach (KeyValuePair<int, List<int>> pair in vertexToNodes)
             {
                 int previousSibling = -1;
                 int firstSibling = -1;
@@ -121,9 +144,9 @@ namespace Nanomesh
         {
             SharedMesh mesh = new SharedMesh();
 
-            var triangles = new List<int>();
-            var browsedNodes = new HashSet<int>();
-            var vertexData = new Dictionary<VertexData, int>();
+            List<int> triangles = new List<int>();
+            HashSet<int> browsedNodes = new HashSet<int>();
+            Dictionary<VertexData, int> vertexData = new Dictionary<VertexData, int>();
 
             Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
@@ -142,7 +165,9 @@ namespace Nanomesh
                     }
                     indicesInGroup = 0;
                     if (currentGroup < groups.Length - 1)
+                    {
                         currentGroup++;
+                    }
                 }
 
                 if (nodes[i].IsRemoved)
@@ -153,7 +178,9 @@ namespace Nanomesh
                 indicesInGroup++;
 
                 if (browsedNodes.Contains(i))
+                {
                     continue;
+                }
 
                 // Only works if all elements are triangles
                 int relative = i;
@@ -161,9 +188,11 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        VertexData data = new VertexData();
-                        data.position = nodes[relative].position;
-                        data.attribute = attributes[nodes[relative].attribute];
+                        VertexData data = new VertexData
+                        {
+                            position = nodes[relative].position,
+                            attribute = attributes[nodes[relative].attribute]
+                        };
 
                         // TODO : Merge attributes in a separate method ?
                         vertexData.TryAdd(data, vertexData.Count);
@@ -174,7 +203,9 @@ namespace Nanomesh
             }
 
             if (newGroups.Length > 0)
+            {
                 newGroups[currentGroup].indexCount = indicesInGroup;
+            }
 
             mesh.vertices = new Vector3[vertexData.Count];
 
@@ -183,7 +214,7 @@ namespace Nanomesh
             mesh.normals = new Vector3F[vertexData.Count];
             mesh.boneWeights = new BoneWeight[vertexData.Count];
 
-            foreach (var pair in vertexData)
+            foreach (KeyValuePair<VertexData, int> pair in vertexData)
             {
                 mesh.vertices[pair.Value] = positions[pair.Key.position];
                 mesh.normals[pair.Value] = pair.Key.attribute.normal;
@@ -213,7 +244,9 @@ namespace Nanomesh
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (!nodes[i].IsRemoved)
+                {
                     positionToNode[nodes[i].position] = i;
+                }
             }
 
             return positionToNode;
@@ -231,7 +264,9 @@ namespace Nanomesh
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (!nodes[i].IsRemoved)
+                {
                     attributeToNode[nodes[i].attribute] = i;
+                }
             }
             return attributeToNode;
         }
@@ -273,7 +308,9 @@ namespace Nanomesh
             do
             {
                 if (nodes[sibling].IsRemoved)
+                {
                     continue;
+                }
 
                 if (firstValid == -1)
                 {
@@ -312,7 +349,9 @@ namespace Nanomesh
             do
             {
                 if (nodes[sibling].IsRemoved)
+                {
                     continue;
+                }
 
                 if (firstValid == -1)
                 {
@@ -334,7 +373,9 @@ namespace Nanomesh
             do
             {
                 if (nodes[sibling].IsRemoved)
+                {
                     continue;
+                }
 
                 if (firstValid == -1)
                 {
@@ -353,7 +394,9 @@ namespace Nanomesh
             while ((sibling = nodes[sibling].sibling) != nodeIndexB);
 
             if (lastValid == -1)
+            {
                 return -1; // All siblings were removed
+            }
 
             // Close the loop
             nodes[lastValid].sibling = firstValid;
@@ -415,7 +458,9 @@ namespace Nanomesh
                     int validNodeAtC = ReconnectSiblings(nodeIndexC);
 
                     if (_positionToNode != null)
+                    {
                         _positionToNode[posC] = validNodeAtC;
+                    }
 
                     _faceCount--;
                 }
@@ -476,13 +521,19 @@ namespace Nanomesh
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
             if (facesAttached < 2)
+            {
                 return EdgeTopology.Border;
+            }
 
             if (uvBreakAtA || uvBreakAtB)
+            {
                 return EdgeTopology.UvBreak;
+            }
 
             if (hardAtA || hardAtB)
+            {
                 return EdgeTopology.HardEdge;
+            }
 
             return EdgeTopology.Surface;
         }
@@ -494,7 +545,7 @@ namespace Nanomesh
             int posB = nodes[nodes[nodeIndex].relative].position;
             int posC = nodes[nodes[nodes[nodeIndex].relative].relative].position;
 
-            var normal = Vector3.Cross(
+            Vector3 normal = Vector3.Cross(
                 positions[posB] - positions[posA],
                 positions[posC] - positions[posA]);
 
@@ -508,7 +559,7 @@ namespace Nanomesh
             int posB = nodes[nodes[nodeIndex].relative].position;
             int posC = nodes[nodes[nodes[nodeIndex].relative].relative].position;
 
-            var normal = Vector3.Cross(
+            Vector3 normal = Vector3.Cross(
                 positions[posB] - positions[posA],
                 positions[posC] - positions[posA]);
 
@@ -620,7 +671,7 @@ namespace Nanomesh
             }
 
             positions = new Vector3[newPositions.Count];
-            foreach (var pair in newPositions)
+            foreach (KeyValuePair<Vector3, int> pair in newPositions)
             {
                 positions[pair.Value] = pair.Key;
             }
@@ -659,7 +710,10 @@ namespace Nanomesh
             for (int i = 0; i < nodes.Length; i++)
             {
                 if (nodes[i].IsRemoved)
+                {
                     continue;
+                }
+
                 int lastPos = nodes[i].position;
                 int relative = i;
                 while ((relative = nodes[relative].relative) != i) // Circulate around face
@@ -700,7 +754,9 @@ namespace Nanomesh
             {
                 int nodeIndex = PositionToNode[p];
                 if (nodeIndex < 0)
+                {
                     continue;
+                }
 
                 int sibling = nodeIndex;
                 do
@@ -708,7 +764,7 @@ namespace Nanomesh
                     int firstRelative = nodes[sibling].relative;
                     int secondRelative = nodes[firstRelative].relative;
 
-                    var pair = new Edge(nodes[firstRelative].position, nodes[secondRelative].position);
+                    Edge pair = new Edge(nodes[firstRelative].position, nodes[secondRelative].position);
 
                     edges.Add(pair);
 

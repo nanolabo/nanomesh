@@ -40,7 +40,10 @@ namespace Nanomesh
             arr = new T[n];
             size = n;
             for (int i = 0; i < n; i++)
+            {
                 arr[i] = num[i];
+            }
+
             count = n;
 
             for (int i = (count - 1) / 2; i >= 0; i--)
@@ -54,9 +57,15 @@ namespace Nanomesh
             int r = GetRightChild(pos);
             int max = pos;
             if (l != -1 && arr[max].CompareTo(arr[l]) < 0)
+            {
                 max = l;
+            }
+
             if (r != -1 && arr[max].CompareTo(arr[r]) < 0)
+            {
                 max = r;
+            }
+
             if (max != pos)
             {
                 T temp = arr[pos];

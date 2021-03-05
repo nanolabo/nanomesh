@@ -6,7 +6,7 @@
         {
             SharedMesh mesh = mesh = new SharedMesh();
 
-            var vertices = new Vector3[(sizeX + 1) * (sizeY + 1)];
+            Vector3[] vertices = new Vector3[(sizeX + 1) * (sizeY + 1)];
             for (int i = 0, y = 0; y <= sizeY; y++)
             {
                 for (int x = 0; x <= sizeX; x++, i++)

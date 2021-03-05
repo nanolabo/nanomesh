@@ -8,7 +8,7 @@ namespace Nanomesh
 
         public Vector3Comparer(double tolerance)
         {
-            this._tolerance = tolerance;
+            _tolerance = tolerance;
         }
 
         public bool Equals(Vector3 x, Vector3 y)

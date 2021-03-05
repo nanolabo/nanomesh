@@ -12,7 +12,7 @@ namespace Nanomesh
 
         public Vector3FComparer(float tolerance)
         {
-            this._tolerance = tolerance;
+            _tolerance = tolerance;
         }
 
         public bool Equals(Vector3F x, Vector3F y)
