@@ -6,7 +6,7 @@ namespace Nanomesh
 {
     public static class Profiling
     {
-        private static Dictionary<string, Stopwatch> stopwatches = new Dictionary<string, Stopwatch>();
+        private static readonly Dictionary<string, Stopwatch> stopwatches = new Dictionary<string, Stopwatch>();
 
         public static void Start(string key)
         {

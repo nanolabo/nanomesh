@@ -462,7 +462,7 @@ namespace Nanomesh
                             hardAtB = !Vector3FComparer.Default.Equals(attributes[attrAtB].normal, attributes[nodes[relativeOfA].attribute].normal);
                             uvBreakAtA = !Vector2FComparer.Default.Equals(attributes[attrAtB].uv, attributes[nodes[relativeOfA].attribute].uv);
                         }
-                            
+
                         if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
                         {
                             hardAtA = !Vector3FComparer.Default.Equals(attributes[attrAtA].normal, attributes[nodes[siblingOfA].attribute].normal);
@@ -767,7 +767,7 @@ namespace Nanomesh
 
         public override string ToString()
         {
-		    return $"<A:{posA} B:{posB}>";
+            return $"<A:{posA} B:{posB}>";
         }
     }
 }

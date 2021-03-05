@@ -8,7 +8,8 @@ namespace Nanomesh
         internal string PrintSiblings(int nodeIndex)
         {
             int sibling = nodeIndex;
-            string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
+            string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x =>
+            {
                 string res = sibling.ToString() + (nodes[sibling].IsRemoved ? "(x)" : $"({nodes[sibling].position})");
                 sibling = nodes[sibling].sibling;
                 return res;
@@ -19,7 +20,8 @@ namespace Nanomesh
         internal string PrintRelatives(int nodeIndex)
         {
             int relative = nodeIndex;
-            string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x => {
+            string text = string.Join(" > ", Enumerable.Range(0, 12).Select(x =>
+            {
                 string res = relative.ToString() + (nodes[relative].IsRemoved ? "(x)" : $"({nodes[relative].position})");
                 relative = nodes[relative].relative;
                 return res;

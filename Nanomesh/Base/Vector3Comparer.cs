@@ -4,7 +4,7 @@ namespace Nanomesh
 {
     public class Vector3Comparer : IEqualityComparer<Vector3>
     {
-        private double _tolerance;
+        private readonly double _tolerance;
 
         public Vector3Comparer(double tolerance)
         {

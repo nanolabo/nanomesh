@@ -142,10 +142,10 @@ namespace Nanomesh
             return new Vector3(Math.Max(lhs.x, rhs.x), Math.Max(lhs.y, rhs.y), Math.Max(lhs.z, rhs.z));
         }
 
-        static readonly Vector3 zeroVector = new Vector3(0f, 0f, 0f);
-        static readonly Vector3 oneVector = new Vector3(1f, 1f, 1f);
-        static readonly Vector3 positiveInfinityVector = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-        static readonly Vector3 negativeInfinityVector = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+        private static readonly Vector3 zeroVector = new Vector3(0f, 0f, 0f);
+        private static readonly Vector3 oneVector = new Vector3(1f, 1f, 1f);
+        private static readonly Vector3 positiveInfinityVector = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        private static readonly Vector3 negativeInfinityVector = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
 
         public static Vector3 Zero => zeroVector;
 

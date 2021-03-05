@@ -219,7 +219,7 @@ namespace Nanomesh
         }
 
         // Moves a value /current/ towards /target/.
-        static public float MoveTowards(float current, float target, float maxDelta)
+        public static float MoveTowards(float current, float target, float maxDelta)
         {
             if (MathF.Abs(target - current) <= maxDelta)
                 return target;
@@ -227,7 +227,7 @@ namespace Nanomesh
         }
 
         // Same as ::ref::MoveTowards but makes sure the values interpolate correctly when they wrap around 360 degrees.
-        static public float MoveTowardsAngle(float current, float target, float maxDelta)
+        public static float MoveTowardsAngle(float current, float target, float maxDelta)
         {
             float deltaAngle = DeltaAngle(current, target);
             if (-maxDelta < deltaAngle && deltaAngle < maxDelta)
@@ -287,7 +287,7 @@ namespace Nanomesh
             return delta;
         }
 
-        static internal long RandomToLong(System.Random r)
+        internal static long RandomToLong(System.Random r)
         {
             var buffer = new byte[8];
             r.NextBytes(buffer);

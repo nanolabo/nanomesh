@@ -10,7 +10,7 @@ namespace Nanomesh
         // Access the /x/ or /y/ component using [0] or [1] respectively.
         public double this[int index]
         {
-            get 
+            get
             {
                 switch (index)
                 {
@@ -324,7 +324,7 @@ namespace Nanomesh
         /// <param name="lhs"></param>
         /// <param name="rhs"></param>
         /// <returns></returns>
-        public static bool operator!=(Vector2 lhs, Vector2 rhs)
+        public static bool operator !=(Vector2 lhs, Vector2 rhs)
         {
             // Returns true in the presence of NaN values.
             return !(lhs == rhs);
@@ -351,14 +351,14 @@ namespace Nanomesh
         public static implicit operator Vector2F(Vector2 vec) => new Vector2F((float)vec.x, (float)vec.y);
         public static explicit operator Vector2(Vector2F vec) => new Vector2(vec.x, vec.y);
 
-        static readonly Vector2 zeroVector = new Vector2(0F, 0F);
-        static readonly Vector2 oneVector = new Vector2(1F, 1F);
-        static readonly Vector2 upVector = new Vector2(0F, 1F);
-        static readonly Vector2 downVector = new Vector2(0F, -1F);
-        static readonly Vector2 leftVector = new Vector2(-1F, 0F);
-        static readonly Vector2 rightVector = new Vector2(1F, 0F);
-        static readonly Vector2 positiveInfinityVector = new Vector2(double.PositiveInfinity, double.PositiveInfinity);
-        static readonly Vector2 negativeInfinityVector = new Vector2(double.NegativeInfinity, double.NegativeInfinity);
+        private static readonly Vector2 zeroVector = new Vector2(0F, 0F);
+        private static readonly Vector2 oneVector = new Vector2(1F, 1F);
+        private static readonly Vector2 upVector = new Vector2(0F, 1F);
+        private static readonly Vector2 downVector = new Vector2(0F, -1F);
+        private static readonly Vector2 leftVector = new Vector2(-1F, 0F);
+        private static readonly Vector2 rightVector = new Vector2(1F, 0F);
+        private static readonly Vector2 positiveInfinityVector = new Vector2(double.PositiveInfinity, double.PositiveInfinity);
+        private static readonly Vector2 negativeInfinityVector = new Vector2(double.NegativeInfinity, double.NegativeInfinity);
 
         public static Vector2 Zero => zeroVector;
 

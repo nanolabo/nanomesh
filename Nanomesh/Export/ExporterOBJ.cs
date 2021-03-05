@@ -6,8 +6,6 @@ namespace Nanomesh
 {
     public static class ExporterOBJ
     {
-        internal readonly static char CharSlash = '/';
-
         public static string ToInvariantString(this double value)
         {
             return value.ToString(CultureInfo.InvariantCulture);

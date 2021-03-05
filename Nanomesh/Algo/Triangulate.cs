@@ -4,10 +4,10 @@ namespace Nanomesh
 {
     public class TriangulateModifier
     {
-		public void Run(ConnectedMesh mesh)
+        public void Run(ConnectedMesh mesh)
         {
-			for (int i = 0; i < mesh.nodes.Length; i++)
-			{
+            for (int i = 0; i < mesh.nodes.Length; i++)
+            {
                 int edgeCount = 0;
                 int relative = i;
                 while ((relative = mesh.nodes[relative].relative) != i) // Circulate around face
@@ -20,6 +20,6 @@ namespace Nanomesh
             }
 
             // Todo : Implement
-		}
-	}
+        }
+    }
 }

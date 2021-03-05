@@ -6,94 +6,94 @@ namespace Nanomesh
 {
     public class NormalsModifier
     {
-		public struct PosAndAttribute : IEquatable<PosAndAttribute>
-		{
-			public int position;
-			public Attribute attribute;
-
-			public override int GetHashCode()
-			{
-				return position.GetHashCode() ^ (attribute.GetHashCode() << 2);
-			}
-
-			public bool Equals(PosAndAttribute other)
-			{
-				return position == other.position && attribute.Equals(other.attribute);
-			}
-		}
-
-		public void Run(ConnectedMesh mesh, float smoothingAngle)
+        public struct PosAndAttribute : IEquatable<PosAndAttribute>
         {
-			float cosineThreshold = MathF.Cos(smoothingAngle * MathF.PI / 180f);
+            public int position;
+            public Attribute attribute;
 
-			int[] positionToNode = mesh.GetPositionToNode();
+            public override int GetHashCode()
+            {
+                return position.GetHashCode() ^ (attribute.GetHashCode() << 2);
+            }
 
-			Dictionary<PosAndAttribute, int> attributeToIndex = new Dictionary<PosAndAttribute, int>();
+            public bool Equals(PosAndAttribute other)
+            {
+                return position == other.position && attribute.Equals(other.attribute);
+            }
+        }
 
-			Vector3F getFaceNormal(int nodeIndex)
-			{
-				int posA = mesh.nodes[nodeIndex].position;
-				int posB = mesh.nodes[mesh.nodes[nodeIndex].relative].position;
-				int posC = mesh.nodes[mesh.nodes[mesh.nodes[nodeIndex].relative].relative].position;
+        public void Run(ConnectedMesh mesh, float smoothingAngle)
+        {
+            float cosineThreshold = MathF.Cos(smoothingAngle * MathF.PI / 180f);
 
-				Vector3F faceNormal = Vector3.Cross(
-					mesh.positions[posB] - mesh.positions[posA],
-					mesh.positions[posC] - mesh.positions[posA]);
+            int[] positionToNode = mesh.GetPositionToNode();
 
-				faceNormal = faceNormal.Normalized;
+            Dictionary<PosAndAttribute, int> attributeToIndex = new Dictionary<PosAndAttribute, int>();
 
-				return faceNormal;
-			}
+            Vector3F getFaceNormal(int nodeIndex)
+            {
+                int posA = mesh.nodes[nodeIndex].position;
+                int posB = mesh.nodes[mesh.nodes[nodeIndex].relative].position;
+                int posC = mesh.nodes[mesh.nodes[mesh.nodes[nodeIndex].relative].relative].position;
 
-			for (int p = 0; p < positionToNode.Length; p++)
-			{
-				int nodeIndex = positionToNode[p];
-				if (nodeIndex < 0)
-					continue;
+                Vector3F faceNormal = Vector3.Cross(
+                    mesh.positions[posB] - mesh.positions[posA],
+                    mesh.positions[posC] - mesh.positions[posA]);
 
-				Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
+                faceNormal = faceNormal.Normalized;
 
-				int sibling1 = nodeIndex;
-				do
-				{
-					Vector3F sum = Vector3F.Zero;
+                return faceNormal;
+            }
 
-					Vector3F normal1 = getFaceNormal(sibling1);
+            for (int p = 0; p < positionToNode.Length; p++)
+            {
+                int nodeIndex = positionToNode[p];
+                if (nodeIndex < 0)
+                    continue;
 
-					int sibling2 = nodeIndex;
-					do
-					{
-						Vector3F normal2 = getFaceNormal(sibling2);
+                Debug.Assert(!mesh.nodes[nodeIndex].IsRemoved);
 
-						float dot = Vector3F.Dot(normal1, normal2);
+                int sibling1 = nodeIndex;
+                do
+                {
+                    Vector3F sum = Vector3F.Zero;
 
-						if (dot >= cosineThreshold)
-						{
-							sum += mesh.GetFaceArea(sibling2) * mesh.GetAngleRadians(sibling2) * normal2;
-						}
+                    Vector3F normal1 = getFaceNormal(sibling1);
 
-					} while ((sibling2 = mesh.nodes[sibling2].sibling) != nodeIndex);
+                    int sibling2 = nodeIndex;
+                    do
+                    {
+                        Vector3F normal2 = getFaceNormal(sibling2);
 
-					sum = sum.Normalized;
+                        float dot = Vector3F.Dot(normal1, normal2);
 
-					Attribute attribute = mesh.attributes[mesh.nodes[sibling1].attribute];
-					attribute.normal = sum;
+                        if (dot >= cosineThreshold)
+                        {
+                            sum += mesh.GetFaceArea(sibling2) * mesh.GetAngleRadians(sibling2) * normal2;
+                        }
 
-					PosAndAttribute posAndAttribute = new PosAndAttribute { position = p, attribute = attribute };
+                    } while ((sibling2 = mesh.nodes[sibling2].sibling) != nodeIndex);
 
-					attributeToIndex.TryAdd(posAndAttribute, attributeToIndex.Count);
+                    sum = sum.Normalized;
 
-					mesh.nodes[sibling1].attribute = attributeToIndex[posAndAttribute];
+                    Attribute attribute = mesh.attributes[mesh.nodes[sibling1].attribute];
+                    attribute.normal = sum;
 
-				} while ((sibling1 = mesh.nodes[sibling1].sibling) != nodeIndex);
-			}
+                    PosAndAttribute posAndAttribute = new PosAndAttribute { position = p, attribute = attribute };
 
-			// Assign new attributes
-			mesh.attributes = new Attribute[attributeToIndex.Count];
-			foreach (var pair in attributeToIndex)
-			{
-				mesh.attributes[pair.Value] = pair.Key.attribute;
-			}
-		}
-	}
+                    attributeToIndex.TryAdd(posAndAttribute, attributeToIndex.Count);
+
+                    mesh.nodes[sibling1].attribute = attributeToIndex[posAndAttribute];
+
+                } while ((sibling1 = mesh.nodes[sibling1].sibling) != nodeIndex);
+            }
+
+            // Assign new attributes
+            mesh.attributes = new Attribute[attributeToIndex.Count];
+            foreach (var pair in attributeToIndex)
+            {
+                mesh.attributes[pair.Value] = pair.Key.attribute;
+            }
+        }
+    }
 }

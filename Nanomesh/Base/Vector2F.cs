@@ -353,14 +353,14 @@ namespace Nanomesh
             return new Vector3(v.x, v.y, 0);
         }
 
-        static readonly Vector2F zeroVector = new Vector2F(0F, 0F);
-        static readonly Vector2F oneVector = new Vector2F(1F, 1F);
-        static readonly Vector2F upVector = new Vector2F(0F, 1F);
-        static readonly Vector2F downVector = new Vector2F(0F, -1F);
-        static readonly Vector2F leftVector = new Vector2F(-1F, 0F);
-        static readonly Vector2F rightVector = new Vector2F(1F, 0F);
-        static readonly Vector2F positiveInfinityVector = new Vector2F(float.PositiveInfinity, float.PositiveInfinity);
-        static readonly Vector2F negativeInfinityVector = new Vector2F(float.NegativeInfinity, float.NegativeInfinity);
+        private static readonly Vector2F zeroVector = new Vector2F(0F, 0F);
+        private static readonly Vector2F oneVector = new Vector2F(1F, 1F);
+        private static readonly Vector2F upVector = new Vector2F(0F, 1F);
+        private static readonly Vector2F downVector = new Vector2F(0F, -1F);
+        private static readonly Vector2F leftVector = new Vector2F(-1F, 0F);
+        private static readonly Vector2F rightVector = new Vector2F(1F, 0F);
+        private static readonly Vector2F positiveInfinityVector = new Vector2F(float.PositiveInfinity, float.PositiveInfinity);
+        private static readonly Vector2F negativeInfinityVector = new Vector2F(float.NegativeInfinity, float.NegativeInfinity);
 
         public static Vector2F Zero => zeroVector;
 

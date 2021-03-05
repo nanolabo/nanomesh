@@ -1,6 +1,6 @@
 ﻿namespace Nanomesh
 {
-	public class NormalsFixer
+    public class NormalsFixer
     {
         public void Start(ConnectedMesh mesh)
         {

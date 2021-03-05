@@ -15,7 +15,8 @@ namespace Nanomesh
 
         public int GetIndex(int i)
         {
-            switch (i) {
+            switch (i)
+            {
                 case 0: return index0;
                 case 1: return index1;
                 case 2: return index2;

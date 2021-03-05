@@ -9,7 +9,8 @@ namespace Nanomesh
 
         public override int GetHashCode()
         {
-            unchecked {
+            unchecked
+            {
                 int hash = 17;
                 hash = hash * 31 + position;
                 hash = hash * 31 + attribute.GetHashCode();

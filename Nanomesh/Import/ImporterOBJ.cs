@@ -6,8 +6,8 @@ namespace Nanomesh
 {
     public class ImporterOBJ
     {
-        const char _CHAR_SLASH = '/';
-        const int _SIZE_INIT = 1024;
+        private const char _CHAR_SLASH = '/';
+        private const int _SIZE_INIT = 1024;
 
         public static SharedMesh Read(string file)
         {

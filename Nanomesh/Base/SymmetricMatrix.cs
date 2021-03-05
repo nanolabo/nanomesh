@@ -56,7 +56,8 @@
                 m1 * m1 * m7;
         }
 
-        public double DeterminantX() {
+        public double DeterminantX()
+        {
             return
                 m1 * m5 * m8 +
                 m3 * m4 * m7 +

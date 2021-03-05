@@ -8,7 +8,7 @@ namespace Nanomesh
         public static Vector3FComparer Default => _instance ?? (_instance = new Vector3FComparer(0.001f));
 
 
-        private float _tolerance;
+        private readonly float _tolerance;
 
         public Vector3FComparer(float tolerance)
         {

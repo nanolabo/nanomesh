@@ -19,9 +19,9 @@ namespace Nanomesh
 
     public class Heap<T> where T : IComparable<T>
     {
-        T[] arr;
-        int count;
-        int size;
+        private T[] arr;
+        private int count;
+        private int size;
 
         public int GetLeftChild(int pos)
         {

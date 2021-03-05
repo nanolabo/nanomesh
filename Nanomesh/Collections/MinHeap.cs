@@ -8,8 +8,8 @@ namespace Nanomesh.Collections
 {
     public class MinHeap<T> : IEnumerable<T>
     {
-        private List<T> values;
-        private IComparer<T> comparer;
+        private readonly List<T> values;
+        private readonly IComparer<T> comparer;
 
         public MinHeap(IEnumerable<T> items, IComparer<T> comparer)
         {

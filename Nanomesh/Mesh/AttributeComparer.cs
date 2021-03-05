@@ -4,8 +4,8 @@ namespace Nanomesh
 {
     public class AttributeComparer : IEqualityComparer<Attribute>
     {
-        private Vector3FComparer _vec3FComp = new Vector3FComparer(0.001f);
-        private Vector2FComparer _vec2FComp = new Vector2FComparer(0.001f);
+        private readonly Vector3FComparer _vec3FComp = new Vector3FComparer(0.001f);
+        private readonly Vector2FComparer _vec2FComp = new Vector2FComparer(0.001f);
 
         public AttributeComparer(float tolerance)
         {
