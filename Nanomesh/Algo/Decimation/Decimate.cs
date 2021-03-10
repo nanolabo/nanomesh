@@ -98,7 +98,7 @@ namespace Nanomesh
 
         public double GetMinimumError()
         {
-            return GetPairWithMinimumError().error;
+            return GetPairWithMinimumError()?.error ?? double.PositiveInfinity;
         }
 
         private EdgeCollapse GetPairWithMinimumError()
@@ -110,7 +110,7 @@ namespace Nanomesh
 
             LinkedHashSet<EdgeCollapse>.LinkedHashNode<EdgeCollapse> edge = _mins.First;
 
-            return edge.Value;
+            return edge?.Value;
         }
 
         private int MinsCount => MathF.Clamp(500, 0, _pairs.Count);
