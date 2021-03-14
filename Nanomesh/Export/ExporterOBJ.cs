@@ -31,6 +31,8 @@ namespace Nanomesh
                 bool hasUvs = mesh.uvs?.Length == mesh.vertices.Length;
                 bool hasNormals = mesh.normals?.Length == mesh.vertices.Length;
 
+                outfile.WriteLine("g Default");
+
                 // Writting vertexes in file and making Index correspondance table.
                 foreach (Vector3 vertex in mesh.vertices)
                 {
