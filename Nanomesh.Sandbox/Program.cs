@@ -9,16 +9,24 @@ namespace Nanomesh.Sandbox
         static void Main(string[] args)
         {
             //Benchmark();
+
+            AttributeList2 test = new AttributeList2();
+            test.AddAttributeType<Vector3F>(AttributeType.Normals);
+
+            test.Initialize(10);
+
+            test.Set(2, AttributeType.Normals, new Vector3F(1, 2, 3));
+            var x = test.Get<Vector3F>(2, AttributeType.Normals);
+            Console.WriteLine(x);
             
             DecimateFile();
 
             Console.WriteLine("Done !");
-            Console.ReadKey();
         }
 
         static void DecimateFile()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"..\..\..\..\Nanomesh.Tests\test-models\buggy.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/buggy.obj");
             //sharedMesh.groups = new Group[3]
             //{
             //    new Group { firstIndex = 0, indexCount = 9000 },
@@ -39,8 +47,8 @@ namespace Nanomesh.Sandbox
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
-            decimateModifier.DecimateToRatio(mesh, 0.2f);
-            //decimateModifier.DecimateToPolycount(mesh, 406543);
+            //decimateModifier.DecimateToRatio(mesh, 0.5f);
+            decimateModifier.DecimateToPolycount(mesh, 2000);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
 
@@ -48,8 +56,8 @@ namespace Nanomesh.Sandbox
 
             Console.WriteLine("Polycount : " + mesh.FaceCount);
 
-            Directory.CreateDirectory(@"..\..\..\..\Nanomesh.Tests\output\");
-            ExporterOBJ.Save(mesh.ToSharedMesh(), @"..\..\..\..\Nanomesh.Tests\output\decimation.obj");
+            Directory.CreateDirectory(@"../../../../Nanomesh.Tests/output/");
+            ExporterOBJ.Save(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
         }
 
         static void Benchmark()

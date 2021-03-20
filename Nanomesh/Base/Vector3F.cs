@@ -2,7 +2,7 @@
 
 namespace Nanomesh
 {
-    public readonly struct Vector3F
+    public readonly struct Vector3F : IEquatable<Vector3F>, IAttribute<Vector3F>
     {
         public readonly float x;
         public readonly float y;
@@ -159,6 +159,16 @@ namespace Nanomesh
         public override string ToString()
         {
             return $"{x}, {y}, {z}";
+        }
+
+        public Vector3F Interpolate(double ratio, in Vector3F otherAttribute)
+        {
+            return ratio * this + (1 - ratio) * otherAttribute;
+        }
+
+        public bool IsAlmostEqual(Vector3F other)
+        {
+            return Vector3FComparer.Default.Equals(this, other);
         }
     }
 }

@@ -1,11 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using Nanomesh.Collections;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using static Nanomesh.DecimateModifier;
-
 namespace Nanomesh.Benchmarks
 {
     [MemoryDiagnoser]
@@ -13,7 +7,7 @@ namespace Nanomesh.Benchmarks
     //[SimpleJob(RuntimeMoniker.Mono, launchCount: 1, warmupCount: 2, targetCount: 5)]
     //[SimpleJob(RuntimeMoniker.CoreRt31, launchCount: 1, warmupCount: 2, targetCount: 5)]
     //[SimpleJob(RuntimeMoniker.NetCoreApp50, launchCount: 1, warmupCount: 2, targetCount: 5)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp31, launchCount: 1, warmupCount: 2, targetCount: 5)]
+    [SimpleJob(launchCount: 1, warmupCount: 2, targetCount: 5)]
     public class ParamBenchmark
     {
         [Benchmark]
