@@ -69,18 +69,29 @@ namespace Nanomesh
 
         public static Vector2F Normalize(in Vector2F value)
         {
-            float mag = magnitude;
+            float mag = Magnitude(in value);
             if (mag > kEpsilon)
             {
-                this = this / mag;
+                return value / mag;
             }
             else
             {
-                this = Zero;
+                return Zero;
             }
         }
 
-        public Vector2F Normalized => Vector2F.Normalize(this);
+        public Vector2F Normalize() => Normalize(in this);
+
+        public static float SqrMagnitude(in Vector2F a) => a.x * a.x + a.y * a.y;
+
+        /// <summary>
+        /// Returns the squared length of this vector (RO).
+        /// </summary>
+        public float SqrMagnitude() => SqrMagnitude(in this);
+
+        public static float Magnitude(in Vector2F vector) => (float)Math.Sqrt(SqrMagnitude(in vector));
+
+        public float Magnitude() => Magnitude(this);
 
         // used to allow Vector2s to be used as keys in hash tables
         public override int GetHashCode()
@@ -124,16 +135,6 @@ namespace Nanomesh
         /// <returns></returns>
         public static float Dot(Vector2F lhs, Vector2F rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 
-        public static float Magnitude(in Vector2F vector)
-        {
-            return MathF.Sqrt(vector.x * vector.x + vector.y * vector.y);
-        }
-
-        /// <summary>
-        /// Returns the squared length of this vector (RO).
-        /// </summary>
-        public float sqrMagnitude => x * x + y * y;
-
         /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
         /// </summary>
@@ -143,7 +144,7 @@ namespace Nanomesh
         public static float AngleRadians(Vector2F from, Vector2F to)
         {
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
-            float denominator = MathF.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
+            float denominator = MathF.Sqrt(from.SqrMagnitude() * to.SqrMagnitude());
             if (denominator < kEpsilonNormalSqrt)
             {
                 return 0F;
@@ -192,7 +193,7 @@ namespace Nanomesh
         /// <returns></returns>
         public static Vector2F ClampMagnitude(Vector2F vector, float maxLength)
         {
-            float sqrMagnitude = vector.sqrMagnitude;
+            float sqrMagnitude = vector.SqrMagnitude();
             if (sqrMagnitude > maxLength * maxLength)
             {
                 float mag = MathF.Sqrt(sqrMagnitude);
@@ -207,10 +208,6 @@ namespace Nanomesh
             }
             return vector;
         }
-
-        public static float SqrMagnitude(Vector2F a) { return a.x * a.x + a.y * a.y; }
-
-        public float SqrMagnitude() { return x * x + y * y; }
 
         /// <summary>
         /// Returns a vector that is made from the smallest components of two vectors.

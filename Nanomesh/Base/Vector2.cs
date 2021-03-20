@@ -65,22 +65,33 @@ namespace Nanomesh
         }
 
         // Multiplies two vectors component-wise.
-        public static Vector2 Scale(Vector2 a, Vector2 b) { return new Vector2(a.x * b.x, a.y * b.y); }
+        public static Vector2 Scale(Vector2 a, Vector2 b) => new Vector2(a.x * b.x, a.y * b.y);
 
-        public static Vector2F Normalize(in Vector2F value)
+        public static Vector2 Normalize(in Vector2 value)
         {
-            double mag = magnitude;
+            double mag = Magnitude(in value);
             if (mag > kEpsilon)
             {
-                this = this / mag;
+                return value / mag;
             }
             else
             {
-                this = Zero;
+                return Zero;
             }
         }
 
-        public Vector2F Normalized => Vector2F.Normalize(this);
+        public Vector2 Normalize() => Normalize(in this);
+
+        public static double SqrMagnitude(in Vector2 a) => a.x * a.x + a.y * a.y;
+
+        /// <summary>
+        /// Returns the squared length of this vector (RO).
+        /// </summary>
+        public double SqrMagnitude() => SqrMagnitude(in this);
+
+        public static double Magnitude(in Vector2 vector) => Math.Sqrt(SqrMagnitude(in vector));
+
+        public double Magnitude() => Magnitude(this);
 
         // used to allow Vector2s to be used as keys in hash tables
         public override int GetHashCode()
@@ -125,16 +136,6 @@ namespace Nanomesh
         /// <returns></returns>
         public static double Dot(Vector2 lhs, Vector2 rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 
-        public static float Magnitude(in Vector2F vector)
-        {
-            return MathF.Sqrt(vector.x * vector.x + vector.y * vector.y);
-        }
-
-        /// <summary>
-        /// Returns the squared length of this vector (RO).
-        /// </summary>
-        public double sqrMagnitude => x * x + y * y;
-
         /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
         /// </summary>
@@ -144,7 +145,7 @@ namespace Nanomesh
         public static double AngleRadians(Vector2 from, Vector2 to)
         {
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
-            double denominator = Math.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
+            double denominator = Math.Sqrt(from.SqrMagnitude() * to.SqrMagnitude());
             if (denominator < kEpsilonNormalSqrt)
             {
                 return 0F;
@@ -193,7 +194,7 @@ namespace Nanomesh
         /// <returns></returns>
         public static Vector2 ClampMagnitude(Vector2 vector, double maxLength)
         {
-            double sqrMagnitude = vector.sqrMagnitude;
+            double sqrMagnitude = vector.SqrMagnitude();
             if (sqrMagnitude > maxLength * maxLength)
             {
                 double mag = Math.Sqrt(sqrMagnitude);
@@ -208,10 +209,6 @@ namespace Nanomesh
             }
             return vector;
         }
-
-        public static double SqrMagnitude(Vector2 a) { return a.x * a.x + a.y * a.y; }
-
-        public double SqrMagnitude() { return x * x + y * y; }
 
         /// <summary>
         /// Returns a vector that is made from the smallest components of two vectors.

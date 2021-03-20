@@ -18,7 +18,7 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/brakes.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/buggy.obj");
             //sharedMesh.groups = new Group[3]
             //{
             //    new Group { firstIndex = 0, indexCount = 9000 },

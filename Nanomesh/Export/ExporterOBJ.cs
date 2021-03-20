@@ -35,21 +35,15 @@ namespace Nanomesh
 
                 // Writting vertexes in file and making Index correspondance table.
                 foreach (Vector3 vertex in mesh.vertices)
-                {
                     outfile.WriteLine("v " + vertex.x.ToInvariantString() + " " + vertex.y.ToInvariantString() + " " + vertex.z.ToInvariantString());
-                }
 
                 if (hasNormals)
                     foreach (Vector3F normal in mesh.attributes[AttributeType.Normals])
                         outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
-                    }
-                }
 
                 if (hasUvs)
                     foreach (Vector2F uv in mesh.attributes[AttributeType.UVs])
                         outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
-                    }
-                }
 
                 // Writting faces data (with index shifting)
                 for (int i = 0; i < mesh.triangles.Length; i += 3)

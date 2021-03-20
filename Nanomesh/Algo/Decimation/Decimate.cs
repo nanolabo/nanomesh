@@ -195,13 +195,13 @@ namespace Nanomesh
             return _adjacentEdges;
         }
 
-        private EdgeTopology GetEdgeTopo(EdgeCollapse edge)
+        private double GetEdgeTopo(EdgeCollapse edge)
         {
-            if (edge.Topology == EdgeTopology.Undefined)
+            if (edge.Weight == -1)
             {
-                edge.SetTopology(_mesh.GetEdgeTopo(_mesh.PositionToNode[edge.posA], _mesh.PositionToNode[edge.posB]));
+                edge.SetWeight(_mesh.GetEdgeTopo(_mesh.PositionToNode[edge.posA], _mesh.PositionToNode[edge.posB]));
             }
-            return edge.Topology;
+            return edge.Weight;
         }
 
         private void CalculateError(EdgeCollapse pair)
@@ -264,26 +264,9 @@ namespace Nanomesh
                 EdgeCollapse edge = new EdgeCollapse(pA, pD);
                 if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
                 {
-                    switch (GetEdgeTopo(realEdge))
-                    {
-                        case EdgeTopology.Surface:
-                            break;
-                        case EdgeTopology.HardEdge:
-                            errorCollapseToO += coeff_hard * ComputeLineicError(posO, posD, posA);
-                            errorCollapseToB += coeff_hard * ComputeLineicError(posB, posD, posA);
-                            errorCollapseToC += coeff_hard * ComputeLineicError(posC, posD, posA);
-                            break;
-                        case EdgeTopology.UvBreak:
-                            errorCollapseToO += coeff_uvs * ComputeLineicError(posO, posD, posA);
-                            errorCollapseToB += coeff_uvs * ComputeLineicError(posB, posD, posA);
-                            errorCollapseToC += coeff_uvs * ComputeLineicError(posC, posD, posA);
-                            break;
-                        case EdgeTopology.Border:
-                            errorCollapseToO = _OFFSET_NOCOLLAPSE;
-                            errorCollapseToB += coeff_border * ComputeLineicError(posB, posD, posA);
-                            errorCollapseToC += coeff_border * ComputeLineicError(posC, posD, posA);
-                            break;
-                    }
+                    var weight = GetEdgeTopo(realEdge);
+                    errorCollapseToB += weight * length * ComputeLineicError(posB, posD, posA);
+                    errorCollapseToC += weight * length * ComputeLineicError(posC, posD, posA);
                 }
             }
 
@@ -293,26 +276,9 @@ namespace Nanomesh
                 EdgeCollapse edge = new EdgeCollapse(pB, pD);
                 if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
                 {
-                    switch (GetEdgeTopo(realEdge))
-                    {
-                        case EdgeTopology.Surface:
-                            break;
-                        case EdgeTopology.HardEdge:
-                            errorCollapseToO += coeff_hard * ComputeLineicError(posO, posD, posB);
-                            errorCollapseToA += coeff_hard * ComputeLineicError(posA, posD, posB);
-                            errorCollapseToC += coeff_hard * ComputeLineicError(posC, posD, posB);
-                            break;
-                        case EdgeTopology.UvBreak:
-                            errorCollapseToO += coeff_uvs * ComputeLineicError(posO, posD, posB);
-                            errorCollapseToA += coeff_uvs * ComputeLineicError(posA, posD, posB);
-                            errorCollapseToC += coeff_uvs * ComputeLineicError(posC, posD, posB);
-                            break;
-                        case EdgeTopology.Border:
-                            errorCollapseToO = _OFFSET_NOCOLLAPSE;
-                            errorCollapseToA += coeff_border * ComputeLineicError(posA, posD, posB);
-                            errorCollapseToC += coeff_border * ComputeLineicError(posC, posD, posB);
-                            break;
-                    }
+                    var weight = GetEdgeTopo(realEdge);
+                    errorCollapseToA += weight * length * ComputeLineicError(posA, posD, posB);
+                    errorCollapseToC += weight * length * ComputeLineicError(posC, posD, posB);
                 }
             }
 
@@ -433,7 +399,6 @@ namespace Nanomesh
             double BN = Vector3.Magnitude(positionB - positionN);
             double ratio = MathUtils.DivideSafe(AN, AN + BN);
 
-			/* // Other way (same results I think)
             /* // Other way (same results I think)
             double ratio = 0;
             double dot = Vector3.Dot(pair.result - positionA, positionB - positionA);
@@ -443,15 +408,6 @@ namespace Nanomesh
 			*/
 
             int siblingOfA = nodeIndexA;
-			do // Iterator over faces around A
-			{
-				int relativeOfA = siblingOfA;
-				do // Circulate around face
-				{
-					if (_mesh.nodes[relativeOfA].position == posB)
-					{
-						if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
-							continue;
             do // Iterator over faces around A
             {
                 int relativeOfA = siblingOfA;
@@ -460,112 +416,14 @@ namespace Nanomesh
                     if (_mesh.nodes[relativeOfA].position == posB)
                     {
                         if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
-                        {
                             continue;
-                        }
 
                         if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
-                        {
                             continue;
-                        }
 
-                        // Normals
+                        foreach (var attr in _mesh.attributes)
                         {
-                            Vector3F normalAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal;
-                            Vector3F normalAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal;
-
-                            float dot = Vector3F.Dot(normalAtA, normalAtB);
-
-                            if (dot >= MergeNormalsThreshold)
-                            {
-                                // TODO : Interpolate differently depending on pair type
-                                normalAtA = ratio * normalAtB + (1 - ratio) * normalAtA;
-                                normalAtA = normalAtA.Normalized;
-
-                                _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-                                _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtA;
-                            }
-                            else
-                            {
-                                _mesh.attributes[_mesh.nodes[siblingOfA].attribute].normal = normalAtA;
-                                _mesh.attributes[_mesh.nodes[relativeOfA].attribute].normal = normalAtB;
-                            }
-                        }
-
-                        // UVs
-                        {
-                            Vector2F uvAtA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv;
-                            Vector2F uvAtB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv;
-
-                            uvAtA = ratio * uvAtB + (1 - ratio) * uvAtA;
-
-                            // TODO : Don't interpolate UVs of different islands
-                            _mesh.attributes[_mesh.nodes[siblingOfA].attribute].uv = uvAtA;
-                            _mesh.attributes[_mesh.nodes[relativeOfA].attribute].uv = uvAtA;
-                        }
-
-                        // Boneweights
-                        unsafe
-                        {
-                            BoneWeight boneWeightA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight;
-                            BoneWeight boneWeightB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight;
-
-                            Dictionary<int, float> newBoneWeight = new Dictionary<int, float>();
-
-                            // Map weights and indices
-                            for (int i = 0; i < 4; i++)
-                            {
-                                newBoneWeight.TryAdd(boneWeightA.GetIndex(i), 0);
-                                newBoneWeight.TryAdd(boneWeightB.GetIndex(i), 0);
-                                newBoneWeight[boneWeightA.GetIndex(i)] += (float)((1 - ratio) * boneWeightA.GetWeight(i));
-                                newBoneWeight[boneWeightB.GetIndex(i)] += (float)(ratio * boneWeightB.GetWeight(i));
-                            }
-
-                            int* newIndices = stackalloc int[4];
-                            float* newWeights = stackalloc float[4];
-
-                            // Order from biggest to smallest weight, and drop bones above 4th
-                            float totalWeight = 0;
-                            int k = 0;
-                            foreach (KeyValuePair<int, float> boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
-                            {
-                                newIndices[k] = boneWeightN.Key;
-                                newWeights[k] = boneWeightN.Value;
-                                totalWeight += boneWeightN.Value;
-                                if (k == 3)
-                                {
-                                    break;
-                                }
-
-						if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
-							continue;
-                                k++;
-                            }
-
-						foreach (var attr in _mesh.attributes)
-						{
-							attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
-						}
-                            // Normalize
-                            if (totalWeight > 0)
-                            {
-                                for (int j = 0; j < 4; j++)
-                                {
-                                    newWeights[k] /= totalWeight;
-                                }
-                            }
-
-						procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
-						procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
-                            boneWeightA = new BoneWeight(
-                                newIndices[0], newIndices[1], newIndices[2], newIndices[3],
-                                newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
-
-						break;
-					}
-				} while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
-                            _mesh.attributes[_mesh.nodes[siblingOfA].attribute].boneWeight = boneWeightA;
-                            _mesh.attributes[_mesh.nodes[relativeOfA].attribute].boneWeight = boneWeightA;
+                            attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
                         }
 
                         procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
@@ -578,7 +436,7 @@ namespace Nanomesh
             } while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
         }
 
-        private readonly Dictionary<Attribute, int> _uniqueAttributes = new Dictionary<Attribute, int>(new AttributeComparer(0.0001f));
+        private Dictionary<int, int> _uniqueAttributes = new Dictionary<int, int>();
 
         private void MergeAttributes(int nodeIndex)
         {
@@ -587,13 +445,13 @@ namespace Nanomesh
             int sibling = nodeIndex;
             do
             {
-                _uniqueAttributes.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
+                _uniqueAttributes.TryAdd(_mesh.nodes[sibling].attribute, _mesh.nodes[sibling].attribute);
             } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
             sibling = nodeIndex;
             do
             {
-                _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.attributes[_mesh.nodes[sibling].attribute]];
+                _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.nodes[sibling].attribute];
             } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
         }
 
@@ -692,7 +550,7 @@ namespace Nanomesh
             foreach (EdgeCollapse edge in _edgeToRefresh)
             {
                 CalculateQuadric(edge.posB);
-                edge.SetTopology(EdgeTopology.Undefined);
+                edge.SetWeight(-1);
                 _pairs.Remove(edge);
                 _pairs.Add(edge);
             }

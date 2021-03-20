@@ -30,21 +30,6 @@ namespace Nanomesh
 
             Dictionary<PosAndAttribute, int> attributeToIndex = new Dictionary<PosAndAttribute, int>();
 
-            Vector3F getFaceNormal(int nodeIndex)
-            {
-                int posA = mesh.nodes[nodeIndex].position;
-                int posB = mesh.nodes[mesh.nodes[nodeIndex].relative].position;
-                int posC = mesh.nodes[mesh.nodes[mesh.nodes[nodeIndex].relative].relative].position;
-
-                Vector3F faceNormal = Vector3.Cross(
-                    mesh.positions[posB] - mesh.positions[posA],
-                    mesh.positions[posC] - mesh.positions[posA]);
-
-                faceNormal = faceNormal.Normalized;
-
-                return faceNormal;
-            }
-
             for (int p = 0; p < positionToNode.Length; p++)
             {
                 int nodeIndex = positionToNode[p];
@@ -60,17 +45,18 @@ namespace Nanomesh
                 {
                     Vector3F sum = Vector3F.Zero;
 
-                    Vector3F normal1 = getFaceNormal(sibling1);
+                    Vector3F normal1 = mesh.GetFaceNormal(sibling1);
 
                     int sibling2 = nodeIndex;
                     do
                     {
-                        Vector3F normal2 = getFaceNormal(sibling2);
+                        Vector3F normal2 = mesh.GetFaceNormal(sibling2);
 
                         float dot = Vector3F.Dot(normal1, normal2);
 
                         if (dot >= cosineThreshold)
                         {
+                            // Area and angle weighting (it gives better results)
                             sum += mesh.GetFaceArea(sibling2) * mesh.GetAngleRadians(sibling2) * normal2;
                         }
 
