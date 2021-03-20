@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Nanomesh
 {
@@ -15,14 +16,14 @@ namespace Nanomesh
             return array;
         }
 
-        public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
+        public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, Func<K, V> valueFactory)
         {
             if (dictionary.ContainsKey(key))
             {
                 return false;
             }
 
-            dictionary.Add(key, value);
+            dictionary.Add(key, valueFactory(key));
             return true;
         }
 
