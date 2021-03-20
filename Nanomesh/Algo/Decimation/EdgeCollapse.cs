@@ -11,11 +11,11 @@ namespace Nanomesh
 			public Vector3 result;
 			public double error;
 
-			private EdgeTopology _topology;
+			private double _topology = -1;
 
-			public ref EdgeTopology Topology => ref _topology;
+			public ref double Topology => ref _topology;
 
-			public void SetTopology(EdgeTopology topology)
+			public void SetTopology(double topology)
             {
 				_topology = topology;
             }
