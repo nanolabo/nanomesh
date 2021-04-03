@@ -10,7 +10,7 @@ namespace Nanomesh.Benchmarks
         [GlobalSetup]
         public void Setup()
         {
-            _mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(10, 10));
+            _mesh = PrimitiveUtils.CreatePlane(10, 10).ToConnectedMesh();
         }
 
         [Benchmark]

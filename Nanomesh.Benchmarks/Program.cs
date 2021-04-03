@@ -26,6 +26,7 @@ namespace Nanomesh.Benchmarks
                 typeof(SortingBenchmark),
                 typeof(ParamBenchmark),
                 typeof(IteratingBenchmark),
+                typeof(CastingBenchmark),
             });
 
             switcher.Run(args, config: conf);

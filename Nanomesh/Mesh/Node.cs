@@ -3,9 +3,9 @@
     public struct Node
     {
         public int position;
-        public int attribute;
         public int sibling;
         public int relative;
+        public int attribute;
 
         public void MarkRemoved()
         {
@@ -16,7 +16,7 @@
 
         public override string ToString()
         {
-            return $"sibl:{sibling} rela:{relative} posi:{position} attr:{attribute}";
+            return $"sibl:{sibling} rela:{relative} posi:{position}";
         }
     }
 }

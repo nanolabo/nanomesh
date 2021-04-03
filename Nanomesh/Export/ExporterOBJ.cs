@@ -28,22 +28,39 @@ namespace Nanomesh
         {
             using (StreamWriter outfile = new StreamWriter(stream, Encoding.UTF8, 256, true))
             {
-                bool hasUvs = mesh.attributes.ContainsKey(AttributeType.UVs);
-                bool hasNormals = mesh.attributes.ContainsKey(AttributeType.Normals);
+                bool hasUvs = false;
+                bool hasNormals = false;
 
-                outfile.WriteLine("g Default");
+                outfile.WriteLine(groupChar + " Default");
 
                 // Writting vertexes in file and making Index correspondance table.
-                foreach (Vector3 vertex in mesh.vertices)
+                foreach (Vector3 vertex in mesh.positions)
                     outfile.WriteLine("v " + vertex.x.ToInvariantString() + " " + vertex.y.ToInvariantString() + " " + vertex.z.ToInvariantString());
 
-                if (hasNormals)
-                    foreach (Vector3F normal in mesh.attributes[AttributeType.Normals])
-                        outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
-
-                if (hasUvs)
-                    foreach (Vector2F uv in mesh.attributes[AttributeType.UVs])
-                        outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
+                if (mesh.attributes != null)
+                {
+                    for (int i = 0; i < mesh.attributeDefinitions.Length; i++)
+                    {
+                        if (mesh.attributeDefinitions[i].type == AttributeType.Normals)
+                        {
+                            hasNormals = true;
+                            for (int j = 0; j < mesh.attributes.Count; j++)
+                            {
+                                Vector3F normal = mesh.attributes[j].Get<Vector3F>(i);
+                                outfile.WriteLine("vn " + normal.x.ToInvariantString() + " " + normal.y.ToInvariantString() + " " + normal.z.ToInvariantString());
+                            }
+                        }
+                        else if (mesh.attributeDefinitions[i].type == AttributeType.UVs)
+                        {
+                            hasUvs = true;
+                            for (int j = 0; j < mesh.attributes.Count; j++)
+                            {
+                                Vector2F uv = mesh.attributes[j].Get<Vector2F>(i);
+                                outfile.WriteLine("vt " + uv.x.ToInvariantString() + " " + uv.y.ToInvariantString());
+                            }
+                        }
+                    }
+                }
 
                 // Writting faces data (with index shifting)
                 for (int i = 0; i < mesh.triangles.Length; i += 3)

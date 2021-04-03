@@ -4,212 +4,24 @@ using System.Diagnostics;
 
 namespace Nanomesh
 {
-    public enum AttributeType
-    {
-        Normals,
-        UVs,
-        BoneWeights,
-        Colors,
-    }
-
     // Let's say F = 2V
     // Halfedge mesh is V * sizeof(vertex) + 3F * sizeof(Halfedge) + F * sizeof(Face) = 16 * 0.5F + 3F * 20 + 4F = 72F
     // Connected mesh is V * sizeof(Vector3) + 3F * sizeof(Node) + F * sizeof(Face) = 12 * 0.5F + 3F * 12 + 12F = 54F (without attributes)
     // Connected mesh no face is V * sizeof(Vector3) + 3F * sizeof(Node) = 12 * 0.5F + 3F * 12 = 42F (without attributes)
-
     public partial class ConnectedMesh
     {
+        // Todo : make this private (can only be modified from the inside)
         public Vector3[] positions;
-        public Attributes attributes;
+        public MetaAttributeList attributes;
         public Node[] nodes;
         public Group[] groups;
+        public AttributeDefinition[] attributeDefinitions;
 
         public int[] PositionToNode => _positionToNode ?? (_positionToNode = GetPositionToNode());
         private int[] _positionToNode;
 
         internal int _faceCount;
         public int FaceCount => _faceCount;
-
-        public static ConnectedMesh Build(SharedMesh mesh, bool copy = false)
-        {
-            mesh.CheckLengths();
-
-            ConnectedMesh connectedMesh = new ConnectedMesh
-            {
-                groups = mesh.groups
-            };
-
-            int[] triangles = mesh.triangles;
-
-            connectedMesh.attributes = new Attributes();
-
-            if (copy)
-            {
-                throw new NotImplementedException();
-            }
-            else
-            {
-                connectedMesh.positions = mesh.vertices;
-                connectedMesh.attributes = mesh.attributes;
-            }
-
-            List<Node> nodesList = new List<Node>();
-            Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
-            for (int i = 0; i < triangles.Length; i += 3)
-            {
-                Node A = new Node();
-                Node B = new Node();
-                Node C = new Node();
-
-                A.position = triangles[i];
-                B.position = triangles[i + 1];
-                C.position = triangles[i + 2];
-
-                A.attribute = triangles[i];
-                B.attribute = triangles[i + 1];
-                C.attribute = triangles[i + 2];
-
-                A.relative = nodesList.Count + 1; // B
-                B.relative = nodesList.Count + 2; // C
-                C.relative = nodesList.Count; // A
-
-                if (!vertexToNodes.ContainsKey(A.position))
-                {
-                    vertexToNodes.Add(A.position, new List<int>());
-                }
-
-                if (!vertexToNodes.ContainsKey(B.position))
-                {
-                    vertexToNodes.Add(B.position, new List<int>());
-                }
-
-                if (!vertexToNodes.ContainsKey(C.position))
-                {
-                    vertexToNodes.Add(C.position, new List<int>());
-                }
-
-                vertexToNodes[A.position].Add(nodesList.Count);
-                vertexToNodes[B.position].Add(nodesList.Count + 1);
-                vertexToNodes[C.position].Add(nodesList.Count + 2);
-
-                nodesList.Add(A);
-                nodesList.Add(B);
-                nodesList.Add(C);
-
-                connectedMesh._faceCount++;
-            }
-
-            connectedMesh.nodes = nodesList.ToArray();
-
-            foreach (KeyValuePair<int, List<int>> pair in vertexToNodes)
-            {
-                int previousSibling = -1;
-                int firstSibling = -1;
-                foreach (int node in pair.Value)
-                {
-                    if (firstSibling != -1)
-                    {
-                        connectedMesh.nodes[node].sibling = previousSibling;
-                    }
-                    else
-                    {
-                        firstSibling = node;
-                    }
-                    previousSibling = node;
-                }
-                connectedMesh.nodes[firstSibling].sibling = previousSibling;
-            }
-
-            Debug.Assert(connectedMesh.Check());
-
-            return connectedMesh;
-        }
-
-        public SharedMesh ToSharedMesh()
-        {
-            SharedMesh mesh = new SharedMesh();
-
-            var triangles = new List<int>();
-            var browsedNodes = new HashSet<int>();
-
-            Group[] newGroups = new Group[groups?.Length ?? 0];
-            mesh.groups = newGroups;
-
-            int currentGroup = 0;
-            int indicesInGroup = 0;
-
-            var perVertexMap = new Dictionary<(int positionIndex, int attributeIndex), int>();
-
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                if (newGroups.Length > 0 && groups[currentGroup].firstIndex == i)
-                {
-                    if (currentGroup > 0)
-                    {
-                        newGroups[currentGroup - 1].indexCount = indicesInGroup;
-                        newGroups[currentGroup].firstIndex = indicesInGroup + newGroups[currentGroup - 1].firstIndex;
-                    }
-                    indicesInGroup = 0;
-                    if (currentGroup < groups.Length - 1)
-                    {
-                        currentGroup++;
-                    }
-                }
-
-                if (nodes[i].IsRemoved)
-                {
-                    continue;
-                }
-
-                indicesInGroup++;
-
-                if (browsedNodes.Contains(i))
-                {
-                    continue;
-                }
-
-                // Only works if all elements are triangles
-                int relative = i;
-                do
-                {
-                    if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
-                    {
-                        var key = (nodes[relative].position, nodes[relative].attribute);
-                        perVertexMap.TryAdd(key, perVertexMap.Count);
-                        triangles.Add(perVertexMap[key]);
-                    }
-                } while ((relative = nodes[relative].relative) != i);
-            }
-
-            if (newGroups.Length > 0)
-            {
-                newGroups[currentGroup].indexCount = indicesInGroup;
-            }
-
-            // Positions
-            mesh.vertices = new Vector3[perVertexMap.Count];
-            foreach (var mapping in perVertexMap)
-            {
-                mesh.vertices[mapping.Value] = positions[mapping.Key.positionIndex];
-            }
-
-            // Attributes
-            mesh.attributes = new Attributes();
-            foreach (var pair in attributes)
-            {
-                mesh.attributes.Add(pair.Key, pair.Value.CreateNew(perVertexMap.Count));
-                IAttributeList destAttributes = mesh.attributes[pair.Key];
-                IAttributeList fromAttributes = attributes[pair.Key];
-                foreach (var mapping in perVertexMap)
-                {
-                    destAttributes[mapping.Value] = fromAttributes[mapping.Key.attributeIndex];
-                }
-            }
-
-            mesh.triangles = triangles.ToArray();
-
-            return mesh;
-        }
 
         public bool AreNodesSiblings(int nodeIndexA, int nodeIndexB)
         {
@@ -464,21 +276,18 @@ namespace Nanomesh
                     {
                         facesAttached++;
 
-                        foreach (var attr in attributes)
+                        if (attributes != null)
                         {
-                            if (attrAtB != -1 && attrAtB != nodes[relativeOfA].attribute)
+                            for (int i = 0; i < attributes.CountPerAttribute; i++)
                             {
-                                if (!attr.Value[attrAtB].Equals(attr.Value[nodes[relativeOfA].attribute]))
+                                if (attrAtB != -1 && !attributes.Equals(attrAtB, nodes[relativeOfA].attribute, i))
                                 {
-                                    edgeWeight += attr.Value.Weight;
+                                    edgeWeight += attributeDefinitions[i].weight;
                                 }
-                            }
 
-                            if (attrAtA != -1 && attrAtA != nodes[siblingOfA].attribute)
-                            {
-                                if (!attr.Value[attrAtA].Equals(attr.Value[nodes[siblingOfA].attribute]))
+                                if (attrAtA != -1 && !attributes.Equals(attrAtA, nodes[siblingOfA].attribute, i))
                                 {
-                                    edgeWeight += attr.Value.Weight;
+                                    edgeWeight += attributeDefinitions[i].weight;
                                 }
                             }
                         }
@@ -489,7 +298,7 @@ namespace Nanomesh
                 }
             } while ((siblingOfA = nodes[siblingOfA].sibling) != nodeIndexA);
 
-            if (facesAttached < 3)
+            if (facesAttached < 2) // Border !
             {
                 edgeWeight += 100;
             }
@@ -539,73 +348,70 @@ namespace Nanomesh
 
         public void Compact()
         {
-            int validNodesCount = 0;
-            for (int i = 0; i < nodes.Length; i++)
+            // Rebuild nodes array with only valid nodes
             {
-                if (!nodes[i].IsRemoved)
+                int validNodesCount = 0;
+                for (int i = 0; i < nodes.Length; i++)
+                    if (!nodes[i].IsRemoved)
+                        validNodesCount++;
+
+                Node[] newNodes = new Node[validNodesCount];
+                int k = 0;
+                Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
+                for (int i = 0; i < nodes.Length; i++)
                 {
-                    validNodesCount++;
+                    if (!nodes[i].IsRemoved)
+                    {
+                        newNodes[k] = nodes[i];
+                        oldToNewNodeIndex.Add(i, k);
+                        k++;
+                    }
                 }
-            }
-
-            int validPosCount = 0;
-            for (int i = 0; i < positions.Length; i++)
-            {
-                if (PositionToNode[i] >= 0)
+                for (int i = 0; i < newNodes.Length; i++)
                 {
-                    validPosCount++;
+                    newNodes[i].relative = oldToNewNodeIndex[newNodes[i].relative];
+                    newNodes[i].sibling = oldToNewNodeIndex[newNodes[i].sibling];
                 }
+                nodes = newNodes;
             }
 
-            Node[] newNodes = new Node[validNodesCount];
-            Dictionary<int, int> oldToNewNodeIndex = new Dictionary<int, int>();
-            for (int i = 0; i < nodes.Length; i++)
+            // Remap positions
             {
-                if (!nodes[i].IsRemoved)
+                Dictionary<int, int> oldToNewPosIndex = new Dictionary<int, int>();
+                for (int i = 0; i < nodes.Length; i++)
                 {
-                    newNodes[oldToNewNodeIndex.Count] = nodes[i];
-                    oldToNewNodeIndex.Add(i, oldToNewNodeIndex.Count);
-                }
-            }
+                    if (!oldToNewPosIndex.ContainsKey(nodes[i].position))
+                        oldToNewPosIndex.Add(nodes[i].position, oldToNewPosIndex.Count);
 
-            Vector3[] newPositions = new Vector3[validPosCount];
-            Dictionary<int, int> oldToNewPosIndex = new Dictionary<int, int>();
-            for (int i = 0; i < positions.Length; i++)
-            {
-                if (PositionToNode[i] >= 0)
+                    nodes[i].position = oldToNewPosIndex[nodes[i].position];
+                }
+                Vector3[] newPositions = new Vector3[oldToNewPosIndex.Count];
+                foreach (var oldToNewPos in oldToNewPosIndex)
                 {
-                    newPositions[oldToNewPosIndex.Count] = positions[i];
-                    oldToNewPosIndex.Add(i, oldToNewPosIndex.Count);
+                    newPositions[oldToNewPos.Value] = positions[oldToNewPos.Key];
                 }
+                positions = newPositions;
             }
 
-            /*
-            Attribute[] newAttributes = new Attribute[validAttrCount];
-            Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
-            for (int i = 0; i < attributes.Length; i++)
+            // Remap attributes
             {
-                if (AttributeToNode[i] >= 0)
+                Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
+                for (int i = 0; i < nodes.Length; i++)
                 {
-                    newAttributes[oldToNewAttrIndex.Count] = attributes[i];
-                    oldToNewAttrIndex.Add(i, oldToNewAttrIndex.Count);
+                    if (!oldToNewAttrIndex.ContainsKey(nodes[i].attribute))
+                        oldToNewAttrIndex.Add(nodes[i].attribute, oldToNewAttrIndex.Count);
+
+                    nodes[i].attribute = oldToNewAttrIndex[nodes[i].attribute];
                 }
+                MetaAttributeList newAttributes = attributes.CreateNew(oldToNewAttrIndex.Count);
+                foreach (var oldToNewAttr in oldToNewAttrIndex)
+                {
+                    newAttributes[oldToNewAttr.Value] = attributes[oldToNewAttr.Key];
+                }
+                attributes = newAttributes;
             }
 
-            for (int i = 0; i < newNodes.Length; i++)
-            {
-                newNodes[i].relative = oldToNewNodeIndex[newNodes[i].relative];
-                newNodes[i].sibling = oldToNewNodeIndex[newNodes[i].sibling];
-                newNodes[i].position = oldToNewPosIndex[newNodes[i].position];
-                newNodes[i].attribute = oldToNewAttrIndex[newNodes[i].attribute];
-            }
-            */
-
-            nodes = newNodes;
-            positions = newPositions;
-
-            // Invalidate mapping
-            _positionToNode = null;
-            //_attributeToNode = null;
+            _positionToNode = null; // Invalid now
         }
 
         public void MergePositions(double tolerance = 0.01)
@@ -724,6 +530,87 @@ namespace Nanomesh
             }
 
             return edges;
+        }
+
+        public SharedMesh ToSharedMesh()
+        {
+            Compact();
+
+            SharedMesh mesh = new SharedMesh();
+
+            var triangles = new List<int>();
+            var browsedNodes = new HashSet<int>();
+
+            Group[] newGroups = new Group[groups?.Length ?? 0];
+            mesh.groups = newGroups;
+            mesh.attributeDefinitions = attributeDefinitions;
+
+            int currentGroup = 0;
+            int indicesInGroup = 0;
+
+            var perVertexMap = new Dictionary<(int, int), int>();
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                if (newGroups.Length > 0 && groups[currentGroup].firstIndex == i)
+                {
+                    if (currentGroup > 0)
+                    {
+                        newGroups[currentGroup - 1].indexCount = indicesInGroup;
+                        newGroups[currentGroup].firstIndex = indicesInGroup + newGroups[currentGroup - 1].firstIndex;
+                    }
+                    indicesInGroup = 0;
+                    if (currentGroup < groups.Length - 1)
+                    {
+                        currentGroup++;
+                    }
+                }
+
+                indicesInGroup++;
+
+                if (browsedNodes.Contains(i))
+                {
+                    continue;
+                }
+
+                // Only works if all elements are triangles
+                int relative = i;
+                do
+                {
+                    if (browsedNodes.Add(relative))
+                    {
+                        var key = (nodes[relative].position, nodes[relative].attribute);
+                        perVertexMap.TryAdd(key, perVertexMap.Count);
+                        triangles.Add(perVertexMap[key]);
+                    }
+                } while ((relative = nodes[relative].relative) != i);
+            }
+
+            if (newGroups.Length > 0)
+            {
+                newGroups[currentGroup].indexCount = indicesInGroup;
+            }
+
+            // Positions
+            mesh.positions = new Vector3[perVertexMap.Count];
+            foreach (var mapping in perVertexMap)
+            {
+                mesh.positions[mapping.Value] = positions[mapping.Key.Item1];
+            }
+
+            // Attributes
+            if (attributes != null)
+            {
+                mesh.attributes = attributes.CreateNew(perVertexMap.Count);
+                foreach (var mapping in perVertexMap)
+                {
+                    mesh.attributes[mapping.Value] = attributes[mapping.Key.Item2];
+                }
+            }
+
+            mesh.triangles = triangles.ToArray();
+
+            return mesh;
         }
     }
 

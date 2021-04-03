@@ -81,7 +81,7 @@ namespace Nanomesh
                 faces = faces2;
             }
 
-            mesh.vertices = vertList.ToArray();
+            mesh.positions = vertList.ToArray();
 
             List<int> triList = new List<int>();
             for (int i = 0; i < faces.Count; i++)

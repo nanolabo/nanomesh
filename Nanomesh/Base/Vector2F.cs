@@ -2,7 +2,7 @@ using System;
 
 namespace Nanomesh
 {
-    public readonly struct Vector2F : IEquatable<Vector2F>
+    public readonly struct Vector2F : IEquatable<Vector2F>, INumeric<Vector2F>
     {
         public readonly float x;
         public readonly float y;
@@ -224,6 +224,10 @@ namespace Nanomesh
         /// <param name="rhs"></param>
         /// <returns></returns>
         public static Vector2F Max(Vector2F lhs, Vector2F rhs) { return new Vector2F(MathF.Max(lhs.x, rhs.x), MathF.Max(lhs.y, rhs.y)); }
+
+        public Vector2F Multiply(double factor) => this * factor;
+
+        public Vector2F Sum(Vector2F other) => this + other;
 
         /// <summary>
         /// Adds two vectors.

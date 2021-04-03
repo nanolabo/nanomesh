@@ -97,33 +97,54 @@ namespace Nanomesh
             }
 
             mesh.triangles = triangles.ToArray();
-            mesh.attributes = new Attributes();
 
-            mesh.vertices = new Vector3[vertexData.Count];
+            mesh.positions = new Vector3[vertexData.Count];
 
             foreach (KeyValuePair<ObjVertexData, int> pair in vertexData)
             {
-                mesh.vertices[pair.Value] = positions[pair.Key.position];
+                mesh.positions[pair.Value] = positions[pair.Key.position];
             }
 
             if (uvs.Count > 0)
             {
-                Vector2F[] muvs = new Vector2F[vertexData.Count];
-                foreach (var pair in vertexData)
+                if (normals.Count > 0)
                 {
-                    muvs[pair.Value] = uvs[pair.Key.uv];
+                    var attr = new MetaAttributeList<Vector3F, Vector2F>(vertexData.Count);
+                    foreach (var pair in vertexData)
+                    {
+                        attr.Set(new MetaAttribute<Vector3F, Vector2F>(normals[pair.Key.normal], uvs[pair.Key.uv]), pair.Value);
+                    }
+                    mesh.attributes = attr;
+                    mesh.attributeDefinitions = new[] { new AttributeDefinition(AttributeType.Normals), new AttributeDefinition(AttributeType.UVs) };
                 }
-                mesh.attributes.Add(AttributeType.UVs, new Vector2FList(muvs));
+                else
+                {
+                    var attr = new MetaAttributeList<Vector2F>(vertexData.Count);
+                    foreach (var pair in vertexData)
+                    {
+                        attr.Set(new MetaAttribute<Vector2F>(uvs[pair.Key.uv]), pair.Value);
+                    }
+                    mesh.attributes = attr;
+                    mesh.attributeDefinitions = new[] { new AttributeDefinition(AttributeType.UVs) };
+                }
             }
-
-            if (normals.Count > 0)
+            else
             {
-                Vector3F[] mnormals = new Vector3F[vertexData.Count];
-                foreach (var pair in vertexData)
+                if (normals.Count > 0)
                 {
-                    mnormals[pair.Value] = normals[pair.Key.normal];
+                    var attr = new MetaAttributeList<Vector3F>(vertexData.Count);
+                    foreach (var pair in vertexData)
+                    {
+                        attr.Set(new MetaAttribute<Vector3F>(normals[pair.Key.normal]), pair.Value);
+                    }
+                    mesh.attributes = attr;
+                    mesh.attributeDefinitions = new[] { new AttributeDefinition(AttributeType.Normals) };
                 }
-                mesh.attributes.Add(AttributeType.Normals, new Vector3FList(mnormals));
+                else
+                {
+                    // No attributes :o)
+                    mesh.attributeDefinitions = new AttributeDefinition[0];
+                }
             }
 
             return mesh;

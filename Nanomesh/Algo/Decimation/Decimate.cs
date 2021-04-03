@@ -415,19 +415,14 @@ namespace Nanomesh
                 {
                     if (_mesh.nodes[relativeOfA].position == posB)
                     {
-                        if (procAttributes.Contains(_mesh.nodes[relativeOfA].attribute))
+                        if (!procAttributes.Add(relativeOfA))
                             continue;
 
-                        if (procAttributes.Contains(_mesh.nodes[siblingOfA].attribute))
+                        if (!procAttributes.Add(siblingOfA))
                             continue;
 
-                        foreach (var attr in _mesh.attributes)
-                        {
-                            attr.Value.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
-                        }
-
-                        procAttributes.Add(_mesh.nodes[siblingOfA].attribute);
-                        procAttributes.Add(_mesh.nodes[relativeOfA].attribute);
+                        if (_mesh.attributes != null)
+                            _mesh.attributes.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
 
                         break;
                     }
@@ -438,22 +433,22 @@ namespace Nanomesh
 
         private Dictionary<int, int> _uniqueAttributes = new Dictionary<int, int>();
 
-        private void MergeAttributes(int nodeIndex)
-        {
-            _uniqueAttributes.Clear();
+        //private void MergeAttributes(int nodeIndex)
+        //{
+        //    _uniqueAttributes.Clear();
 
-            int sibling = nodeIndex;
-            do
-            {
-                _uniqueAttributes.TryAdd(_mesh.nodes[sibling].attribute, _mesh.nodes[sibling].attribute);
-            } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+        //    int sibling = nodeIndex;
+        //    do
+        //    {
+        //        _uniqueAttributes.TryAdd(sibling, sibling);
+        //    } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
-            sibling = nodeIndex;
-            do
-            {
-                _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.nodes[sibling].attribute];
-            } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
-        }
+        //    sibling = nodeIndex;
+        //    do
+        //    {
+        //        _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.nodes[sibling].attribute];
+        //    } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+        //}
 
         private readonly HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>();
 
@@ -514,7 +509,7 @@ namespace Nanomesh
 
             _mesh.positions[posA] = pair.result;
 
-            MergeAttributes(validNode);
+            //MergeAttributes(validNode);
 
             CalculateQuadric(posA);
 
