@@ -31,7 +31,7 @@ namespace Nanomesh.Sandbox
 
             //mesh.MergePositions(0.001);
 
-            Console.WriteLine("Polycount : " + mesh.FaceCount);
+            //Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
@@ -47,10 +47,12 @@ namespace Nanomesh.Sandbox
 
             //mesh.Compact();
 
-            Console.WriteLine("Polycount : " + mesh.FaceCount);
+            //Console.WriteLine("Polycount : " + mesh.FaceCount);
+
+            sharedMesh = mesh.ToSharedMesh();
 
             Directory.CreateDirectory(@"../../../../Nanomesh.Tests/output/");
-            ExporterOBJ.SaveToFile(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
+            ExporterOBJ.SaveToFile(sharedMesh, @"../../../../Nanomesh.Tests/output/decimation.obj");
         }
 
         static void Benchmark()

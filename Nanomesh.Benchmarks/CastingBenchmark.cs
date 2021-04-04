@@ -34,7 +34,11 @@ namespace Nanomesh.Benchmarks
 
             public K GetWithPosition<K>(int index) where K : unmanaged
             {
-                fixed (void* b = &this) { return ((K*)b)[index]; };
+                fixed (void* v = &this) {
+                    byte* b = (byte*)v;
+                    b += Positions[index];
+                    return ((K*)b)[0];
+                };
             }
 
             public K GetWithSwitch<K>(int index) where K : unmanaged
@@ -42,9 +46,9 @@ namespace Nanomesh.Benchmarks
                 switch (index)
                 {
                     case 0:
-                        fixed (T0* b = &attr0) { return ((K*)b)[index]; };
+                        fixed (T0* b = &attr0) { return ((K*)b)[0]; };
                     case 1:
-                        fixed (T1* b = &attr1) { return ((K*)b)[index]; };
+                        fixed (T1* b = &attr1) { return ((K*)b)[0]; };
                     default:
                         throw new System.Exception();
                 }

@@ -2,7 +2,7 @@ using System;
 
 namespace Nanomesh
 {
-    public readonly struct Vector2 : IEquatable<Vector2>
+    public readonly struct Vector2 : IEquatable<Vector2>, IInterpolable<Vector2>
     {
         public readonly double x;
         public readonly double y;
@@ -225,6 +225,8 @@ namespace Nanomesh
         /// <param name="rhs"></param>
         /// <returns></returns>
         public static Vector2 Max(Vector2 lhs, Vector2 rhs) { return new Vector2(Math.Max(lhs.x, rhs.x), Math.Max(lhs.y, rhs.y)); }
+
+        public Vector2 Interpolate(Vector2 other, double ratio) => this * ratio + other * (1 - ratio);
 
         /// <summary>
         /// Adds two vectors.

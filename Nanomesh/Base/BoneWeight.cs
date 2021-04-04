@@ -2,7 +2,7 @@
 
 namespace Nanomesh
 {
-    public readonly struct BoneWeight : IEquatable<BoneWeight>
+    public readonly struct BoneWeight : IEquatable<BoneWeight>, IInterpolable<BoneWeight>
     {
         public readonly int index0;
         public readonly int index1;
@@ -76,6 +76,19 @@ namespace Nanomesh
                 hash = hash * 31 + weight3.GetHashCode();
                 return hash;
             }
+        }
+
+        public BoneWeight Interpolate(BoneWeight other, double ratio)
+        {
+            return new BoneWeight(
+                ratio < 0.5f ? index0 : other.index0,
+                ratio < 0.5f ? index1 : other.index1,
+                ratio < 0.5f ? index2 : other.index2,
+                ratio < 0.5f ? index3 : other.index3,
+                (float)(ratio * weight0 + (1 - ratio) * other.weight0),
+                (float)(ratio * weight1 + (1 - ratio) * other.weight1),
+                (float)(ratio * weight2 + (1 - ratio) * other.weight2),
+                (float)(ratio * weight3 + (1 - ratio) * other.weight3));
         }
     }
 }

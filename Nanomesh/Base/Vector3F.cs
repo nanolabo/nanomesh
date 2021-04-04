@@ -2,7 +2,7 @@
 
 namespace Nanomesh
 {
-    public readonly struct Vector3F : IEquatable<Vector3F>, INumeric<Vector3F>
+    public readonly struct Vector3F : IEquatable<Vector3F>, IInterpolable<Vector3F>
     {
         public readonly float x;
         public readonly float y;
@@ -165,8 +165,6 @@ namespace Nanomesh
             return $"{x}, {y}, {z}";
         }
 
-        public Vector3F Multiply(double factor) => factor * this;
-
-        public Vector3F Sum(Vector3F other) => this + other;
+        public Vector3F Interpolate(Vector3F other, double ratio) => ratio * this + (1 - ratio) * other;
     }
 }

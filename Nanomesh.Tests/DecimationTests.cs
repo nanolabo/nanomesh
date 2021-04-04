@@ -13,7 +13,7 @@ namespace Nanomesh.Tests
         [Test]
         public void Monkey()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/monkey.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/monkey.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
@@ -29,7 +29,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Trisoup()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/trisoup.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/trisoup.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
@@ -46,7 +46,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Cube()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/cube.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/cube.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
@@ -63,7 +63,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Plane()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/plane.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/plane.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
@@ -82,7 +82,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Star()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/star.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/star.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
@@ -99,7 +99,7 @@ namespace Nanomesh.Tests
         [Category("Import")]
         public void Hourglass()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(ImporterOBJ.Read(@"../../../test-models/hourglass.obj"));
+            ConnectedMesh mesh = ImporterOBJ.Read(@"../../../test-models/hourglass.obj").ToConnectedMesh();
 
             Assert.IsTrue(mesh.Check());
 
