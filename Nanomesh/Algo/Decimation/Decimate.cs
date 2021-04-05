@@ -421,9 +421,30 @@ namespace Nanomesh
                         if (!procAttributes.Add(siblingOfA))
                             continue;
 
-                        if (_mesh.attributes != null)
-                            _mesh.attributes.Interpolate(_mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
+                        var attributeA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute];
+                        var attributeB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute];
 
+                        if (_mesh.attributes != null)
+                        {
+                            for (int i = 0; i < _mesh.attributeDefinitions.Length; i++)
+                            {
+                                if (_mesh.attributeDefinitions[i].type == AttributeType.Normals)
+                                {
+
+                                    Vector3F normalA = attributeA.Get<Vector3F>(i);
+                                    Vector3F normalB = attributeB.Get<Vector3F>(i);
+
+                                    float dot = Vector3F.Dot(normalA, normalB);
+
+                                    float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
+                                    if (dot < MergeNormalsThreshold)
+                                    {
+                                        continue;
+                                    }
+                                }
+                                _mesh.attributes.Interpolate(i, _mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
+                            }
+                        }
                         break;
                     }
                 } while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);

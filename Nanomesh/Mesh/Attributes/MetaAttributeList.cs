@@ -21,7 +21,7 @@ namespace Nanomesh
 
         public abstract bool Equals(int indexA, int indexB, int attribute);
 
-        public abstract void Interpolate(int indexA, int indexB, double ratio);
+        public abstract void Interpolate(int attribute, int indexA, int indexB, double ratio);
     }
 
     public class EmptyMetaAttributeList : MetaAttributeList
@@ -46,7 +46,7 @@ namespace Nanomesh
             return false;
         }
 
-        public override void Interpolate(int indexA, int indexB, double ratio)
+        public override void Interpolate(int attribute, int indexA, int indexB, double ratio)
         {
             throw new System.Exception();
         }
@@ -94,7 +94,7 @@ namespace Nanomesh
             return _attributes[indexA].GetPtr(attribute) == _attributes[indexB].GetPtr(attribute);
         }
 
-        public override void Interpolate(int indexA, int indexB, double ratio)
+        public override void Interpolate(int attribute, int indexA, int indexB, double ratio)
         {
             _attributes[indexA].attr0 = _attributes[indexA].Get<T0>(0).Interpolate(_attributes[indexB].Get<T0>(0), ratio);
             _attributes[indexB].attr0 = _attributes[indexA].attr0;
@@ -147,13 +147,19 @@ namespace Nanomesh
             return _attributes[indexA].GetPtr(attribute) == _attributes[indexB].GetPtr(attribute);
         }
 
-        public override void Interpolate(int indexA, int indexB, double ratio)
+        public override void Interpolate(int attribute, int indexA, int indexB, double ratio)
         {
-            _attributes[indexA].attr0 = _attributes[indexA].Get<T0>(0).Interpolate(_attributes[indexB].Get<T0>(0), ratio);
-            _attributes[indexB].attr0 = _attributes[indexA].attr0;
-
-            _attributes[indexA].attr1 = _attributes[indexA].Get<T1>(1).Interpolate(_attributes[indexB].Get<T1>(1), ratio);
-            _attributes[indexB].attr1 = _attributes[indexA].attr1;
+            switch (attribute)
+            {
+                case 0:
+                    _attributes[indexA].attr0 = _attributes[indexA].Get<T0>(0).Interpolate(_attributes[indexB].Get<T0>(0), ratio);
+                    _attributes[indexB].attr0 = _attributes[indexA].attr0;
+                    break;
+                case 1:
+                    _attributes[indexA].attr1 = _attributes[indexA].Get<T1>(1).Interpolate(_attributes[indexB].Get<T1>(1), ratio);
+                    _attributes[indexB].attr1 = _attributes[indexA].attr1;
+                    break;
+            }
         }
 
         public override MetaAttributeList AddAttributeType<T>()
@@ -204,16 +210,23 @@ namespace Nanomesh
             return _attributes[indexA].GetPtr(attribute) == _attributes[indexB].GetPtr(attribute);
         }
 
-        public override void Interpolate(int indexA, int indexB, double ratio)
+        public override void Interpolate(int attribute, int indexA, int indexB, double ratio)
         {
-            _attributes[indexA].attr0 = _attributes[indexA].Get<T0>(0).Interpolate(_attributes[indexB].Get<T0>(0), ratio);
-            _attributes[indexB].attr0 = _attributes[indexA].attr0;
-
-            _attributes[indexA].attr1 = _attributes[indexA].Get<T1>(1).Interpolate(_attributes[indexB].Get<T1>(1), ratio);
-            _attributes[indexB].attr1 = _attributes[indexA].attr1;
-
-            _attributes[indexA].attr2 = _attributes[indexA].Get<T2>(2).Interpolate(_attributes[indexB].Get<T2>(2), ratio);
-            _attributes[indexB].attr2 = _attributes[indexA].attr2;
+            switch (attribute)
+            {
+                case 0:
+                    _attributes[indexA].attr0 = _attributes[indexA].Get<T0>(0).Interpolate(_attributes[indexB].Get<T0>(0), ratio);
+                    _attributes[indexB].attr0 = _attributes[indexA].attr0;
+                    break;
+                case 1:
+                    _attributes[indexA].attr1 = _attributes[indexA].Get<T1>(1).Interpolate(_attributes[indexB].Get<T1>(1), ratio);
+                    _attributes[indexB].attr1 = _attributes[indexA].attr1;
+                    break;
+                case 2:
+                    _attributes[indexA].attr2 = _attributes[indexA].Get<T2>(2).Interpolate(_attributes[indexB].Get<T2>(2), ratio);
+                    _attributes[indexB].attr2 = _attributes[indexA].attr2;
+                    break;
+            }
         }
 
         public override MetaAttributeList AddAttributeType<T>()
