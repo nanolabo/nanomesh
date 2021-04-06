@@ -10,5 +10,11 @@
             weight = 1;
             this.type = type;
         }
+
+        public AttributeDefinition(AttributeType type, double weight)
+        {
+            this.weight = weight;
+            this.type = type;
+        }
     }
 }
