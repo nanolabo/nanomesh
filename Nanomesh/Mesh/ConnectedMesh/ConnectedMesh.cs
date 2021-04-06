@@ -605,7 +605,7 @@ namespace Nanomesh
             }
 
             // Attributes
-            if (attributes != null)
+            if (attributes != null && attributeDefinitions.Length > 0)
             {
                 mesh.attributes = attributes.CreateNew(perVertexMap.Count);
                 foreach (var mapping in perVertexMap)

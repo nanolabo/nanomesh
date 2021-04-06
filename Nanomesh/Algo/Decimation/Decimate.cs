@@ -421,16 +421,15 @@ namespace Nanomesh
                         if (!procAttributes.Add(siblingOfA))
                             continue;
 
-                        var attributeA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute];
-                        var attributeB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute];
-
-                        if (_mesh.attributes != null)
+                        if (_mesh.attributes != null && _mesh.attributeDefinitions.Length > 0)
                         {
+                            var attributeA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute];
+                            var attributeB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute];
+
                             for (int i = 0; i < _mesh.attributeDefinitions.Length; i++)
                             {
                                 if (_mesh.attributeDefinitions[i].type == AttributeType.Normals)
                                 {
-
                                     Vector3F normalA = attributeA.Get<Vector3F>(i);
                                     Vector3F normalB = attributeB.Get<Vector3F>(i);
 
