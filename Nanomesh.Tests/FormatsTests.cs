@@ -15,7 +15,7 @@ namespace Nanomesh.Tests
         [Category("Export")]
         public void ExportOBJ()
         {
-            ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
+            ConnectedMesh mesh = PrimitiveUtils.CreatePlane(3, 3).ToConnectedMesh();
 
             mesh.Check();
 

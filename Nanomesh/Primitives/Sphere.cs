@@ -72,7 +72,7 @@
             }
             #endregion
 
-            mesh.vertices = vertices;
+            mesh.positions = vertices;
             mesh.triangles = triangles;
 
             return mesh;

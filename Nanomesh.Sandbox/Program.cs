@@ -18,26 +18,26 @@ namespace Nanomesh.Sandbox
 
         static void DecimateFile()
         {
-            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/brakes.obj");
+            SharedMesh sharedMesh = ImporterOBJ.Read(@"../../../../Nanomesh.Tests/test-models/buggy.obj");
             //sharedMesh.groups = new Group[3]
             //{
             //    new Group { firstIndex = 0, indexCount = 9000 },
             //    new Group { firstIndex = 9000, indexCount = 1000 },
             //    new Group { firstIndex = 10000, indexCount = sharedMesh.triangles.Length - 10000 }
             //};
-            ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
-            //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 8));
+            ConnectedMesh mesh = sharedMesh.ToConnectedMesh();
+            //ConnectedMesh mesh = PrimitiveUtils.CreateIcoSphere(1, 6).ToConnectedMesh();
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
 
-            mesh.MergePositions(0.001);
+            //mesh.MergePositions(0.001);
 
-            Console.WriteLine("Polycount : " + mesh.FaceCount);
+            //Console.WriteLine("Polycount : " + mesh.FaceCount);
 
             Profiling.Start("Decimating");
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
             decimateModifier.Initialize(mesh);
-            decimateModifier.DecimateToRatio(0.2f);
+            decimateModifier.DecimateToRatio(0.5f);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
@@ -47,16 +47,18 @@ namespace Nanomesh.Sandbox
 
             //mesh.Compact();
 
-            Console.WriteLine("Polycount : " + mesh.FaceCount);
+            //Console.WriteLine("Polycount : " + mesh.FaceCount);
+
+            sharedMesh = mesh.ToSharedMesh();
 
             Directory.CreateDirectory(@"../../../../Nanomesh.Tests/output/");
-            ExporterOBJ.SaveToFile(mesh.ToSharedMesh(), @"../../../../Nanomesh.Tests/output/decimation.obj");
+            ExporterOBJ.SaveToFile(sharedMesh, @"../../../../Nanomesh.Tests/output/decimation.obj");
         }
 
         static void Benchmark()
         {
             SharedMesh sharedMesh = PrimitiveUtils.CreateIcoSphere(1, 7);
-            ConnectedMesh mesh = ConnectedMesh.Build(sharedMesh);
+            ConnectedMesh mesh = sharedMesh.ToConnectedMesh();
 
             NormalsModifier normals = new NormalsModifier();
             normals.Run(mesh, 30);

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Nanomesh
 {
-    public readonly struct BoneWeight : IEquatable<BoneWeight>
+    public readonly struct BoneWeight : IEquatable<BoneWeight>, IInterpolable<BoneWeight>
     {
         public readonly int index0;
         public readonly int index1;
@@ -76,6 +78,62 @@ namespace Nanomesh
                 hash = hash * 31 + weight3.GetHashCode();
                 return hash;
             }
+        }
+
+        public unsafe BoneWeight Interpolate(BoneWeight other, double ratio)
+        {
+            BoneWeight boneWeightA = this;
+            BoneWeight boneWeightB = other;
+
+            Dictionary<int, float> newBoneWeight = new Dictionary<int, float>();
+
+            // Map weights and indices
+            for (int i = 0; i < 4; i++)
+            {
+                newBoneWeight.TryAdd(boneWeightA.GetIndex(i), 0);
+                newBoneWeight.TryAdd(boneWeightB.GetIndex(i), 0);
+                newBoneWeight[boneWeightA.GetIndex(i)] += (float)((1 - ratio) * boneWeightA.GetWeight(i));
+                newBoneWeight[boneWeightB.GetIndex(i)] += (float)(ratio * boneWeightB.GetWeight(i));
+            }
+
+            int* newIndices = stackalloc int[4];
+            float* newWeights = stackalloc float[4];
+
+            // Order from biggest to smallest weight, and drop bones above 4th
+            float totalWeight = 0;
+            int k = 0;
+            foreach (var boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
+            {
+                newIndices[k] = boneWeightN.Key;
+                newWeights[k] = boneWeightN.Value;
+                totalWeight += boneWeightN.Value;
+                if (k == 3)
+                    break;
+                k++;
+            }
+
+            // Normalize
+            if (totalWeight > 0)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    newWeights[k] /= totalWeight;
+                }
+            }
+
+            return new BoneWeight(
+                newIndices[0], newIndices[1], newIndices[2], newIndices[3],
+				newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
+
+            //return new BoneWeight(
+            //    ratio < 0.5f ? index0 : other.index0,
+            //    ratio < 0.5f ? index1 : other.index1,
+            //    ratio < 0.5f ? index2 : other.index2,
+            //    ratio < 0.5f ? index3 : other.index3,
+            //    (float)(ratio * weight0 + (1 - ratio) * other.weight0),
+            //    (float)(ratio * weight1 + (1 - ratio) * other.weight1),
+            //    (float)(ratio * weight2 + (1 - ratio) * other.weight2),
+            //    (float)(ratio * weight3 + (1 - ratio) * other.weight3));
         }
     }
 }

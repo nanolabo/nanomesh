@@ -2,10 +2,10 @@ using System;
 
 namespace Nanomesh
 {
-    public struct Vector2F : IEquatable<Vector2F>
+    public readonly struct Vector2F : IEquatable<Vector2F>, IInterpolable<Vector2F>
     {
-        public float x;
-        public float y;
+        public readonly float x;
+        public readonly float y;
 
         // Access the /x/ or /y/ component using [0] or [1] respectively.
         public float this[int index]
@@ -16,17 +16,6 @@ namespace Nanomesh
                 {
                     case 0: return x;
                     case 1: return y;
-                    default:
-                        throw new IndexOutOfRangeException("Invalid Vector2 index!");
-                }
-            }
-
-            set
-            {
-                switch (index)
-                {
-                    case 0: x = value; break;
-                    case 1: y = value; break;
                     default:
                         throw new IndexOutOfRangeException("Invalid Vector2 index!");
                 }
@@ -78,33 +67,31 @@ namespace Nanomesh
         // Multiplies two vectors component-wise.
         public static Vector2F Scale(Vector2F a, Vector2F b) { return new Vector2F(a.x * b.x, a.y * b.y); }
 
-        // Multiplies every component of this vector by the same component of /scale/.
-        public void Scale(Vector2F scale) { x *= scale.x; y *= scale.y; }
-
-        // Makes this vector have a ::ref::magnitude of 1.
-        public void Normalize()
+        public static Vector2F Normalize(in Vector2F value)
         {
-            float mag = magnitude;
+            float mag = Magnitude(in value);
             if (mag > kEpsilon)
             {
-                this = this / mag;
+                return value / mag;
             }
             else
             {
-                this = Zero;
+                return Zero;
             }
         }
 
-        // Returns this vector with a ::ref::magnitude of 1 (RO).
-        public Vector2F normalized
-        {
-            get
-            {
-                Vector2F v = new Vector2F(x, y);
-                v.Normalize();
-                return v;
-            }
-        }
+        public Vector2F Normalize() => Normalize(in this);
+
+        public static float SqrMagnitude(in Vector2F a) => a.x * a.x + a.y * a.y;
+
+        /// <summary>
+        /// Returns the squared length of this vector (RO).
+        /// </summary>
+        public float SqrMagnitude() => SqrMagnitude(in this);
+
+        public static float Magnitude(in Vector2F vector) => (float)Math.Sqrt(SqrMagnitude(in vector));
+
+        public float Magnitude() => Magnitude(this);
 
         // used to allow Vector2s to be used as keys in hash tables
         public override int GetHashCode()
@@ -135,7 +122,6 @@ namespace Nanomesh
             return new Vector2F(factor * inNormal.x + inDirection.x, factor * inNormal.y + inDirection.y);
         }
 
-
         public static Vector2F Perpendicular(Vector2F inDirection)
         {
             return new Vector2F(-inDirection.y, inDirection.x);
@@ -150,16 +136,6 @@ namespace Nanomesh
         public static float Dot(Vector2F lhs, Vector2F rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
 
         /// <summary>
-        /// Returns the length of this vector (RO).
-        /// </summary>
-        public float magnitude => MathF.Sqrt(x * x + y * y);
-
-        /// <summary>
-        /// Returns the squared length of this vector (RO).
-        /// </summary>
-        public float sqrMagnitude => x * x + y * y;
-
-        /// <summary>
         /// Returns the angle in radians between /from/ and /to/.
         /// </summary>
         /// <param name="from"></param>
@@ -168,7 +144,7 @@ namespace Nanomesh
         public static float AngleRadians(Vector2F from, Vector2F to)
         {
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
-            float denominator = MathF.Sqrt(from.sqrMagnitude * to.sqrMagnitude);
+            float denominator = MathF.Sqrt(from.SqrMagnitude() * to.SqrMagnitude());
             if (denominator < kEpsilonNormalSqrt)
             {
                 return 0F;
@@ -217,7 +193,7 @@ namespace Nanomesh
         /// <returns></returns>
         public static Vector2F ClampMagnitude(Vector2F vector, float maxLength)
         {
-            float sqrMagnitude = vector.sqrMagnitude;
+            float sqrMagnitude = vector.SqrMagnitude();
             if (sqrMagnitude > maxLength * maxLength)
             {
                 float mag = MathF.Sqrt(sqrMagnitude);
@@ -232,10 +208,6 @@ namespace Nanomesh
             }
             return vector;
         }
-
-        public static float SqrMagnitude(Vector2F a) { return a.x * a.x + a.y * a.y; }
-
-        public float SqrMagnitude() { return x * x + y * y; }
 
         /// <summary>
         /// Returns a vector that is made from the smallest components of two vectors.
@@ -252,6 +224,8 @@ namespace Nanomesh
         /// <param name="rhs"></param>
         /// <returns></returns>
         public static Vector2F Max(Vector2F lhs, Vector2F rhs) { return new Vector2F(MathF.Max(lhs.x, rhs.x), MathF.Max(lhs.y, rhs.y)); }
+
+        public Vector2F Interpolate(Vector2F other, double ratio) => this * ratio + other * (1 - ratio);
 
         /// <summary>
         /// Adds two vectors.

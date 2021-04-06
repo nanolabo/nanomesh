@@ -36,10 +36,14 @@ namespace Nanomesh
 
             Dictionary<ObjVertexData, int> vertexData = new Dictionary<ObjVertexData, int>();
 
+            Span<ObjVertexData> datas = stackalloc ObjVertexData[10];
+
             string line;
 
-            while ((line = reader.ReadLine()) != null)
+            while (!reader.EndOfStream)
             {
+                line = reader.ReadLine();
+
                 brokenString = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
                 if (brokenString.Length == 0)
@@ -50,7 +54,6 @@ namespace Nanomesh
                 switch (brokenString[0])
                 {
                     case "f":
-                        ObjVertexData[] datas = new ObjVertexData[brokenString.Length - 1];
                         for (int x = 1; x < brokenString.Length; x++)
                         {
                             string[] split = brokenString[x].Split(_CHAR_SLASH);
@@ -80,6 +83,7 @@ namespace Nanomesh
                             triangles.Add(vertexData[datas[x - 1]]);
                             triangles.Add(vertexData[datas[x]]);
                         }
+
                         break;
 
                     case "v":
@@ -96,26 +100,45 @@ namespace Nanomesh
                 }
             }
 
-            mesh.vertices = new Vector3[vertexData.Count];
-            mesh.uvs = new Vector2F[vertexData.Count];
-            mesh.normals = new Vector3F[vertexData.Count];
+            mesh.triangles = triangles.ToArray();
+
+            mesh.positions = new Vector3[vertexData.Count];
 
             foreach (KeyValuePair<ObjVertexData, int> pair in vertexData)
             {
-                mesh.vertices[pair.Value] = positions[pair.Key.position];
+                mesh.positions[pair.Value] = positions[pair.Key.position];
+            }
 
-                if (uvs.Count > 0)
-                {
-                    mesh.uvs[pair.Value] = uvs[pair.Key.uv];
-                }
+            MetaAttributeList attributes = new EmptyMetaAttributeList(vertexData.Count);
+            List<AttributeDefinition> attributeDefinitions = new List<AttributeDefinition>();
 
-                if (normals.Count > 0)
+            if (normals.Count > 0)
+            {
+                int k = attributeDefinitions.Count;
+                attributeDefinitions.Add(new AttributeDefinition(AttributeType.Normals));
+                attributes = attributes.AddAttributeType<Vector3F>();
+                foreach (var pair in vertexData)
                 {
-                    mesh.normals[pair.Value] = normals[pair.Key.normal];
+                    attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector3F(normals[pair.Key.normal].x, normals[pair.Key.normal].y, normals[pair.Key.normal].z));
                 }
             }
 
-            mesh.triangles = triangles.ToArray();
+            if (uvs.Count > 0)
+            {
+                int k = attributeDefinitions.Count;
+                attributeDefinitions.Add(new AttributeDefinition(AttributeType.UVs));
+                attributes = attributes.AddAttributeType<Vector2F>();
+                for (int i = 0; i < uvs.Count; i++)
+                {
+                    foreach (var pair in vertexData)
+                    {
+                        attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector2F(uvs[pair.Key.uv].x, uvs[pair.Key.uv].y));
+                    }
+                }
+            }
+
+            mesh.attributeDefinitions = attributeDefinitions.ToArray();
+            mesh.attributes = attributes;
 
             return mesh;
         }

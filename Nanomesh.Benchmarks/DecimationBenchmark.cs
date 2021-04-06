@@ -19,7 +19,7 @@ namespace Nanomesh.Benchmarks
         [IterationSetup]
         public void IterationSetup()
         {
-            _mesh = ConnectedMesh.Build(PrimitiveUtils.CreateIcoSphere(1, 4));
+            _mesh = PrimitiveUtils.CreateIcoSphere(1, 4).ToConnectedMesh();
             _mesh.MergePositions(0.001);
         }
 

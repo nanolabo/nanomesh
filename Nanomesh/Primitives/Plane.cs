@@ -14,7 +14,7 @@
                     vertices[i] = new Vector3(x, y, 0);
                 }
             }
-            mesh.vertices = vertices;
+            mesh.positions = vertices;
 
             int[] triangles = new int[sizeX * sizeY * 6];
             for (int ti = 0, vi = 0, y = 0; y < sizeY; y++, vi++)

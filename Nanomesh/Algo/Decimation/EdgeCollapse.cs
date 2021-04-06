@@ -11,13 +11,13 @@ namespace Nanomesh
             public Vector3 result;
             public double error;
 
-            private EdgeTopology _topology;
+            private double _weight = -1;
 
-            public ref EdgeTopology Topology => ref _topology;
+            public ref double Weight => ref _weight;
 
-            public void SetTopology(EdgeTopology topology)
+            public void SetWeight(double weight)
             {
-                _topology = topology;
+                _weight = weight;
             }
 
             public EdgeCollapse(int posA, int posB)
@@ -88,7 +88,7 @@ namespace Nanomesh
 
             public override string ToString()
             {
-                return $"<A:{posA} B:{posB} error:{error} topology:{_topology}>";
+                return $"<A:{posA} B:{posB} error:{error} topology:{_weight}>";
             }
         }
     }
