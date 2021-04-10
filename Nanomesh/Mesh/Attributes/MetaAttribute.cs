@@ -1,18 +1,16 @@
-﻿namespace Nanomesh
+﻿using System;
+
+namespace Nanomesh
 {
     public unsafe interface IMetaAttribute
     {
-        public IMetaAttribute Set<K>(int index, K value) where K : unmanaged;
-        public K Get<K>(int index) where K : unmanaged;
-        public void* GetPtr(int index);
+        IMetaAttribute Set<K>(int index, K value) where K : unmanaged;
+        K Get<K>(int index) where K : unmanaged;
     }
 
     public unsafe struct MetaAttribute<T0> : IMetaAttribute
         where T0 : unmanaged
     {
-        public static int[] _Positions;
-        public static int[] Positions => _Positions ??= new[] { 0 };
-
         public T0 attr0;
 
         public MetaAttribute(T0 attr0)
@@ -22,29 +20,33 @@
 
         public unsafe K Get<K>(int index) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                return ((K*)b)[0];
-            };
-        }
-
-        public void* GetPtr(int index)
-        {
-            fixed (void* b = &this) { return b; };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public IMetaAttribute Set<K>(int index, K value) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                K* k = (K*)b;
-                k[0] = value;
-                return this;
-            };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 
@@ -52,9 +54,6 @@
         where T0 : unmanaged
         where T1 : unmanaged
     {
-        public static int[] _Positions;
-        public static int[] Positions => _Positions ??= new[] { 0, sizeof(T0) };
-
         public T0 attr0;
         public T1 attr1;
 
@@ -66,29 +65,46 @@
 
         public unsafe K Get<K>(int index) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                return ((K*)b)[0];
-            };
-        }
-
-        public unsafe void* GetPtr(int index)
-        {
-            fixed (void* b = &this) { return b; };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public IMetaAttribute Set<K>(int index, K value) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                K* k = (K*)b;
-                k[0] = value;
-                return this;
-            };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 
@@ -97,9 +113,6 @@
         where T1 : unmanaged
         where T2 : unmanaged
     {
-        public static int[] _Positions;
-        public static int[] Positions => _Positions ??= new[] { 0, sizeof(T0), sizeof(T1) };
-
         public T0 attr0;
         public T1 attr1;
         public T2 attr2;
@@ -113,29 +126,59 @@
 
         public unsafe K Get<K>(int index) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                return ((K*)b)[0];
-            };
-        }
-
-        public unsafe void* GetPtr(int index)
-        {
-            fixed (void* b = &this) { return b; };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 2:
+                    fixed (T2* k = &attr2)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         public IMetaAttribute Set<K>(int index, K value) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                K* k = (K*)b;
-                k[0] = value;
-                return this;
-            };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 2:
+                    fixed (T2* k = &attr2)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 
@@ -145,9 +188,6 @@
         where T2 : unmanaged
         where T3 : unmanaged
     {
-        public static int[] _Positions;
-        public static int[] Positions => _Positions ??= new[] { 0, sizeof(T0), sizeof(T1), sizeof(T2) };
-
         public T0 attr0;
         public T1 attr1;
         public T2 attr2;
@@ -163,29 +203,80 @@
 
         public unsafe K Get<K>(int index) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                return ((K*)b)[0];
-            };
-        }
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 2:
+                    fixed (T2* k = &attr2)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                case 3:
+                    fixed (T3* k = &attr3)
+                    {
+                        K* kk = (K*)k;
+                        return kk[0];
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
-        public unsafe void* GetPtr(int index)
-        {
-            fixed (void* b = &this) { return b; };
+            // Shorter idea but only C“ 8.0 :
+            //fixed (void* v = &this)
+            //{
+            //    byte* b = (byte*)v;
+            //    b += Positions[index];
+            //    return ((K*)b)[0];
+            //};
         }
 
         public IMetaAttribute Set<K>(int index, K value) where K : unmanaged
         {
-            fixed (void* v = &this)
+            switch (index)
             {
-                byte* b = (byte*)v;
-                b += Positions[index];
-                K* k = (K*)b;
-                k[0] = value;
-                return this;
-            };
+                case 0:
+                    fixed (T0* k = &attr0)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 1:
+                    fixed (T1* k = &attr1)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 2:
+                    fixed (T2* k = &attr2)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                case 3:
+                    fixed (T3* k = &attr3)
+                    {
+                        K* kk = (K*)k;
+                        kk[0] = value;
+                        return this;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

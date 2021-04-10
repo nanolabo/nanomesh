@@ -172,7 +172,7 @@ namespace Nanomesh
             _matrices[position] = symmetricMatrix;
         }
 
-        private readonly HashSet<int> _adjacentEdges = new HashSet<int>(3);
+        private readonly HashSet<int> _adjacentEdges = new HashSet<int>();
 
         private IEnumerable<int> GetAdjacentPositions(int nodeIndex, int nodeAvoid)
         {

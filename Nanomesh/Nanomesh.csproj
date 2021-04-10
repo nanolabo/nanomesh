@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <Configurations>Debug;Release;Obfuscated;Native;Symbols</Configurations>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Configurations>Symbols;Debug;Release;Obfuscated;Native</Configurations>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>

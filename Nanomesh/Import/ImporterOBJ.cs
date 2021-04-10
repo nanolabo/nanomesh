@@ -22,7 +22,7 @@ namespace Nanomesh
             return mesh;
         }
 
-        public static SharedMesh Load(StreamReader reader)
+        public unsafe static SharedMesh Load(StreamReader reader)
         {
             SharedMesh mesh = new SharedMesh();
 
@@ -36,7 +36,7 @@ namespace Nanomesh
 
             Dictionary<ObjVertexData, int> vertexData = new Dictionary<ObjVertexData, int>();
 
-            Span<ObjVertexData> datas = stackalloc ObjVertexData[10];
+            ObjVertexData* datas = stackalloc ObjVertexData[10];
 
             string line;
 

@@ -16,6 +16,17 @@ namespace Nanomesh
             return array;
         }
 
+        public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, V value)
+        {
+            if (dictionary.ContainsKey(key))
+            {
+                return false;
+            }
+
+            dictionary.Add(key, value);
+            return true;
+        }
+
         public static bool TryAdd<K, V>(this Dictionary<K, V> dictionary, K key, Func<K, V> valueFactory)
         {
             if (dictionary.ContainsKey(key))

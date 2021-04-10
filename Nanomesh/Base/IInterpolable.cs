@@ -2,6 +2,6 @@
 {
     public interface IInterpolable<T>
     {
-        public T Interpolate(T other, double ratio);
+        T Interpolate(T other, double ratio);
     }
 }
