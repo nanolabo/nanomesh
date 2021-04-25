@@ -39,7 +39,8 @@ namespace Nanomesh
 
         public override int GetHashCode()
         {
-            return x.GetHashCode() ^ (y.GetHashCode() << 2) ^ (z.GetHashCode() >> 2);
+            return Vector3FComparer.Default.GetHashCode(this);
+            //return x.GetHashCode() ^ (y.GetHashCode() << 2) ^ (z.GetHashCode() >> 2);
         }
 
         public override bool Equals(object other)
@@ -54,7 +55,8 @@ namespace Nanomesh
 
         public bool Equals(Vector3F other)
         {
-            return x == other.x && y == other.y && z == other.z;
+            return Vector3FComparer.Default.Equals(this, other);
+            //return x == other.x && y == other.y && z == other.z;
         }
 
         public static Vector3F operator +(in Vector3F a, in Vector3F b) { return new Vector3F(a.x + b.x, a.y + b.y, a.z + b.z); }
@@ -165,6 +167,6 @@ namespace Nanomesh
             return $"{x}, {y}, {z}";
         }
 
-        public Vector3F Interpolate(Vector3F other, double ratio) => ratio * this + (1 - ratio) * other;
+        public Vector3F Interpolate(Vector3F other, double ratio) => (ratio * this + (1 - ratio) * other).Normalized;
     }
 }

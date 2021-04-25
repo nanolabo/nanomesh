@@ -416,7 +416,7 @@ namespace Nanomesh
 
         public void MergePositions(double tolerance = 0.01)
         {
-            Dictionary<Vector3, int> newPositions = new Dictionary<Vector3, int>(new Vector3Comparer(tolerance));
+            Dictionary<Vector3, int> newPositions = new Dictionary<Vector3, int>(tolerance <= 0 ? null : new Vector3Comparer(tolerance));
 
             for (int i = 0; i < positions.Length; i++)
             {
@@ -484,6 +484,21 @@ namespace Nanomesh
                     }
                     lastPos = currPos;
                 }
+            }
+        }
+
+        public void MergeAttributes()
+        {
+            Dictionary<IMetaAttribute, int> _uniqueAttributes = new Dictionary<IMetaAttribute, int>();
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                _uniqueAttributes.TryAdd(attributes[nodes[i].attribute], nodes[i].attribute);
+            }
+
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                nodes[i].attribute = _uniqueAttributes[attributes[nodes[i].attribute]];
             }
         }
 

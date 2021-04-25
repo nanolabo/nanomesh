@@ -397,7 +397,7 @@ namespace Nanomesh
             Vector3 positionN = pair.result;
             double AN = Vector3.Magnitude(positionA - positionN);
             double BN = Vector3.Magnitude(positionB - positionN);
-            double ratio = MathUtils.DivideSafe(AN, AN + BN);
+            double ratio = 1 - MathUtils.DivideSafe(AN, AN + BN);
 
             /* // Other way (same results I think)
             double ratio = 0;
@@ -407,6 +407,9 @@ namespace Nanomesh
             ratio /= (positionB - positionA).Length;
 			*/
 
+            // TODO : Probleme d'interpolation
+
+            
             int siblingOfA = nodeIndexA;
             do // Iterator over faces around A
             {
@@ -415,10 +418,10 @@ namespace Nanomesh
                 {
                     if (_mesh.nodes[relativeOfA].position == posB)
                     {
-                        if (!procAttributes.Add(relativeOfA))
+                        if (!procAttributes.Add(_mesh.nodes[siblingOfA].attribute))
                             continue;
 
-                        if (!procAttributes.Add(siblingOfA))
+                        if (!procAttributes.Add(_mesh.nodes[relativeOfA].attribute))
                             continue;
 
                         if (_mesh.attributes != null && _mesh.attributeDefinitions.Length > 0)
@@ -436,39 +439,56 @@ namespace Nanomesh
                                     float dot = Vector3F.Dot(normalA, normalB);
 
                                     float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
-                                    if (dot < MergeNormalsThreshold)
-                                    {
-                                        continue;
-                                    }
+                                    //if (dot < MergeNormalsThreshold)
+                                    //{
+                                    //    continue;
+                                    //}
                                 }
+                                //_mesh.nodes[siblingOfA].attribute = _mesh.nodes[relativeOfA].attribute;
                                 _mesh.attributes.Interpolate(i, _mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
                             }
                         }
-                        break;
                     }
                 } while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
 
             } while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+            
+
+            /*
+            int attrIndex = _mesh.nodes[nodeIndexA].attribute;
+
+            int siblingOfA = nodeIndexA;
+            do
+            {
+                _mesh.nodes[siblingOfA].attribute = attrIndex;
+            } while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
+
+            int siblingOfB = nodeIndexB;
+            do
+            {
+                _mesh.nodes[siblingOfB].attribute = attrIndex;
+            } while ((siblingOfB = _mesh.nodes[siblingOfB].sibling) != nodeIndexB);
+            */
         }
 
-        private Dictionary<int, int> _uniqueAttributes = new Dictionary<int, int>();
+        private Dictionary<IMetaAttribute, int> _uniqueAttributes = new Dictionary<IMetaAttribute, int>();
 
-        //private void MergeAttributes(int nodeIndex)
-        //{
-        //    _uniqueAttributes.Clear();
+        private void MergeAttributes(int nodeIndex)
+        {
+            _uniqueAttributes.Clear();
 
-        //    int sibling = nodeIndex;
-        //    do
-        //    {
-        //        _uniqueAttributes.TryAdd(sibling, sibling);
-        //    } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+            int sibling = nodeIndex;
+            do
+            {
+                _uniqueAttributes.TryAdd(_mesh.attributes[_mesh.nodes[sibling].attribute], _mesh.nodes[sibling].attribute);
+            } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
 
-        //    sibling = nodeIndex;
-        //    do
-        //    {
-        //        _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.nodes[sibling].attribute];
-        //    } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
-        //}
+            sibling = nodeIndex;
+            do
+            {
+                _mesh.nodes[sibling].attribute = _uniqueAttributes[_mesh.attributes[_mesh.nodes[sibling].attribute]];
+            } while ((sibling = _mesh.nodes[sibling].sibling) != nodeIndex);
+        }
 
         private readonly HashSet<EdgeCollapse> _edgeToRefresh = new HashSet<EdgeCollapse>();
 
@@ -529,7 +549,7 @@ namespace Nanomesh
 
             _mesh.positions[posA] = pair.result;
 
-            //MergeAttributes(validNode);
+            MergeAttributes(validNode);
 
             CalculateQuadric(posA);
 

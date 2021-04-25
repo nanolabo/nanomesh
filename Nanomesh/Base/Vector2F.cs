@@ -113,7 +113,8 @@ namespace Nanomesh
 
         public bool Equals(Vector2F other)
         {
-            return x == other.x && y == other.y;
+            return Vector2FComparer.Default.Equals(this, other);
+            //return x == other.x && y == other.y;
         }
 
         public static Vector2F Reflect(Vector2F inDirection, Vector2F inNormal)

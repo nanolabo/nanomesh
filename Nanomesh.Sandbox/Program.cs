@@ -29,7 +29,7 @@ namespace Nanomesh.Sandbox
             //ConnectedMesh mesh = PrimitiveUtils.CreateIcoSphere(1, 6).ToConnectedMesh();
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
 
-            //mesh.MergePositions(0.001);
+            mesh.MergePositions(0.01);
 
             //Console.WriteLine("Polycount : " + mesh.FaceCount);
 
@@ -37,7 +37,7 @@ namespace Nanomesh.Sandbox
             DecimateModifier decimateModifier = new DecimateModifier();
             //decimateModifier.DecimateToError(mesh, 0);
             decimateModifier.Initialize(mesh);
-            decimateModifier.DecimateToRatio(0.5f);
+            decimateModifier.DecimateToRatio(0.25f);
             //decimateModifier.DecimateToPolycount(mesh, 406543);
             //decimateModifier.DecimateToPolycount(mesh, 5000);
             Console.WriteLine(Profiling.End("Decimating"));
