@@ -37,10 +37,11 @@ namespace Nanomesh
             _mins = new LinkedHashSet<EdgeCollapse>();
 
             InitializePairs();
-
+            
             for (int p = 0; p < _mesh.PositionToNode.Length; p++)
             {
-                CalculateQuadric(p);
+                if (_mesh.PositionToNode[p] != -1)
+                    CalculateQuadric(p);
             }
 
             foreach (EdgeCollapse pair in _pairs)
@@ -87,6 +88,9 @@ namespace Nanomesh
         {
             EdgeCollapse pair = GetPairWithMinimumError();
 
+            if (pair == null)
+                return;
+
             Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
             Debug.Assert(pair.error < _OFFSET_NOCOLLAPSE, "Decimation is too aggressive");
 
@@ -104,9 +108,7 @@ namespace Nanomesh
         private EdgeCollapse GetPairWithMinimumError()
         {
             if (_mins.Count == 0)
-            {
                 ComputeMins();
-            }
 
             LinkedHashSet<EdgeCollapse>.LinkedHashNode<EdgeCollapse> edge = _mins.First;
 

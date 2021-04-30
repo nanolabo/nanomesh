@@ -41,6 +41,9 @@ namespace Nanomesh
 
             public bool Equals(EdgeCollapse pc)
             {
+                if (ReferenceEquals(pc, null))
+                    return false;
+
                 if (ReferenceEquals(this, pc))
                 {
                     return true;
@@ -74,16 +77,6 @@ namespace Nanomesh
             public static bool operator <=(EdgeCollapse x, EdgeCollapse y)
             {
                 return x.error <= y.error;
-            }
-
-            public static bool operator ==(EdgeCollapse x, EdgeCollapse y)
-            {
-                return x.Equals(y);
-            }
-
-            public static bool operator !=(EdgeCollapse x, EdgeCollapse y)
-            {
-                return !x.Equals(y);
             }
 
             public override string ToString()

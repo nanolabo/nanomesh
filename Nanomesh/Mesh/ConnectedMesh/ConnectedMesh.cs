@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Nanomesh
 {
@@ -218,6 +219,9 @@ namespace Nanomesh
 
                     faceEdgeCount++;
                 } while ((relativeOfA = nodes[relativeOfA].relative) != siblingOfA);
+
+                if (faceEdgeCount != 3)
+                    throw new NotImplementedException();
 
                 if (isFaceTouched && faceEdgeCount == 3)
                 {
@@ -510,6 +514,7 @@ namespace Nanomesh
                 nodes[relative].MarkRemoved();
                 ReconnectSiblings(relative);
             } while ((relative = nodes[relative].relative) != nodeIndex);
+            _faceCount--;
         }
 
         public void Scale(double factor)
