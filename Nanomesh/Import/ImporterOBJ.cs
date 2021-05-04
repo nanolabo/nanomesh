@@ -115,7 +115,7 @@ namespace Nanomesh
             if (normals.Count > 0)
             {
                 int k = attributeDefinitions.Count;
-                attributeDefinitions.Add(new AttributeDefinition(AttributeType.Normals));
+                attributeDefinitions.Add(new AttributeDefinition(AttributeType.Normals, 10));
                 attributes = attributes.AddAttributeType<Vector3F>();
                 foreach (var pair in vertexData)
                 {
@@ -128,12 +128,9 @@ namespace Nanomesh
                 int k = attributeDefinitions.Count;
                 attributeDefinitions.Add(new AttributeDefinition(AttributeType.UVs));
                 attributes = attributes.AddAttributeType<Vector2F>();
-                for (int i = 0; i < uvs.Count; i++)
+                foreach (var pair in vertexData)
                 {
-                    foreach (var pair in vertexData)
-                    {
-                        attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector2F(uvs[pair.Key.uv].x, uvs[pair.Key.uv].y));
-                    }
+                    attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector2F(uvs[pair.Key.uv].x, uvs[pair.Key.uv].y));
                 }
             }
 
