@@ -440,13 +440,12 @@ namespace Nanomesh
 
                                     float dot = Vector3F.Dot(normalA, normalB);
 
-                                    float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
-                                    //if (dot < MergeNormalsThreshold)
-                                    //{
-                                    //    continue;
-                                    //}
+                                    if (dot < MergeNormalsThreshold)
+                                    {
+                                        continue;
+                                    }
                                 }
-                                //_mesh.nodes[siblingOfA].attribute = _mesh.nodes[relativeOfA].attribute;
+
                                 _mesh.attributes.Interpolate(i, _mesh.nodes[siblingOfA].attribute, _mesh.nodes[relativeOfA].attribute, ratio);
                             }
                         }
