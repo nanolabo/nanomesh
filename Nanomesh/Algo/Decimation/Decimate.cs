@@ -10,6 +10,7 @@ namespace Nanomesh
         public static bool UpdateFarNeighbors = false;
         public static bool UpdateMinsOnCollapse = true;
         public static float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
+        public static float CollapseToMidpointPenalty = 0.5f;
 
         private ConnectedMesh _mesh;
 
@@ -278,7 +279,7 @@ namespace Nanomesh
                 }
             }
 
-            errorCollapseToC *= 0.5;
+            errorCollapseToC *= CollapseToMidpointPenalty;
 
             MathUtils.SelectMin(
                 errorCollapseToO, errorCollapseToA, errorCollapseToB, errorCollapseToC,
