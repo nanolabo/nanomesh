@@ -42,13 +42,13 @@ namespace Nanomesh
             connectedMesh.attributeDefinitions = attributeDefinitions;
 
             // Building relatives
-            var nodes = new ConnectedMesh.Node[triangles.Length];
+            ConnectedMesh.Node[] nodes = new ConnectedMesh.Node[triangles.Length];
             Dictionary<int, List<int>> vertexToNodes = new Dictionary<int, List<int>>();
             for (int i = 0; i < triangles.Length; i += 3)
             {
-                var A = new ConnectedMesh.Node();
-                var B = new ConnectedMesh.Node();
-                var C = new ConnectedMesh.Node();
+                ConnectedMesh.Node A = new ConnectedMesh.Node();
+                ConnectedMesh.Node B = new ConnectedMesh.Node();
+                ConnectedMesh.Node C = new ConnectedMesh.Node();
 
                 A.position = triangles[i];
                 B.position = triangles[i + 1];

@@ -68,9 +68,9 @@ namespace Nanomesh
                 } while ((sibling1 = mesh.nodes[sibling1].sibling) != nodeIndex);
             }
 
-			// Assign new attributes
+            // Assign new attributes
 
-			// TODO : Fix
-		}
-	}
+            // TODO : Fix
+        }
+    }
 }

@@ -26,7 +26,7 @@ namespace Nanomesh
 
     public class EmptyMetaAttributeList : MetaAttributeList
     {
-        private int _length;
+        private readonly int _length;
 
         public EmptyMetaAttributeList(int length)
         {
@@ -64,7 +64,7 @@ namespace Nanomesh
     public class MetaAttributeList<T0> : MetaAttributeList
         where T0 : unmanaged, IInterpolable<T0>
     {
-        private MetaAttribute<T0>[] _attributes;
+        private readonly MetaAttribute<T0>[] _attributes;
 
         public MetaAttributeList(int length)
         {
@@ -108,7 +108,7 @@ namespace Nanomesh
 
         public override MetaAttributeList AddAttributeType<T>()
         {
-            var newAttributes = new MetaAttributeList<T0, T>(_attributes.Length);
+            MetaAttributeList<T0, T> newAttributes = new MetaAttributeList<T0, T>(_attributes.Length);
             for (int i = 0; i < Count; i++)
                 newAttributes.Set(new MetaAttribute<T0, T>(_attributes[i].attr0, default(T)), i);
             return newAttributes;
@@ -123,7 +123,7 @@ namespace Nanomesh
         where T0 : unmanaged, IInterpolable<T0>
         where T1 : unmanaged, IInterpolable<T1>
     {
-        private MetaAttribute<T0, T1>[] _attributes;
+        private readonly MetaAttribute<T0, T1>[] _attributes;
 
         public MetaAttributeList(int length)
         {
@@ -180,7 +180,7 @@ namespace Nanomesh
 
         public override MetaAttributeList AddAttributeType<T>()
         {
-            var newAttributes = new MetaAttributeList<T0, T1, T>(_attributes.Length);
+            MetaAttributeList<T0, T1, T> newAttributes = new MetaAttributeList<T0, T1, T>(_attributes.Length);
             for (int i = 0; i < Count; i++)
                 newAttributes.Set(new MetaAttribute<T0, T1, T>(_attributes[i].attr0, _attributes[i].attr1, default(T)), i);
             return newAttributes;
@@ -196,7 +196,7 @@ namespace Nanomesh
         where T1 : unmanaged, IInterpolable<T1>
         where T2 : unmanaged, IInterpolable<T2>
     {
-        private MetaAttribute<T0, T1, T2>[] _attributes;
+        private readonly MetaAttribute<T0, T1, T2>[] _attributes;
 
         public MetaAttributeList(int length)
         {
@@ -259,7 +259,7 @@ namespace Nanomesh
 
         public override MetaAttributeList AddAttributeType<T>()
         {
-            var newAttributes = new MetaAttributeList<T0, T1, T2, T>(_attributes.Length);
+            MetaAttributeList<T0, T1, T2, T> newAttributes = new MetaAttributeList<T0, T1, T2, T>(_attributes.Length);
             for (int i = 0; i < Count; i++)
                 newAttributes.Set(new MetaAttribute<T0, T1, T2, T>(_attributes[i].attr0, _attributes[i].attr1, _attributes[i].attr2, default(T)), i);
             return newAttributes;
@@ -276,7 +276,7 @@ namespace Nanomesh
         where T2 : unmanaged, IInterpolable<T2>
         where T3 : unmanaged, IInterpolable<T3>
     {
-        private MetaAttribute<T0, T1, T2, T3>[] _attributes;
+        private readonly MetaAttribute<T0, T1, T2, T3>[] _attributes;
 
         public MetaAttributeList(int length)
         {
@@ -345,7 +345,7 @@ namespace Nanomesh
 
         public override MetaAttributeList AddAttributeType<T>()
         {
-            var newAttributes = new MetaAttributeList<T0, T1, T2, T3, T>(_attributes.Length);
+            MetaAttributeList<T0, T1, T2, T3, T> newAttributes = new MetaAttributeList<T0, T1, T2, T3, T>(_attributes.Length);
             for (int i = 0; i < Count; i++)
                 newAttributes.Set(new MetaAttribute<T0, T1, T2, T3, T>(_attributes[i].attr0, _attributes[i].attr1, _attributes[i].attr2, _attributes[i].attr3, default(T)), i);
             return newAttributes;
@@ -363,7 +363,7 @@ namespace Nanomesh
         where T3 : unmanaged, IInterpolable<T3>
         where T4 : unmanaged, IInterpolable<T4>
     {
-        private MetaAttribute<T0, T1, T2, T3, T4>[] _attributes;
+        private readonly MetaAttribute<T0, T1, T2, T3, T4>[] _attributes;
 
         public MetaAttributeList(int length)
         {

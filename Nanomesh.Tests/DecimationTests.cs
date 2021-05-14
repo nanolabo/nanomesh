@@ -93,7 +93,7 @@ namespace Nanomesh.Tests
             Assert.IsTrue(mesh.Check());
             Assert.IsTrue(mesh.FaceCount == 0);
         }
-        
+
         [Test]
         [Category("Decimate")]
         [Category("Import")]

@@ -102,7 +102,7 @@ namespace Nanomesh
             // Order from biggest to smallest weight, and drop bones above 4th
             float totalWeight = 0;
             int k = 0;
-            foreach (var boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
+            foreach (KeyValuePair<int, float> boneWeightN in newBoneWeight.OrderByDescending(x => x.Value))
             {
                 newIndices[k] = boneWeightN.Key;
                 newWeights[k] = boneWeightN.Value;
@@ -123,7 +123,7 @@ namespace Nanomesh
 
             return new BoneWeight(
                 newIndices[0], newIndices[1], newIndices[2], newIndices[3],
-				newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
+                newWeights[0], newWeights[1], newWeights[2], newWeights[3]);
 
             //return new BoneWeight(
             //    ratio < 0.5f ? index0 : other.index0,

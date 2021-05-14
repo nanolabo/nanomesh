@@ -30,6 +30,8 @@ namespace Nanomesh.Sandbox
             //ConnectedMesh mesh = ConnectedMesh.Build(PrimitiveUtils.CreatePlane(3, 3));
 
             mesh.MergePositions(0.01);
+            mesh.MergeAttributes();
+            mesh.Compact();
 
             //Console.WriteLine("Polycount : " + mesh.FaceCount);
 

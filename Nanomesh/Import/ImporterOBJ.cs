@@ -22,7 +22,7 @@ namespace Nanomesh
             return mesh;
         }
 
-        public unsafe static SharedMesh Load(StreamReader reader)
+        public static unsafe SharedMesh Load(StreamReader reader)
         {
             SharedMesh mesh = new SharedMesh();
 
@@ -117,7 +117,7 @@ namespace Nanomesh
                 int k = attributeDefinitions.Count;
                 attributeDefinitions.Add(new AttributeDefinition(AttributeType.Normals, 10));
                 attributes = attributes.AddAttributeType<Vector3F>();
-                foreach (var pair in vertexData)
+                foreach (KeyValuePair<ObjVertexData, int> pair in vertexData)
                 {
                     attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector3F(normals[pair.Key.normal].x, normals[pair.Key.normal].y, normals[pair.Key.normal].z));
                 }
@@ -128,7 +128,7 @@ namespace Nanomesh
                 int k = attributeDefinitions.Count;
                 attributeDefinitions.Add(new AttributeDefinition(AttributeType.UVs));
                 attributes = attributes.AddAttributeType<Vector2F>();
-                foreach (var pair in vertexData)
+                foreach (KeyValuePair<ObjVertexData, int> pair in vertexData)
                 {
                     attributes[pair.Value] = attributes[pair.Value].Set(k, new Vector2F(uvs[pair.Key.uv].x, uvs[pair.Key.uv].y));
                 }

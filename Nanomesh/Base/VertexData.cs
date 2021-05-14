@@ -20,7 +20,7 @@ namespace Nanomesh
             {
                 int hash = 17;
                 hash = hash * 31 + position;
-                foreach (var attr in attributes)
+                foreach (object attr in attributes)
                 {
                     hash = hash * 31 + attr.GetHashCode();
                 }

@@ -7,9 +7,9 @@ namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-        public bool UpdateFarNeighbors = false;
-        public bool UpdateMinsOnCollapse = true;
-        public float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
+        public static bool UpdateFarNeighbors = false;
+        public static bool UpdateMinsOnCollapse = true;
+        public static float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
 
         private ConnectedMesh _mesh;
 
@@ -37,7 +37,7 @@ namespace Nanomesh
             _mins = new LinkedHashSet<EdgeCollapse>();
 
             InitializePairs();
-            
+
             for (int p = 0; p < _mesh.PositionToNode.Length; p++)
             {
                 if (_mesh.PositionToNode[p] != -1)
@@ -206,6 +206,8 @@ namespace Nanomesh
             return edge.Weight;
         }
 
+        public static bool UseEdgeLength = true;
+
         private void CalculateError(EdgeCollapse pair)
         {
             Debug.Assert(_mesh.CheckEdge(_mesh.PositionToNode[pair.posA], _mesh.PositionToNode[pair.posB]));
@@ -217,11 +219,6 @@ namespace Nanomesh
             int nodeA = _mesh.PositionToNode[pair.posA];
             int nodeB = _mesh.PositionToNode[pair.posB];
 
-            //EdgeTopology edgeTopo = GetEdgeTopo(pair);
-
-            double errorCollapseToA;
-            double errorCollapseToB;
-            double errorCollapseToC ;
             double errorCollapseToO;
             Vector3 posO = Vector3.PositiveInfinity;
 
@@ -246,9 +243,9 @@ namespace Nanomesh
                 errorCollapseToO = _OFFSET_NOCOLLAPSE;
             }
 
-            errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
-            errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
-            errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
+            double errorCollapseToA = ComputeVertexError(q, posA.x, posA.y, posA.z);
+            double errorCollapseToB = ComputeVertexError(q, posB.x, posB.y, posB.z);
+            double errorCollapseToC = ComputeVertexError(q, posC.x, posC.y, posC.z);
 
             int pA = _mesh.nodes[nodeA].position;
             int pB = _mesh.nodes[nodeB].position;
@@ -256,9 +253,6 @@ namespace Nanomesh
             // We multiply by edge length to be agnotics with quadrics error.
             // Otherwise it becomes too scale dependent
             double length = (posB - posA).Length;
-            double coeff_hard = 1.0 * length;
-            double coeff_uvs = 2.0 * length;
-            double coeff_border = 3.0 * length;
 
             foreach (int pD in GetAdjacentPositions(nodeA, nodeB))
             {
@@ -266,7 +260,7 @@ namespace Nanomesh
                 EdgeCollapse edge = new EdgeCollapse(pA, pD);
                 if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
                 {
-                    var weight = GetEdgeTopo(realEdge);
+                    double weight = GetEdgeTopo(realEdge);
                     errorCollapseToB += weight * length * ComputeLineicError(posB, posD, posA);
                     errorCollapseToC += weight * length * ComputeLineicError(posC, posD, posA);
                 }
@@ -278,7 +272,7 @@ namespace Nanomesh
                 EdgeCollapse edge = new EdgeCollapse(pB, pD);
                 if (_pairs.TryGetValue(edge, out EdgeCollapse realEdge))
                 {
-                    var weight = GetEdgeTopo(realEdge);
+                    double weight = GetEdgeTopo(realEdge);
                     errorCollapseToA += weight * length * ComputeLineicError(posA, posD, posB);
                     errorCollapseToC += weight * length * ComputeLineicError(posC, posD, posB);
                 }
@@ -290,14 +284,6 @@ namespace Nanomesh
                 errorCollapseToO, errorCollapseToA, errorCollapseToB, errorCollapseToC,
                 posO, posA, posB, posC,
                 out pair.error, out pair.result);
-
-            // Contrary to smooth edge, we know right away here that there will both nodes are not smooth
-            // We will still rely on quadrics if the only hard edge is the edge to collapse, but we add
-            // a penalty
-            //if (edgeTopo == EdgeTopology.HardEdge)
-            //{
-            //	pair.error *= 1;
-            //}
 
             pair.error = Math.Max(0d, pair.error);
 
@@ -411,7 +397,7 @@ namespace Nanomesh
 
             // TODO : Probleme d'interpolation
 
-            
+
             int siblingOfA = nodeIndexA;
             do // Iterator over faces around A
             {
@@ -428,8 +414,8 @@ namespace Nanomesh
 
                         if (_mesh.attributes != null && _mesh.attributeDefinitions.Length > 0)
                         {
-                            var attributeA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute];
-                            var attributeB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute];
+                            IMetaAttribute attributeA = _mesh.attributes[_mesh.nodes[siblingOfA].attribute];
+                            IMetaAttribute attributeB = _mesh.attributes[_mesh.nodes[relativeOfA].attribute];
 
                             for (int i = 0; i < _mesh.attributeDefinitions.Length; i++)
                             {
@@ -453,7 +439,7 @@ namespace Nanomesh
                 } while ((relativeOfA = _mesh.nodes[relativeOfA].relative) != siblingOfA);
 
             } while ((siblingOfA = _mesh.nodes[siblingOfA].sibling) != nodeIndexA);
-            
+
 
             /*
             int attrIndex = _mesh.nodes[nodeIndexA].attribute;
@@ -472,7 +458,7 @@ namespace Nanomesh
             */
         }
 
-        private Dictionary<IMetaAttribute, int> _uniqueAttributes = new Dictionary<IMetaAttribute, int>();
+        private readonly Dictionary<IMetaAttribute, int> _uniqueAttributes = new Dictionary<IMetaAttribute, int>();
 
         private void MergeAttributes(int nodeIndex)
         {

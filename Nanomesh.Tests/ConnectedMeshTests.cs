@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using System.Linq;
 
 namespace Nanomesh.Tests
 {
@@ -44,7 +43,7 @@ namespace Nanomesh.Tests
 
             Assert.IsTrue(mesh.GetEdgeCount(0) == 3);
         }
-        
+
         [Test]
         [Category("ConnectedMesh")]
         public void AreNodesConnected()

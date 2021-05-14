@@ -3,23 +3,23 @@ using System.Runtime.InteropServices;
 
 namespace Nanomesh
 {
-	[StructLayout(LayoutKind.Explicit)]
-	public readonly struct Color32 : IEquatable<Color32>, IInterpolable<Color32>
-	{
-		[FieldOffset(0)]
-		internal readonly int rgba;
+    [StructLayout(LayoutKind.Explicit)]
+    public readonly struct Color32 : IEquatable<Color32>, IInterpolable<Color32>
+    {
+        [FieldOffset(0)]
+        internal readonly int rgba;
 
-		[FieldOffset(0)]
-		public readonly byte r;
+        [FieldOffset(0)]
+        public readonly byte r;
 
-		[FieldOffset(1)]
-		public readonly byte g;
+        [FieldOffset(1)]
+        public readonly byte g;
 
-		[FieldOffset(2)]
-		public readonly byte b;
+        [FieldOffset(2)]
+        public readonly byte b;
 
-		[FieldOffset(3)]
-		public readonly byte a;
+        [FieldOffset(3)]
+        public readonly byte a;
 
         public Color32(byte r, byte g, byte b, byte a)
         {
@@ -50,7 +50,7 @@ namespace Nanomesh
 
         public bool Equals(Color32 other)
         {
-			return other.rgba == rgba;
+            return other.rgba == rgba;
         }
 
         public Color32 Interpolate(Color32 other, double ratio)

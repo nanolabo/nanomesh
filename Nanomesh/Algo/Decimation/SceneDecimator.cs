@@ -28,7 +28,7 @@ namespace Nanomesh
                 else
                 {
                     _modifiers.Add(mesh, modifier = new ModifierAndOccurrences());
-                    System.Console.WriteLine($"Faces:{mesh.FaceCount}");
+                    //System.Console.WriteLine($"Faces:{mesh.FaceCount}");
                     modifier.modifier.Initialize(mesh);
                 }
 
@@ -54,7 +54,7 @@ namespace Nanomesh
 
         public void DecimateToPolycount(int targetTriangleCount)
         {
-            System.Console.WriteLine($"Faces:{_faceCount} Target:{targetTriangleCount}");
+            //System.Console.WriteLine($"Faces:{_faceCount} Target:{targetTriangleCount}");
             while (_faceCount > targetTriangleCount)
             {
                 KeyValuePair<ConnectedMesh, ModifierAndOccurrences> pair = _modifiers.OrderBy(x => x.Value.modifier.GetMinimumError()).First();

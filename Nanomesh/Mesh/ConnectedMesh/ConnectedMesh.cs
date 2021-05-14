@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Nanomesh
 {
@@ -310,6 +309,8 @@ namespace Nanomesh
             return edgeWeight;
         }
 
+        internal static double EdgeBorderPenalty = 100;
+
         // TODO : Make it work with any polygon (other than triangle)
         public Vector3 GetFaceNormal(int nodeIndex)
         {
@@ -390,7 +391,7 @@ namespace Nanomesh
                     nodes[i].position = oldToNewPosIndex[nodes[i].position];
                 }
                 Vector3[] newPositions = new Vector3[oldToNewPosIndex.Count];
-                foreach (var oldToNewPos in oldToNewPosIndex)
+                foreach (KeyValuePair<int, int> oldToNewPos in oldToNewPosIndex)
                 {
                     newPositions[oldToNewPos.Value] = positions[oldToNewPos.Key];
                 }
@@ -398,7 +399,8 @@ namespace Nanomesh
             }
 
             // Remap attributes
-            if (attributes != null) {
+            if (attributes != null)
+            {
                 Dictionary<int, int> oldToNewAttrIndex = new Dictionary<int, int>();
                 for (int i = 0; i < nodes.Length; i++)
                 {
@@ -408,7 +410,7 @@ namespace Nanomesh
                     nodes[i].attribute = oldToNewAttrIndex[nodes[i].attribute];
                 }
                 MetaAttributeList newAttributes = attributes.CreateNew(oldToNewAttrIndex.Count);
-                foreach (var oldToNewAttr in oldToNewAttrIndex)
+                foreach (KeyValuePair<int, int> oldToNewAttr in oldToNewAttrIndex)
                 {
                     newAttributes[oldToNewAttr.Value] = attributes[oldToNewAttr.Key];
                 }
@@ -559,8 +561,8 @@ namespace Nanomesh
 
             SharedMesh mesh = new SharedMesh();
 
-            var triangles = new List<int>();
-            var browsedNodes = new HashSet<int>();
+            List<int> triangles = new List<int>();
+            HashSet<int> browsedNodes = new HashSet<int>();
 
             Group[] newGroups = new Group[groups?.Length ?? 0];
             mesh.groups = newGroups;
@@ -569,7 +571,7 @@ namespace Nanomesh
             int currentGroup = 0;
             int indicesInGroup = 0;
 
-            var perVertexMap = new Dictionary<(int, int), int>();
+            Dictionary<(int, int), int> perVertexMap = new Dictionary<(int, int), int>();
 
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -605,7 +607,7 @@ namespace Nanomesh
                 {
                     if (browsedNodes.Add(relative) && !nodes[relative].IsRemoved)
                     {
-                        var key = (nodes[relative].position, nodes[relative].attribute);
+                        (int position, int attribute) key = (nodes[relative].position, nodes[relative].attribute);
                         perVertexMap.TryAdd(key, perVertexMap.Count);
                         triangles.Add(perVertexMap[key]);
                     }
@@ -619,7 +621,7 @@ namespace Nanomesh
 
             // Positions
             mesh.positions = new Vector3[perVertexMap.Count];
-            foreach (var mapping in perVertexMap)
+            foreach (KeyValuePair<(int, int), int> mapping in perVertexMap)
             {
                 mesh.positions[mapping.Value] = positions[mapping.Key.Item1];
             }
@@ -628,7 +630,7 @@ namespace Nanomesh
             if (attributes != null && attributeDefinitions.Length > 0)
             {
                 mesh.attributes = attributes.CreateNew(perVertexMap.Count);
-                foreach (var mapping in perVertexMap)
+                foreach (KeyValuePair<(int, int), int> mapping in perVertexMap)
                 {
                     mesh.attributes[mapping.Value] = attributes[mapping.Key.Item2];
                 }
