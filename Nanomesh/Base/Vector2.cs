@@ -70,7 +70,7 @@ namespace Nanomesh
         public static Vector2 Normalize(in Vector2 value)
         {
             double mag = Magnitude(in value);
-            if (mag > kEpsilon)
+            if (mag > K_EPSILON)
             {
                 return value / mag;
             }
@@ -146,7 +146,7 @@ namespace Nanomesh
         {
             // sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
             double denominator = Math.Sqrt(from.SqrMagnitude() * to.SqrMagnitude());
-            if (denominator < kEpsilonNormalSqrt)
+            if (denominator < K_EPSILON_NORMAL_SQRT)
             {
                 return 0F;
             }
@@ -302,7 +302,7 @@ namespace Nanomesh
             // Returns false in the presence of NaN values.
             double diff_x = lhs.x - rhs.x;
             double diff_y = lhs.y - rhs.y;
-            return (diff_x * diff_x + diff_y * diff_y) < kEpsilon * kEpsilon;
+            return (diff_x * diff_x + diff_y * diff_y) < K_EPSILON * K_EPSILON;
         }
 
         /// <summary>
@@ -345,14 +345,14 @@ namespace Nanomesh
             return new Vector2(vec.x, vec.y);
         }
 
-        private static readonly Vector2 zeroVector = new Vector2(0F, 0F);
-        private static readonly Vector2 oneVector = new Vector2(1F, 1F);
-        private static readonly Vector2 upVector = new Vector2(0F, 1F);
-        private static readonly Vector2 downVector = new Vector2(0F, -1F);
-        private static readonly Vector2 leftVector = new Vector2(-1F, 0F);
-        private static readonly Vector2 rightVector = new Vector2(1F, 0F);
-        private static readonly Vector2 positiveInfinityVector = new Vector2(double.PositiveInfinity, double.PositiveInfinity);
-        private static readonly Vector2 negativeInfinityVector = new Vector2(double.NegativeInfinity, double.NegativeInfinity);
+        public static readonly Vector2 zeroVector = new Vector2(0F, 0F);
+        public static readonly Vector2 oneVector = new Vector2(1F, 1F);
+        public static readonly Vector2 upVector = new Vector2(0F, 1F);
+        public static readonly Vector2 downVector = new Vector2(0F, -1F);
+        public static readonly Vector2 leftVector = new Vector2(-1F, 0F);
+        public static readonly Vector2 rightVector = new Vector2(1F, 0F);
+        public static readonly Vector2 positiveInfinityVector = new Vector2(double.PositiveInfinity, double.PositiveInfinity);
+        public static readonly Vector2 negativeInfinityVector = new Vector2(double.NegativeInfinity, double.NegativeInfinity);
 
         public static Vector2 Zero => zeroVector;
 
@@ -370,8 +370,8 @@ namespace Nanomesh
 
         public static Vector2 NegativeInfinity => negativeInfinityVector;
 
-        public const double kEpsilon = 0.00001F;
+        public const double K_EPSILON = 0.00001F;
 
-        public const double kEpsilonNormalSqrt = 1e-15f;
+        public const double K_EPSILON_NORMAL_SQRT = 1e-15f;
     }
 }

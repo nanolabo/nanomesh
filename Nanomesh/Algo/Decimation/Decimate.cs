@@ -7,23 +7,26 @@ namespace Nanomesh
 {
     public partial class DecimateModifier
     {
-        public static bool UpdateFarNeighbors = false;
-        public static bool UpdateMinsOnCollapse = true;
-        public static float MergeNormalsThreshold = MathF.Cos(30 * MathF.PI / 180f);
-        public static float CollapseToMidpointPenalty = 0.5f;
+        // Heuristics
+        internal static bool UpdateFarNeighbors = false;
+        internal static bool UpdateMinsOnCollapse = true;
+        internal static float MergeNormalsThresholdDegrees = 90;
+        internal static float CollapseToMidpointPenalty = 0.2182411f;
 
-        private ConnectedMesh _mesh;
-
-        private SymmetricMatrix[] _matrices;
-        private FastHashSet<EdgeCollapse> _pairs;
-        private LinkedHashSet<EdgeCollapse> _mins;
-
-        private int _lastProgress = int.MinValue;
-        private int _initialTriangleCount;
+        // Constants
         private const double _ƐDET = 0.001f;
         private const double _ƐPRIO = 0.00001f;
         private const double _OFFSET_HARD = 1e6;
         private const double _OFFSET_NOCOLLAPSE = 1e300;
+
+        // Instance
+        private ConnectedMesh _mesh;
+        private SymmetricMatrix[] _matrices;
+        private FastHashSet<EdgeCollapse> _pairs;
+        private LinkedHashSet<EdgeCollapse> _mins;
+        private int _lastProgress = int.MinValue;
+        private int _initialTriangleCount;
+        private float _mergeNormalsThresholdCos = MathF.Cos(MergeNormalsThresholdDegrees * MathF.PI / 180f);
 
         public ConnectedMesh Mesh => _mesh;
 
@@ -427,7 +430,7 @@ namespace Nanomesh
 
                                     float dot = Vector3F.Dot(normalA, normalB);
 
-                                    if (dot < MergeNormalsThreshold)
+                                    if (dot < _mergeNormalsThresholdCos)
                                     {
                                         continue;
                                     }

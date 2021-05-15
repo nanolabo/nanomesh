@@ -303,13 +303,13 @@ namespace Nanomesh
 
             if (facesAttached < 2) // Border !
             {
-                edgeWeight += 100;
+                edgeWeight += EdgeBorderPenalty;
             }
 
             return edgeWeight;
         }
 
-        internal static double EdgeBorderPenalty = 100;
+        internal static double EdgeBorderPenalty = 355.1594;
 
         // TODO : Make it work with any polygon (other than triangle)
         public Vector3 GetFaceNormal(int nodeIndex)
