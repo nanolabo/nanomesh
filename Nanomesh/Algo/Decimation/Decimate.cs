@@ -466,6 +466,9 @@ namespace Nanomesh
 
         private void MergeAttributes(int nodeIndex)
         {
+            if (_mesh.attributeDefinitions.Length == 0)
+                return;
+
             _uniqueAttributes.Clear();
 
             int sibling = nodeIndex;
