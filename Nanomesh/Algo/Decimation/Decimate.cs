@@ -11,7 +11,7 @@ namespace Nanomesh
         internal static bool UpdateFarNeighbors = false;
         internal static bool UpdateMinsOnCollapse = true;
         internal static float MergeNormalsThresholdDegrees = 90;
-        internal static float CollapseToMidpointPenalty = 0.2182411f;
+        internal static float CollapseToMidpointPenalty = 0.4716252f;
 
         // Constants
         private const double _ƐDET = 0.001f;

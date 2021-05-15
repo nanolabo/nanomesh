@@ -309,7 +309,7 @@ namespace Nanomesh
             return edgeWeight;
         }
 
-        internal static double EdgeBorderPenalty = 355.1594;
+        internal static double EdgeBorderPenalty = 1027.007;
 
         // TODO : Make it work with any polygon (other than triangle)
         public Vector3 GetFaceNormal(int nodeIndex)
