@@ -240,7 +240,7 @@ namespace Nanomesh
                     -1d / det * q.DeterminantX(),
                     +1d / det * q.DeterminantY(),
                     -1d / det * q.DeterminantZ());
-                errorCollapseToO = ComputeVertexError(q, pair.result.x, pair.result.y, pair.result.z);
+                errorCollapseToO = ComputeVertexError(q, posO.x, posO.y, posO.z);
             }
             else
             {
